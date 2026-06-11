@@ -2,6 +2,18 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-11 — ✅ Fáze 6 – Úkoly, tickety a dashboard
+
+- `/ukoly`: seznam Moje/Všechny, filtr, checkbox dokončení, dialog nového úkolu (klient, řešitel, termín), overdue zvýraznění.
+- `/tickety`: tabulka (typ, titul, klient, priorita, stav, stáří), filtr dle stavu, dialog nového ticketu, detail v Sheet se změnou stavu.
+- `/`: dashboard s 4 kartami (pipeline leadů, faktury po splatnosti, otevřené tickety, moje úkoly) s prokliky, sekce dnešních/zpožděných úkolů.
+- `/nastaveni/sablony`: správa onboarding šablony (kroky s offsetDays), integrováno s konverzí leadu.
+- Záložky Úkoly a Tickety na detailu klienta s reálnými daty + metriky na záložce Přehled.
+- API: tasks CRUD, tickets CRUD, templates GET/PUT.
+- Firestore rules: tasks status update, tickets create/update, templates write pro admin.
+- Composite indexy pro tasks a tickets.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 5 – Fakturace a předplatné
 
 - Předplatné na detailu klienta: karta s tarifem, cenou, cyklem, stavem + dialog založení/úpravy. Tarify v `lib/plans.ts`.

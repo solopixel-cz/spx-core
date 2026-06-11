@@ -30,7 +30,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, activity, subscription, invoices in parallel
-  const [instancesSnap, activitySnap, subsSnap, invoicesSnap] =
+  const [instancesSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -50,6 +50,8 @@ export default async function ClientDetailPage({
         .where("clientId", "==", id)
         .orderBy("issuedAt", "desc")
         .get(),
+      db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
+      db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
     ]);
 
   const instances = instancesSnap.docs.map((d) => ({
@@ -107,6 +109,29 @@ export default async function ClientDetailPage({
     };
   });
 
+  const clientTasks = tasksSnap.docs.map((d) => {
+    const tData = d.data();
+    return {
+      id: d.id,
+      title: tData.title as string,
+      status: tData.status as string,
+      dueAt: tData.dueAt?.toDate?.()?.toISOString() ?? null,
+      assigneeUid: tData.assigneeUid as string,
+    };
+  });
+
+  const clientTickets = ticketsSnap.docs.map((d) => {
+    const tData = d.data();
+    return {
+      id: d.id,
+      type: tData.type as string,
+      title: tData.title as string,
+      priority: tData.priority as string,
+      status: tData.status as string,
+      createdAt: tData.createdAt?.toDate?.()?.toISOString() ?? null,
+    };
+  });
+
   return (
     <ClientDetailClient
       client={client}
@@ -114,6 +139,8 @@ export default async function ClientDetailPage({
       activities={activities}
       subscription={subscription}
       invoices={invoices}
+      tasks={clientTasks}
+      tickets={clientTickets}
     />
   );
 }

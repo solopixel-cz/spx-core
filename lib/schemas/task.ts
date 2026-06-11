@@ -14,3 +14,15 @@ export const taskSchema = z.object({
 });
 
 export type Task = z.infer<typeof taskSchema>;
+
+export const taskFormSchema = z.object({
+  title: z.string().min(1, "Titul je povinný"),
+  description: z.string().optional(),
+  clientId: z.string().optional(),
+  leadId: z.string().optional(),
+  assigneeUid: z.string().min(1, "Vyberte řešitele"),
+  dueAt: z.string().optional(),
+  status: z.enum(["open", "done"]),
+});
+
+export type TaskFormData = z.infer<typeof taskFormSchema>;

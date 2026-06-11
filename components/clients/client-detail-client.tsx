@@ -88,12 +88,16 @@ export function ClientDetailClient({
   activities,
   subscription = null,
   invoices = [],
+  tasks = [],
+  tickets = [],
 }: {
   client: ClientData;
   instances: InstanceData[];
   activities: ActivityData[];
   subscription?: SubData | null;
   invoices?: InvoiceData[];
+  tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string }>;
+  tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -195,11 +199,44 @@ export function ClientDetailClient({
         </TabsContent>
 
         <TabsContent value="ukoly" className="mt-6">
-          <p className="text-muted-foreground">Doplní fáze 6.</p>
+          {tasks.length === 0 ? (
+            <p className="text-muted-foreground">Žádné úkoly</p>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((t) => (
+                <div key={t.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <span className={`text-sm ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>{t.title}</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={t.status === "done" ? "secondary" : "outline"}>{t.status === "done" ? "Hotovo" : "Otevřený"}</Badge>
+                    {t.dueAt && <span className="text-xs text-muted-foreground">{new Date(t.dueAt).toLocaleDateString("cs-CZ")}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="tickety" className="mt-6">
-          <p className="text-muted-foreground">Doplní fáze 6.</p>
+          {tickets.length === 0 ? (
+            <p className="text-muted-foreground">Žádné tickety</p>
+          ) : (
+            <div className="space-y-2">
+              {tickets.map((t) => (
+                <div key={t.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{t.type === "bug" ? "Bug" : "Změna"}</Badge>
+                    <span className="text-sm font-medium">{t.title}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={t.priority === "urgent" || t.priority === "high" ? "destructive" : "secondary"}>
+                      {t.priority}
+                    </Badge>
+                    <Badge variant="secondary">{t.status}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="aktivita" className="mt-6">

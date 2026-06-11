@@ -50,16 +50,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Tasks — read for authenticated, write denied (opens in phase 6)
+    // Tasks — read for authenticated, status update for authenticated
     match /tasks/{taskId} {
       allow read: if isAuth();
-      allow write: if false;
+      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow create, delete: if false;
     }
 
-    // Tickets — read for authenticated, write denied (opens in phase 6)
+    // Tickets — read for authenticated, create/update for authenticated
     match /tickets/{ticketId} {
       allow read: if isAuth();
-      allow write: if false;
+      allow create, update: if isAuth();
+      allow delete: if false;
+    }
+
+    // Templates — read for authenticated, write for admin
+    match /templates/{templateId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
     }
 
     // Activity — read for authenticated, append-only (no update/delete)
