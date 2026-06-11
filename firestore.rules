@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is user authenticated?
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: is user admin?
+    function isAdmin() {
+      return isAuth() && request.auth.token.role == 'admin';
+    }
+
+    // Users — read for authenticated, write for admin only
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Clients — read for authenticated, write via admin SDK (deny client write for now)
+    match /clients/{clientId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Instances — read for authenticated, write denied (opens in later phases)
+    match /instances/{instanceId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Leads — read for authenticated, write denied (opens in phase 4)
+    match /leads/{leadId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Subscriptions — read for authenticated, write denied (opens in phase 5)
+    match /subscriptions/{subId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Invoices — read for authenticated, write denied (opens in phase 5)
+    match /invoices/{invoiceId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Tasks — read for authenticated, write denied (opens in phase 6)
+    match /tasks/{taskId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Tickets — read for authenticated, write denied (opens in phase 6)
+    match /tickets/{ticketId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Activity — read for authenticated, append-only (no update/delete)
+    match /activity/{activityId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // Counters — admin only
+    match /counters/{counterId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
