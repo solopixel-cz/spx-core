@@ -14,3 +14,16 @@ export const clientSchema = z.object({
 });
 
 export type Client = z.infer<typeof clientSchema>;
+
+/** Schema for create/edit forms (no base fields) */
+export const clientFormSchema = z.object({
+  name: z.string().min(1, "Jméno je povinné"),
+  company: z.string().optional(),
+  email: z.string().email("Zadejte platný e-mail"),
+  phone: z.string().optional(),
+  status: z.enum(["onboarding", "active", "paused", "churned"]),
+  advisorSlug: z.string().min(1, "Slug je povinný"),
+  notes: z.string().optional(),
+});
+
+export type ClientFormData = z.infer<typeof clientFormSchema>;

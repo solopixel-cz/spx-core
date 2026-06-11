@@ -6,7 +6,7 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 |------|--------|-------|------|
 | 1 | [`01-zaklad.md`](01-zaklad.md) | Scaffold: Next.js, Tailwind, shadcn, Firebase, layout shell | ✅ |
 | 2 | [`02-auth-role.md`](02-auth-role.md) | Přihlášení, custom claims role, ochrana rout, správa uživatelů | ✅ |
-| 3 | [`03-klienti-instance.md`](03-klienti-instance.md) | Modul Klienti + DBC instance, detail klienta se záložkami | ⬜ |
+| 3 | [`03-klienti-instance.md`](03-klienti-instance.md) | Modul Klienti + DBC instance, detail klienta se záložkami | ✅ |
 | 4 | [`04-leady-pipeline.md`](04-leady-pipeline.md) | Kanban pipeline, konverze lead → klient + onboarding úkoly | ⬜ |
 | 5 | [`05-fakturace.md`](05-fakturace.md) | Předplatné, faktury, číslování, přehled splatností | ⬜ |
 | 6 | [`06-ukoly-tickety.md`](06-ukoly-tickety.md) | Úkoly, onboarding šablony, tickety (bug/change request), dashboard | ⬜ |
@@ -23,5 +23,5 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 Každý prompt předpokládá, že agent:
 - přečetl Required Reading (`spec/context/agents.md` a dál),
 - drží se datového modelu ve `spec/context/data-model.md`,
-- vyvíjí proti Firebase emulátorům,
+- vyvíjí proti reálnému Firebase projektu (viz `spec/context/workflow.md` — opatrně s daty, rules nasazovat přes `firebase deploy --only firestore`),
 - končí čistým lintem + buildem a commitem se schválením.

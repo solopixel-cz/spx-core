@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-11 — ✅ Fáze 3 – Klienti a DBC instance
+
+- Seznam klientů `/klienti`: TanStack Table (jméno, firma, email, stav, slug, počet instancí, poslední aktivita), fulltext filtr, filtr dle stavu, dialog „Nový klient" (react-hook-form + zod).
+- Detail klienta `/klienti/[id]`: hlavička se stavem a akcí Upravit, záložky Přehled/Instance/Faktury/Úkoly/Tickety/Aktivita.
+- Instance tab: tabulka instancí klienta, přidání/úprava (doména, slug, stav, verze, features, repo/deploy URL, odkaz na vizitku).
+- Aktivita tab: timeline z kolekce `activity`, přidání poznámky.
+- `lib/activity.ts` — helper `logActivity()` volaný ze všech mutací.
+- API routes: `POST/PATCH /api/clients`, `GET /api/clients/[id]`, `POST/PATCH /api/instances`, `GET/POST /api/activity`.
+- Data čte Server Component přes admin SDK; mutace přes route handlers.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 2 – Auth a role
 
 - Login stránka: e-mail + heslo, react-hook-form + zod validace, české chybové hlášky.
