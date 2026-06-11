@@ -31,10 +31,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Leads — read for authenticated, write denied (opens in phase 4)
+    // Leads — read for authenticated, stage update for authenticated (drag&drop)
     match /leads/{leadId} {
       allow read: if isAuth();
-      allow write: if false;
+      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'updatedAt']);
+      allow create, delete: if false;
     }
 
     // Subscriptions — read for authenticated, write denied (opens in phase 5)

@@ -32,6 +32,6 @@ Modul Klienti — centrální entita CRM. Drž se kolekcí `clients`, `instances
 
 ## Akceptační kritéria
 
-- CRUD klienta i instance funguje proti emulátoru, aktivita se loguje a zobrazuje.
+- CRUD klienta i instance funguje (ověřeno v prohlížeči + Firebase konzoli), aktivita se loguje a zobrazuje.
 - Detail klienta naviguje mezi záložkami, prázdné stavy mají smysluplné texty česky.
 - Lint + build čisté, ověření v prohlížeči, work-log, stav fáze, commit (`feat: [changelog] modul klienti a instance`).

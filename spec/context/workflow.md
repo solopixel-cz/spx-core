@@ -12,7 +12,7 @@ Po každé významné změně kódu:
 
 1. **Lint** — `npm run lint` čistý
 2. **Build** — `npm run build` čistý (zachytí typové chyby)
-3. **Ověření v prohlížeči** — `npm run dev`, projít dotčené obrazovky; u zápisů ověřit data ve Firestore (emulátor nebo konzole)
+3. **Ověření v prohlížeči** — `npm run dev`, projít dotčené obrazovky; u zápisů ověřit data ve Firebase konzoli
 4. **Zápis progresu** — do progress souboru fáze, jinak do `spec/plans/work-log.md`
 5. **Commit se schválením** — ukázat diff → schválení → commit
 
@@ -20,8 +20,9 @@ U doc/context změn: konzistence → křížové odkazy → zastaralé reference
 
 ## Firebase zásady
 
-- **Lokální vývoj proti Firebase Emulator Suite** (auth, firestore, storage) — `firebase emulators:start`. Nikdy nevyvíjet proti produkčnímu projektu.
-- Změny `firestore.rules` a `firestore.indexes.json` patří do repa a do code review.
+- **Lokální vývoj proti reálnému Firebase projektu** (`.env.local`, `NEXT_PUBLIC_FIREBASE_EMULATOR=false`). Emulátory (`firebase emulators:start`) jsou volitelná možnost pro experimenty.
+- **Opatrnost s daty:** destruktivní operace (hromadné mazání, migrace, seed skripty) jen po explicitní domluvě s uživatelem. Až aplikace poběží ostře, zvážíme oddělený dev projekt.
+- **Rules a indexy:** změny `firestore.rules` / `firestore.indexes.json` patří do repa a nasazují se přes `firebase deploy --only firestore` — bez nasazení se v aplikaci neprojeví.
 - Tajemství (service account) jen v env proměnných (Vercel / `.env.local`), nikdy v repu.
 
 ## Konvence

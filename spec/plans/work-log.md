@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-11 — ✅ Fáze 4 – Leady a pipeline
+
+- Kanban board `/leady` s drag & drop (@dnd-kit/core), sloupce dle fáze (Nový→Onboarding).
+- Přepínač Kanban / Tabulka (TanStack Table s filtry fáze/zdroj/vlastník).
+- Karta leadu: jméno, firma, hodnota, zdroj, vlastník, stáří.
+- Detail leadu v Sheet: všechna pole, aktivita, akce Vyhráno/Ztraceno.
+- Konverze Vyhráno: vytvoří klienta, generuje onboarding úkoly ze šablony.
+- Ztraceno: dialog s povinným důvodem.
+- Dialog nového leadu (jméno, firma, kontakty, zdroj, hodnota, vlastník).
+- API: GET/POST /api/leads, GET/PATCH/POST /api/leads/[id].
+- Firestore rules: leads stage update pro přihlášené, index leads(stage, updatedAt).
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 3 – Klienti a DBC instance
 
 - Seznam klientů `/klienti`: TanStack Table (jméno, firma, email, stav, slug, počet instancí, poslední aktivita), fulltext filtr, filtr dle stavu, dialog „Nový klient" (react-hook-form + zod).

@@ -11,7 +11,7 @@ Toto je **gateway** pro AI agenty pracující na tomto repu. Hluboký kontext ž
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
 | **Backend** | Firebase — Firestore, Auth (custom claims role), Storage |
 | **Server** | Server Components + Route Handlers s firebase-admin |
-| **Infra** | Vercel, Firebase Emulator Suite pro lokální vývoj |
+| **Infra** | Vercel; lokální vývoj proti reálnému Firebase projektu (emulátory volitelné) |
 
 ```
 spx-core/
@@ -43,7 +43,7 @@ Stavba aplikace probíhá po fázích — prompty ve [`spec/prompts/`](spec/prom
 - **Commit workflow:** ukázat diff → schválení → commit. Nikdy nepushovat na chráněné větve (`main`, `devel`).
 - **Commit formát:** `type: [changelog] popis` (viz `spec/context/workflow.md`).
 - **Datový model:** zdroj pravdy je `spec/context/data-model.md` — změny nejdřív tam.
-- **Lokální vývoj:** vždy proti Firebase emulátorům, nikdy proti produkci.
+- **Lokální vývoj:** proti reálnému Firebase projektu (`.env.local`). Destruktivní operace (hromadné mazání, migrace) jen po domluvě. Změny `firestore.rules` / indexů nasazovat přes `firebase deploy --only firestore`.
 
 ## Dev Commands
 
@@ -51,7 +51,8 @@ Stavba aplikace probíhá po fázích — prompty ve [`spec/prompts/`](spec/prom
 npm run dev          # Next.js dev server na :3000
 npm run build        # produkční build
 npm run lint         # ESLint
-firebase emulators:start   # Auth + Firestore + Storage emulátory
+firebase emulators:start   # volitelné — emulátory, pokud nechceš sahat na reálná data
+firebase deploy --only firestore   # nasazení rules + indexů
 ```
 
 Zatím není nakonfigurován test runner.
@@ -60,7 +61,7 @@ Zatím není nakonfigurován test runner.
 
 1. **Lint** — `npm run lint` čistý
 2. **Build** — `npm run build` čistý
-3. **Ověření v prohlížeči** — dotčené obrazovky + data ve Firestore emulátoru
+3. **Ověření v prohlížeči** — dotčené obrazovky + data ve Firebase konzoli
 4. **Zápis progresu** — progress soubor fáze nebo `spec/plans/work-log.md`
 5. **Commit se schválením**
 
