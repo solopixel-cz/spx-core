@@ -3,40 +3,6 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ClientDetailClient } from "@/components/clients/client-detail-client";
 
-interface ClientData {
-  id: string;
-  name: string;
-  company?: string;
-  email: string;
-  phone?: string;
-  status: string;
-  advisorSlug: string;
-  notes?: string;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
-
-interface InstanceData {
-  id: string;
-  clientId: string;
-  advisorSlug: string;
-  domain: string;
-  status: string;
-  version: string;
-  repoUrl?: string;
-  deployUrl?: string;
-  features: string[];
-  notes?: string;
-}
-
-interface ActivityData {
-  id: string;
-  kind: string;
-  text: string;
-  actorUid: string;
-  createdAt: string | null;
-}
-
 export default async function ClientDetailPage({
   params,
 }: {
@@ -50,53 +16,104 @@ export default async function ClientDetailPage({
   if (!doc.exists) notFound();
 
   const data = doc.data()!;
-  const client: ClientData = {
+  const client = {
     id: doc.id,
-    name: data.name,
-    company: data.company,
-    email: data.email,
-    phone: data.phone,
-    status: data.status,
-    advisorSlug: data.advisorSlug,
-    notes: data.notes,
+    name: data.name as string,
+    company: data.company as string | undefined,
+    email: data.email as string,
+    phone: data.phone as string | undefined,
+    status: data.status as string,
+    advisorSlug: data.advisorSlug as string,
+    notes: data.notes as string | undefined,
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
   };
 
-  // Fetch instances
-  const instancesSnap = await db
-    .collection("instances")
-    .where("clientId", "==", id)
-    .orderBy("createdAt", "desc")
-    .get();
+  // Fetch instances, activity, subscription, invoices in parallel
+  const [instancesSnap, activitySnap, subsSnap, invoicesSnap] =
+    await Promise.all([
+      db
+        .collection("instances")
+        .where("clientId", "==", id)
+        .orderBy("createdAt", "desc")
+        .get(),
+      db
+        .collection("activity")
+        .where("entityType", "==", "client")
+        .where("entityId", "==", id)
+        .orderBy("createdAt", "desc")
+        .limit(50)
+        .get(),
+      db.collection("subscriptions").where("clientId", "==", id).get(),
+      db
+        .collection("invoices")
+        .where("clientId", "==", id)
+        .orderBy("issuedAt", "desc")
+        .get(),
+    ]);
 
-  const instances: InstanceData[] = instancesSnap.docs.map((d) => ({
+  const instances = instancesSnap.docs.map((d) => ({
     id: d.id,
-    ...d.data(),
-  })) as InstanceData[];
+    clientId: d.data().clientId as string,
+    advisorSlug: d.data().advisorSlug as string,
+    domain: d.data().domain as string,
+    status: d.data().status as string,
+    version: d.data().version as string,
+    repoUrl: d.data().repoUrl as string | undefined,
+    deployUrl: d.data().deployUrl as string | undefined,
+    features: (d.data().features ?? []) as string[],
+    notes: d.data().notes as string | undefined,
+  }));
 
-  // Fetch activity
-  const activitySnap = await db
-    .collection("activity")
-    .where("entityType", "==", "client")
-    .where("entityId", "==", id)
-    .orderBy("createdAt", "desc")
-    .limit(50)
-    .get();
-
-  const activities: ActivityData[] = activitySnap.docs.map((d) => ({
+  const activities = activitySnap.docs.map((d) => ({
     id: d.id,
-    kind: d.data().kind,
-    text: d.data().text,
-    actorUid: d.data().actorUid,
+    kind: d.data().kind as string,
+    text: d.data().text as string,
+    actorUid: d.data().actorUid as string,
     createdAt: d.data().createdAt?.toDate?.()?.toISOString() ?? null,
   }));
+
+  const subDoc = subsSnap.docs[0];
+  const subscription = subDoc
+    ? {
+        id: subDoc.id,
+        plan: subDoc.data().plan as string,
+        priceMonthly: subDoc.data().priceMonthly as number,
+        billingCycle: subDoc.data().billingCycle as string,
+        status: subDoc.data().status as string,
+        startedAt:
+          subDoc.data().startedAt?.toDate?.()?.toISOString() ?? null,
+        nextInvoiceAt:
+          subDoc.data().nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
+      }
+    : null;
+
+  const now = new Date();
+  const invoices = invoicesSnap.docs.map((d) => {
+    const iData = d.data();
+    const dueAt = iData.dueAt?.toDate?.() ?? null;
+    let status = iData.status as string;
+    if (status === "sent" && dueAt && dueAt < now) status = "overdue";
+    return {
+      id: d.id,
+      clientId: iData.clientId as string,
+      clientName: client.name,
+      number: iData.number as string,
+      amount: iData.amount as number,
+      issuedAt: iData.issuedAt?.toDate?.()?.toISOString() ?? null,
+      dueAt: dueAt?.toISOString() ?? null,
+      paidAt: iData.paidAt?.toDate?.()?.toISOString() ?? null,
+      status,
+    };
+  });
 
   return (
     <ClientDetailClient
       client={client}
       instances={instances}
       activities={activities}
+      subscription={subscription}
+      invoices={invoices}
     />
   );
 }

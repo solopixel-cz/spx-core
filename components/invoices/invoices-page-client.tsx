@@ -1,0 +1,287 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Check, X } from "lucide-react";
+import { invoiceFormSchema, type InvoiceFormData } from "@/lib/schemas/invoice";
+
+interface InvoiceRow {
+  id: string;
+  clientId: string;
+  clientName: string;
+  number: string;
+  amount: number;
+  issuedAt: string | null;
+  dueAt: string | null;
+  paidAt: string | null;
+  status: string;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
+}
+
+const statusLabels: Record<string, string> = {
+  draft: "Koncept",
+  sent: "Odesláno",
+  paid: "Zaplaceno",
+  overdue: "Po splatnosti",
+  cancelled: "Stornováno",
+};
+
+const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  draft: "outline",
+  sent: "secondary",
+  paid: "default",
+  overdue: "destructive",
+  cancelled: "secondary",
+};
+
+export function InvoicesPageClient({
+  invoices,
+  clients,
+  stats,
+}: {
+  invoices: InvoiceRow[];
+  clients: ClientOption[];
+  stats: {
+    overdueCount: number;
+    overdueSum: number;
+    issuedThisMonthSum: number;
+    paidThisMonthSum: number;
+  };
+}) {
+  const router = useRouter();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [filter, setFilter] = useState("all");
+
+  const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
+
+  const [defaultDue] = useState(() =>
+    new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0]
+  );
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<InvoiceFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(invoiceFormSchema) as any,
+    defaultValues: {
+      dueAt: defaultDue,
+    },
+  });
+
+  async function onSubmit(data: InvoiceFormData) {
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const result = await res.json();
+      toast.success(`Faktura ${result.number} vystavena`);
+      setDialogOpen(false);
+      reset();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Chyba při vytváření faktury");
+    }
+  }
+
+  async function handleAction(invoiceId: string, action: "paid" | "cancelled") {
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(action === "paid" ? "Faktura zaplacena" : "Faktura stornována");
+      router.refresh();
+    } catch {
+      toast.error("Akce se nezdařila");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Fakturace</h1>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nová faktura</Button>} />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nová faktura</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Klient *</Label>
+                <Select onValueChange={(val) => { if (val) setValue("clientId", String(val)); }}>
+                  <SelectTrigger><SelectValue placeholder="Vyberte klienta" /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.clientId && <p className="text-sm text-destructive">{errors.clientId.message}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Částka (Kč) *</Label>
+                  <Input id="amount" type="number" {...register("amount")} />
+                  {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dueAt">Splatnost *</Label>
+                  <Input id="dueAt" type="date" {...register("dueAt")} />
+                  {errors.dueAt && <p className="text-sm text-destructive">{errors.dueAt.message}</p>}
+                </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Vytvářím..." : "Vystavit fakturu"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Po splatnosti</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-destructive">
+              {stats.overdueCount}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {stats.overdueSum.toLocaleString("cs-CZ")} Kč
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Vystaveno tento měsíc</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {stats.issuedThisMonthSum.toLocaleString("cs-CZ")} Kč
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Zaplaceno tento měsíc</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {stats.paidThisMonthSum.toLocaleString("cs-CZ")} Kč
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter */}
+      <Select value={filter} onValueChange={(val) => setFilter(val ?? "all")}>
+        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Všechny</SelectItem>
+          {Object.entries(statusLabels).map(([k, v]) => (
+            <SelectItem key={k} value={k}>{v}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Číslo</TableHead>
+              <TableHead>Klient</TableHead>
+              <TableHead>Částka</TableHead>
+              <TableHead>Vystaveno</TableHead>
+              <TableHead>Splatnost</TableHead>
+              <TableHead>Stav</TableHead>
+              <TableHead className="w-24">Akce</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">Žádné faktury</TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((inv) => (
+                <TableRow key={inv.id}>
+                  <TableCell className="font-mono">{inv.number}</TableCell>
+                  <TableCell>{inv.clientName}</TableCell>
+                  <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
+                  <TableCell>{inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ") : "—"}</TableCell>
+                  <TableCell>{inv.dueAt ? new Date(inv.dueAt).toLocaleDateString("cs-CZ") : "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariants[inv.status] ?? "secondary"}>
+                      {statusLabels[inv.status] ?? inv.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {(inv.status === "sent" || inv.status === "overdue") && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno">
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "cancelled")} title="Stornovat">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}

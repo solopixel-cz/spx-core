@@ -9,6 +9,8 @@ import { Pencil } from "lucide-react";
 import { ClientFormDialog } from "./client-form-dialog";
 import { InstancesTab } from "./instances-tab";
 import { ActivityTab } from "./activity-tab";
+import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
+import { ClientInvoicesTab } from "./client-invoices-tab";
 
 interface ClientData {
   id: string;
@@ -44,6 +46,28 @@ interface ActivityData {
   createdAt: string | null;
 }
 
+interface SubData {
+  id: string;
+  plan: string;
+  priceMonthly: number;
+  billingCycle: string;
+  status: string;
+  startedAt: string | null;
+  nextInvoiceAt: string | null;
+}
+
+interface InvoiceData {
+  id: string;
+  clientId: string;
+  clientName: string;
+  number: string;
+  amount: number;
+  issuedAt: string | null;
+  dueAt: string | null;
+  paidAt: string | null;
+  status: string;
+}
+
 const statusLabels: Record<string, string> = {
   onboarding: "Onboarding",
   active: "Aktivní",
@@ -62,10 +86,14 @@ export function ClientDetailClient({
   client,
   instances,
   activities,
+  subscription = null,
+  invoices = [],
 }: {
   client: ClientData;
   instances: InstanceData[];
   activities: ActivityData[];
+  subscription?: SubData | null;
+  invoices?: InvoiceData[];
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -148,27 +176,7 @@ export function ClientDetailClient({
                 </div>
               </dl>
             </div>
-            <div className="rounded-lg border p-4">
-              <h3 className="font-semibold">Přehled</h3>
-              <dl className="mt-2 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Instance</dt>
-                  <dd>{instances.length}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Předplatné</dt>
-                  <dd className="text-muted-foreground">—</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Otevřené úkoly</dt>
-                  <dd className="text-muted-foreground">—</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Otevřené tickety</dt>
-                  <dd className="text-muted-foreground">—</dd>
-                </div>
-              </dl>
-            </div>
+            <SubscriptionCard clientId={client.id} subscription={subscription} />
           </div>
           {client.notes && (
             <div className="rounded-lg border p-4">
@@ -183,7 +191,7 @@ export function ClientDetailClient({
         </TabsContent>
 
         <TabsContent value="faktury" className="mt-6">
-          <p className="text-muted-foreground">Doplní fáze 5.</p>
+          <ClientInvoicesTab invoices={invoices} />
         </TabsContent>
 
         <TabsContent value="ukoly" className="mt-6">

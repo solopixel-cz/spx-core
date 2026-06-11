@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-11 — ✅ Fáze 5 – Fakturace a předplatné
+
+- Předplatné na detailu klienta: karta s tarifem, cenou, cyklem, stavem + dialog založení/úpravy. Tarify v `lib/plans.ts`.
+- `/fakturace`: tabulka faktur (číslo, klient, částka, vystaveno, splatnost, stav), 3 stat karty (po splatnosti, vystaveno, zaplaceno tento měsíc), filtr dle stavu.
+- Nová faktura: dialog s klientem, částkou, splatností. Číslo RRRR-NNN z transakce nad `counters/invoices`.
+- Akce: zaplaceno, stornovat. Overdue se odvozuje při čtení.
+- Záložka Faktury na detailu klienta s tabulkou filtrovanou na klienta.
+- API: subscriptions CRUD, invoices CRUD. Composite index `invoices(clientId, issuedAt)`, `invoices(status, dueAt)`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 4 – Leady a pipeline
 
 - Kanban board `/leady` s drag & drop (@dnd-kit/core), sloupce dle fáze (Nový→Onboarding).

@@ -1,11 +1,68 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { requireAuth } from "@/lib/auth";
+import { getAdminFirestore } from "@/lib/firebase/admin";
+import { InvoicesPageClient } from "@/components/invoices/invoices-page-client";
 
-export default function FakturacePage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Fakturace</h1>
-      <Skeleton className="h-10 w-64 rounded-md" />
-      <Skeleton className="h-96 rounded-xl" />
-    </div>
-  );
+export default async function FakturacePage() {
+  await requireAuth();
+  const db = getAdminFirestore();
+
+  const [invoicesSnap, clientsSnap] = await Promise.all([
+    db.collection("invoices").orderBy("issuedAt", "desc").get(),
+    db.collection("clients").get(),
+  ]);
+
+  const clientMap: Record<string, string> = {};
+  clientsSnap.docs.forEach((doc) => {
+    clientMap[doc.id] = doc.data().name;
+  });
+
+  const now = new Date();
+  const invoices = invoicesSnap.docs.map((doc) => {
+    const data = doc.data();
+    const dueAt = data.dueAt?.toDate?.() ?? null;
+    let status = data.status as string;
+    if (status === "sent" && dueAt && dueAt < now) {
+      status = "overdue";
+    }
+    return {
+      id: doc.id,
+      clientId: data.clientId as string,
+      clientName: clientMap[data.clientId] ?? "—",
+      number: data.number as string,
+      amount: data.amount as number,
+      issuedAt: data.issuedAt?.toDate?.()?.toISOString() ?? null,
+      dueAt: dueAt?.toISOString() ?? null,
+      paidAt: data.paidAt?.toDate?.()?.toISOString() ?? null,
+      status,
+    };
+  });
+
+  const clients = clientsSnap.docs.map((doc) => ({
+    id: doc.id,
+    name: doc.data().name as string,
+  }));
+
+  // Stats
+  const overdue = invoices.filter((i) => i.status === "overdue");
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const issuedThisMonth = invoices.filter((i) => {
+    if (!i.issuedAt) return false;
+    const d = new Date(i.issuedAt);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+  const paidThisMonth = invoices.filter((i) => {
+    if (!i.paidAt) return false;
+    const d = new Date(i.paidAt);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  });
+
+  const stats = {
+    overdueCount: overdue.length,
+    overdueSum: overdue.reduce((s, i) => s + i.amount, 0),
+    issuedThisMonthSum: issuedThisMonth.reduce((s, i) => s + i.amount, 0),
+    paidThisMonthSum: paidThisMonth.reduce((s, i) => s + i.amount, 0),
+  };
+
+  return <InvoicesPageClient invoices={invoices} clients={clients} stats={stats} />;
 }

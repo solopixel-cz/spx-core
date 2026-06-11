@@ -13,3 +13,12 @@ export const subscriptionSchema = z.object({
 });
 
 export type Subscription = z.infer<typeof subscriptionSchema>;
+
+export const subscriptionFormSchema = z.object({
+  plan: z.enum(["basic", "standard", "premium"]),
+  priceMonthly: z.coerce.number().nonnegative("Zadejte kladnou cenu"),
+  billingCycle: z.enum(["monthly", "yearly"]),
+  status: z.enum(["trial", "active", "past_due", "cancelled"]),
+});
+
+export type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
