@@ -11,6 +11,7 @@ import { InstancesTab } from "./instances-tab";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
+import { CardFormButton } from "./card-form-button";
 
 interface ClientData {
   id: string;
@@ -124,6 +125,7 @@ export function ClientDetailClient({
             <span>Slug: {client.advisorSlug}</span>
           </div>
         </div>
+        <div className="flex flex-col items-end gap-2">
         <ClientFormDialog
           open={editOpen}
           onOpenChange={setEditOpen}
@@ -150,6 +152,12 @@ export function ClientDetailClient({
             notes: client.notes ?? "",
           }}
         />
+        <CardFormButton
+          clientId={client.id}
+          clientName={client.name}
+          clientEmail={client.email}
+        />
+        </div>
       </div>
 
       {/* Tabs */}

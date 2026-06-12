@@ -37,6 +37,7 @@ export function DashboardClient({
   ticketsByPriority,
   openTicketCount,
   myTasks,
+  newSubmissionsCount,
 }: {
   leadsByStage: Record<string, number>;
   overdueInvoiceCount: number;
@@ -44,6 +45,7 @@ export function DashboardClient({
   ticketsByPriority: Record<string, number>;
   openTicketCount: number;
   myTasks: MyTask[];
+  newSubmissionsCount: number;
 }) {
   const todayTasks = myTasks.filter((t) => t.isDueToday || t.isOverdue);
   const overdueTasks = myTasks.filter((t) => t.isOverdue);
@@ -52,7 +54,7 @@ export function DashboardClient({
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {/* Lead funnel */}
         <Link href="/leady">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -132,6 +134,22 @@ export function DashboardClient({
                   </span>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* New submissions */}
+        <Link href="/podklady">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Nevyřízené podklady
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-2xl font-bold ${newSubmissionsCount > 0 ? "text-orange-500" : ""}`}>
+                {newSubmissionsCount}
+              </p>
             </CardContent>
           </Card>
         </Link>

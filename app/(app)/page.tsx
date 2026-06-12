@@ -6,11 +6,12 @@ export default async function DashboardPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
 
-  const [leadsSnap, invoicesSnap, ticketsSnap, tasksSnap] = await Promise.all([
+  const [leadsSnap, invoicesSnap, ticketsSnap, tasksSnap, submissionsSnap] = await Promise.all([
     db.collection("leads").get(),
     db.collection("invoices").get(),
     db.collection("tickets").where("status", "in", ["open", "in_progress", "waiting_client"]).get(),
     db.collection("tasks").where("assigneeUid", "==", user.uid).where("status", "==", "open").get(),
+    db.collection("card-submissions").get(),
   ]);
 
   // Lead funnel
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
       ticketsByPriority={ticketsByPriority}
       openTicketCount={ticketsSnap.size}
       myTasks={myTasks}
+      newSubmissionsCount={submissionsSnap.docs.filter((d) => !d.data().processedAt).length}
     />
   );
 }

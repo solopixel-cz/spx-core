@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 9 – Podklady z webového formuláře
+
+- Firestore rules: `card-tokens` (public get, list pro přihlášené), `card-submissions` (public create s validací, read pro přihlášené).
+- Storage rules: `cards/{token}/{fileName}` (public read/write, max 5 MB, images).
+- Zod schémata: `card-token.ts`, `card-submission.ts`. Data model aktualizován.
+- Generování odkazu z detailu klienta: tlačítko „Poslat formulář podkladů", nanoid token, kopírování URL, detekce existujícího tokenu.
+- Stránka `/podklady` v sidebaru: tabulka submissions, detail v Sheet (po sekcích), akce „Označit zpracované".
+- Dashboard: karta „Nevyřízené podklady" s počtem a proklikem.
+- API: `GET/POST /api/card-tokens`, `GET /api/submissions`, `PATCH /api/submissions/[id]`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 7 – Doplňky a dotažení
 
 - `useCollection<T>` hook pro realtime Firestore listenery (onSnapshot, unsubscribe, loading/error).

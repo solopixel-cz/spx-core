@@ -12,6 +12,10 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 6 | [`06-ukoly-tickety.md`](06-ukoly-tickety.md) | Úkoly, onboarding šablony, tickety (bug/change request), dashboard | ✅ |
 | 7 | [`07-doplnky.md`](07-doplnky.md) | Realtime, přílohy ticketů, cmd+K, úkoly k ticketům, správa hesel | ✅ |
 | 8 | [`08-nasazeni-vercel.md`](08-nasazeni-vercel.md) | Nasazení na Vercel, env, rules deploy, smoke test | ⬜ |
+| 9 | [`09-podklady-formulare.md`](09-podklady-formulare.md) | Podklady z webového formuláře: rules fix, generování tokenů, inbox | ✅ |
+| 10 | [`10-role-sales.md`](10-role-sales.md) | Role sales (obchodník) — bez přístupu k financím | ⬜ |
+
+**Pořadí:** 9 → 10 → 8. Fáze 9 musí proběhnout PŘED fází 8 — fáze 8 nasazuje Firestore/Storage rules, které by bez fixu z fáze 9 rozbily formulář na webu. Fáze 10 navazuje na 9 (Podklady v sidebaru pro sales).
 
 ## Jak prompty používat
 

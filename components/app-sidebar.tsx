@@ -9,6 +9,7 @@ import {
   Receipt,
   CheckSquare,
   TicketCheck,
+  ClipboardList,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Leady", href: "/leady", icon: Briefcase },
   { label: "Klienti", href: "/klienti", icon: Users },
+  { label: "Podklady", href: "/podklady", icon: ClipboardList },
   { label: "Fakturace", href: "/fakturace", icon: Receipt },
   { label: "Úkoly", href: "/ukoly", icon: CheckSquare },
   { label: "Tickety", href: "/tickety", icon: TicketCheck },

@@ -81,5 +81,26 @@ service cloud.firestore {
     match /counters/{counterId} {
       allow read, write: if isAdmin();
     }
+
+    // Card tokens — public get (token is secret in URL), no list, write via admin SDK
+    match /card-tokens/{token} {
+      allow get: if true;
+      allow list: if isAuth();
+      allow create, update, delete: if false;
+    }
+
+    // Card submissions — public create (from web form), read via admin SDK
+    match /card-submissions/{token} {
+      allow create: if true
+        && request.resource.data.keys().hasAll(['fullName', 'email', 'token', 'createdAt'])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() < 200
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.token is string;
+      allow read: if isAuth();
+      allow update, delete: if false;
+    }
   }
 }

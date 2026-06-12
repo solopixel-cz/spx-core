@@ -143,6 +143,49 @@ Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na 
 }
 ```
 
+### `card-tokens`
+Tokeny pro onboarding formulář na webu. Dokument ID = nanoid token.
+
+```ts
+{
+  email: string
+  name: string
+  clientId?: string        // vazba na klienta v CRM
+  createdAt: Timestamp
+  usedAt?: Timestamp       // kdy byl formulář odeslán
+}
+```
+
+### `card-submissions`
+Vyplněné podklady z webového formuláře. Dokument ID = token.
+
+```ts
+{
+  fullName: string
+  email: string
+  phone?: string
+  companyId?: string       // IČO
+  officeAddress?: string
+  specialization?: string
+  city?: string
+  primaryLanguage?: string
+  availableLanguages: string[]
+  customDomain?: string
+  reasons: string[]        // 3 důvody proč
+  cnbExams: string[]
+  bio?: string
+  yearsOfExperience?: number
+  clientCount?: number
+  focusAreas: string[]
+  clientTypes: string[]
+  profileImageUrl?: string
+  token: string
+  createdAt: Timestamp
+  processedAt?: Timestamp
+  processedBy?: string     // uid kdo zpracoval
+}
+```
+
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.
 
