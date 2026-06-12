@@ -13,6 +13,7 @@
 | Fáze 9 — Podklady z formuláře | ✅ Hotovo | [`../prompts/09-podklady-formulare.md`](../prompts/09-podklady-formulare.md) — spustit PŘED fází 8 (rules fix) |
 | Fáze 10 — Role sales | ✅ Hotovo | [`../prompts/10-role-sales.md`](../prompts/10-role-sales.md) — po fázi 9 |
 | Fáze 11 — Redesign | ✅ Hotovo | [`../prompts/11-redesign.md`](../prompts/11-redesign.md) — po fázi 10 |
-| Fáze 8 — Nasazení na Vercel | ⬜ Čeká | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) |
+| Fáze 12 — Akční dashboard | ✅ Hotovo | [`../prompts/12-dashboard.md`](../prompts/12-dashboard.md) |
+| Fáze 8 — Nasazení na Vercel | ⬜ Čeká | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) — jako poslední |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

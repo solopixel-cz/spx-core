@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 12 – Akční dashboard
+
+- `lib/attention.ts`: server-side agregace položek vyžadujících akci (faktury po splatnosti, urgentní tickety, stagnující leady, nevyřízené podklady, onboarding úkoly po termínu).
+- Feed „Vyžaduje akci": seznam s ikonami, barvami dle severity, prokliky. Prázdný stav „Vše vyřízeno".
+- Finanční řádek (admin/member): MRR, zaplaceno/vyfakturováno tento měsíc, pipeline hodnota, mini sloupcový graf (recharts) zaplacených faktur za 12 měsíců.
+- Onboarding přehled: klienti v onboardingu s progress barem úkolů, zvýraznění zaseknutých.
+- Aktivita týmu: posledních 10 záznamů s relativním časem a prokliky.
+- Sales role: ořezaný dashboard bez financí, jen vlastní položky.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 11 – Redesign (teal vzhled)
 
 - Theme tokeny: primary teal-600 (light) / teal-400 (dark), radius 0.5rem, sidebar zinc-50/zinc-925.
