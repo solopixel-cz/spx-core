@@ -20,6 +20,8 @@ export default async function ClientDetailPage({
     id: doc.id,
     name: data.name as string,
     company: data.company as string | undefined,
+    ico: data.ico as string | undefined,
+    dic: data.dic as string | undefined,
     email: data.email as string,
     phone: data.phone as string | undefined,
     status: data.status as string,
@@ -87,6 +89,8 @@ export default async function ClientDetailPage({
           subDoc.data().startedAt?.toDate?.()?.toISOString() ?? null,
         nextInvoiceAt:
           subDoc.data().nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
+        discountPercent: (subDoc.data().discountPercent as number | undefined) ?? 0,
+        discountNote: (subDoc.data().discountNote as string | undefined) ?? "",
       }
     : null;
 

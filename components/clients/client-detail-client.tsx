@@ -16,6 +16,8 @@ interface ClientData {
   id: string;
   name: string;
   company?: string;
+  ico?: string;
+  dic?: string;
   email: string;
   phone?: string;
   status: string;
@@ -139,6 +141,8 @@ export function ClientDetailClient({
             id: client.id,
             name: client.name,
             company: client.company ?? "",
+            ico: client.ico ?? "",
+            dic: client.dic ?? "",
             email: client.email,
             phone: client.phone ?? "",
             status: client.status as "onboarding" | "active" | "paused" | "churned",
@@ -172,6 +176,18 @@ export function ClientDetailClient({
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Telefon</dt>
                     <dd>{client.phone}</dd>
+                  </div>
+                )}
+                {client.ico && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">IČO</dt>
+                    <dd>{client.ico}</dd>
+                  </div>
+                )}
+                {client.dic && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">DIČ</dt>
+                    <dd>{client.dic}</dd>
                   </div>
                 )}
                 <div className="flex justify-between">

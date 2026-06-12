@@ -105,6 +105,7 @@ Předplatné, 1:1 ke klientovi.
   description?: string
   clientId?: string
   leadId?: string
+  ticketId?: string          // úkol jako pracovní krok ticketu
   assigneeUid: string
   dueAt?: Timestamp
   status: 'open' | 'done'

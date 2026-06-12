@@ -49,18 +49,33 @@ export async function POST(request: Request) {
     }
 
     const db = getAdminFirestore();
-    const now = new Date();
-    const nextInvoice = new Date(now);
-    if (data.billingCycle === "monthly") {
-      nextInvoice.setMonth(nextInvoice.getMonth() + 1);
+    const { startedAt: startedAtInput, nextInvoiceAt: nextInvoiceAtInput, ...subData } = data;
+    const startedAt = startedAtInput ? new Date(startedAtInput) : new Date();
+    let nextInvoice: Date;
+    if (nextInvoiceAtInput) {
+      nextInvoice = new Date(nextInvoiceAtInput);
     } else {
-      nextInvoice.setFullYear(nextInvoice.getFullYear() + 1);
+      nextInvoice = new Date(startedAt);
+      if (data.billingCycle === "monthly") {
+        nextInvoice.setMonth(nextInvoice.getMonth() + 1);
+      } else {
+        nextInvoice.setFullYear(nextInvoice.getFullYear() + 1);
+      }
+      // U startedAt v minulosti posuň příští fakturaci do budoucna
+      const now = new Date();
+      while (nextInvoice < now) {
+        if (data.billingCycle === "monthly") {
+          nextInvoice.setMonth(nextInvoice.getMonth() + 1);
+        } else {
+          nextInvoice.setFullYear(nextInvoice.getFullYear() + 1);
+        }
+      }
     }
 
     const docRef = await db.collection("subscriptions").add({
-      ...data,
+      ...subData,
       clientId,
-      startedAt: now,
+      startedAt,
       nextInvoiceAt: nextInvoice,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

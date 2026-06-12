@@ -107,6 +107,17 @@ export function ClientFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="ico">IČO</Label>
+              <Input id="ico" {...register("ico")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dic">DIČ</Label>
+              <Input id="dic" {...register("dic")} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="email">E-mail *</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (

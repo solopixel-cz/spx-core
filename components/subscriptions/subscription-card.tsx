@@ -35,6 +35,8 @@ interface SubData {
   status: string;
   startedAt: string | null;
   nextInvoiceAt: string | null;
+  discountPercent?: number;
+  discountNote?: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -69,12 +71,16 @@ export function SubscriptionCard({
           priceMonthly: subscription.priceMonthly,
           billingCycle: subscription.billingCycle as "monthly" | "yearly",
           status: subscription.status as SubscriptionFormData["status"],
+          discountPercent: subscription.discountPercent ?? 0,
+          discountNote: subscription.discountNote ?? "",
         }
       : {
-          plan: "standard",
-          priceMonthly: PLANS.standard.defaultPrice,
+          plan: "basic",
+          priceMonthly: PLANS.basic.defaultPrice,
           billingCycle: "monthly",
           status: "active",
+          discountPercent: 0,
+          discountNote: "",
         },
   });
 
@@ -125,7 +131,7 @@ export function SubscriptionCard({
               <div className="space-y-2">
                 <Label>Tarif</Label>
                 <Select
-                  defaultValue={subscription?.plan ?? "standard"}
+                  defaultValue={subscription?.plan ?? "basic"}
                   onValueChange={handlePlanChange}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -156,6 +162,30 @@ export function SubscriptionCard({
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="discountPercent">Sleva (%)</Label>
+                  <Input id="discountPercent" type="number" min="0" max="100" {...register("discountPercent")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="discountNote">Důvod slevy</Label>
+                  <Input id="discountNote" placeholder="Např. první rok zdarma" {...register("discountNote")} />
+                </div>
+              </div>
+              {!isEdit && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startedAt">Platí od</Label>
+                    <Input id="startedAt" type="date" {...register("startedAt")} />
+                    <p className="text-xs text-muted-foreground">Prázdné = dnes</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nextInvoiceAt">Příští fakturace</Label>
+                    <Input id="nextInvoiceAt" type="date" {...register("nextInvoiceAt")} />
+                    <p className="text-xs text-muted-foreground">Prázdné = dopočítá se</p>
+                  </div>
+                </div>
+              )}
               {isEdit && (
                 <div className="space-y-2">
                   <Label>Stav</Label>
@@ -190,6 +220,18 @@ export function SubscriptionCard({
             <dt className="text-muted-foreground">Cena</dt>
             <dd>{subscription.priceMonthly.toLocaleString("cs-CZ")} Kč/{subscription.billingCycle === "monthly" ? "měs" : "rok"}</dd>
           </div>
+          {subscription.discountPercent ? (
+            <>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Sleva</dt>
+                <dd className="text-green-600">−{subscription.discountPercent} %{subscription.discountNote ? ` (${subscription.discountNote})` : ""}</dd>
+              </div>
+              <div className="flex justify-between font-medium">
+                <dt className="text-muted-foreground">Po slevě</dt>
+                <dd>{Math.round(subscription.priceMonthly * (1 - subscription.discountPercent / 100)).toLocaleString("cs-CZ")} Kč/{subscription.billingCycle === "monthly" ? "měs" : "rok"}</dd>
+              </div>
+            </>
+          ) : null}
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Stav</dt>
             <dd><Badge variant="outline">{statusLabels[subscription.status] ?? subscription.status}</Badge></dd>

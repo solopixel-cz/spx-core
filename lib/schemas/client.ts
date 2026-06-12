@@ -5,6 +5,8 @@ export const clientSchema = z.object({
   ...baseFields,
   name: z.string().min(1),
   company: z.string().optional(),
+  ico: z.string().optional(),
+  dic: z.string().optional(),
   email: z.string().email(),
   phone: z.string().optional(),
   status: z.enum(["onboarding", "active", "paused", "churned"]),
@@ -19,6 +21,8 @@ export type Client = z.infer<typeof clientSchema>;
 export const clientFormSchema = z.object({
   name: z.string().min(1, "Jméno je povinné"),
   company: z.string().optional(),
+  ico: z.string().optional(),
+  dic: z.string().optional(),
   email: z.string().email("Zadejte platný e-mail"),
   phone: z.string().optional(),
   status: z.enum(["onboarding", "active", "paused", "churned"]),
