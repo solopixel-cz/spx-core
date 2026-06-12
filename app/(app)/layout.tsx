@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getAdminFirestore } from "@/lib/firebase/admin";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 
@@ -14,13 +15,20 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  // Fetch user document for displayName and photoURL
+  const db = getAdminFirestore();
+  const userDoc = await db.collection("users").doc(user.uid).get();
+  const userData = userDoc.data();
+  const displayName = (userData?.displayName as string) ?? user.email;
+  const photoURL = (userData?.photoURL as string) ?? null;
+
   return (
     <div className="flex h-screen">
       <div className="hidden md:flex">
         <AppSidebar role={user.role} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <AppTopbar user={user} />
+        <AppTopbar user={user} displayName={displayName} photoURL={photoURL} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>

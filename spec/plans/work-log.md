@@ -2,6 +2,18 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 18 – Profil uživatele
+
+- **Stránka `/profil`:** 3 záložky — Profil (fotka, jméno, telefon, e-mail readonly, sazba provize u sales), Zabezpečení (změna hesla přesunutá z dialogu, info o účtu), Preference (vzhled light/dark/system přes next-themes, výchozí stránka po přihlášení v localStorage).
+- **Profilová fotka:** upload s client-side resize na 256×256 (canvas center-crop), Storage `avatars/{uid}.jpg`, `photoURL` propsán do `users` doc i Firebase Auth. Tlačítko „Odebrat fotku".
+- **API `PATCH /api/me`:** whitelist polí (displayName, phone, photoURL) — cizí pole ignorována. `GET /api/me` vrací i Auth metadata (createdAt, lastSignIn).
+- **UserAvatar komponenta:** `components/user-avatar.tsx` — fotka → fallback iniciály s deterministickou barvou dle uid. Použita v topbaru.
+- **Topbar:** avatar menu — „Změnit heslo" nahrazeno „Můj profil" → `/profil`. Zobrazuje `displayName` a `photoURL` (načteno z DB v layoutu).
+- **Login redirect:** respektuje `spx-default-page` z localStorage.
+- **Storage rules:** `avatars/{uid}.jpg` — write jen vlastní uid, max 2 MB, `image/*`; read pro přihlášené.
+- **User schema:** rozšířen o `photoURL`, `phone`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 17 – Sales vidí jen své klienty
 
 - **Klienti:** server query `where('salesOwnerUid', '==', uid)` pro sales; detail → `notFound()` pro cizí klienty.
