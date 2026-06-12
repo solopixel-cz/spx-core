@@ -1,5 +1,6 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { UserRole } from "@/lib/auth";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 export interface AttentionItem {
   type: "invoice" | "ticket" | "lead" | "submission" | "task" | "prospect";
@@ -20,6 +21,7 @@ export async function getAttentionItems(
   const items: AttentionItem[] = [];
 
   const isSales = role === "sales";
+  const ownedClientIds = await getSalesClientIds(uid, role);
 
   const fetches: Promise<void>[] = [];
 
@@ -56,6 +58,7 @@ export async function getAttentionItems(
       .then((snap) => {
         snap.docs.forEach((doc) => {
           const d = doc.data();
+          if (ownedClientIds && !ownedClientIds.has(d.clientId as string)) return;
           const priority = d.priority as string;
           const updatedAt = d.updatedAt?.toDate?.() ?? d.createdAt?.toDate?.();
           const age = updatedAt ? Math.floor((now - updatedAt.getTime()) / DAY_MS) : 0;
@@ -103,8 +106,8 @@ export async function getAttentionItems(
       })
   );
 
-  // 4. Unprocessed submissions older than 3 days
-  fetches.push(
+  // 4. Unprocessed submissions older than 3 days (skip for sales — filtered via API)
+  if (!isSales) fetches.push(
     db
       .collection("card-submissions")
       .get()

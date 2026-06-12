@@ -58,7 +58,7 @@ Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `inst
 
 ## Neobvyklé / důležité chování
 
-- Role se řeší přes Firebase Auth **custom claims** (`role: admin | member | sales`) — nastavuje se server-side, klient je jen čte. Sales nemá přístup k financím (faktury, předplatná).
-- **Budoucí rozhodnutí:** Až přijdou externí provizní obchodníci, omezit viditelnost leadů pro sales na `ownerUid` (vlastní leady). Zatím vidí všechny — malý interní tým.
+- Role se řeší přes Firebase Auth **custom claims** (`role: admin | member | sales`) — nastavuje se server-side, klient je jen čte. Sales vidí **jen své klienty** (`salesOwnerUid == uid`) — v seznamu, detailu, ticketech, podkladech, vyhledávání i aktivitě. Leady a prospekti zůstávají sdílené. Auto-přiřazení: klient vytvořený sales uživatelem má automaticky `salesOwnerUid` tvůrce. Sales nemá přístup k financím (faktury, předplatná) — **výjimka:** vidí provize a předplatné svých klientů přes `/moje-vizitky`.
+- **Provizní systém:** obchodník (sales) dostává doživotní podíl z každé zaplacené faktury svých klientů. Sazba = `users.commissionRate` ?? `settings/commission.defaultRate`. Provize vzniká automaticky při označení faktury jako zaplacené. Vlastníkem klienta může být kdokoli (i admin/member), ale provize vzniká jen vlastníkům s rolí sales.
 - Registrace je **uzavřená** — uživatele zakládá admin, žádný veřejný signup.
 - Čísla faktur generuje transakce nad počítadlem v dokumentu `counters/invoices` (formát `RRRR-NNN`).

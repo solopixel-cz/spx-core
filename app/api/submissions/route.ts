@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 export async function GET() {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const db = getAdminFirestore();
 
     const [submissionsSnap, tokensSnap, clientsSnap] = await Promise.all([
@@ -12,6 +13,8 @@ export async function GET() {
       db.collection("card-tokens").get(),
       db.collection("clients").get(),
     ]);
+
+    const ownedClientIds = await getSalesClientIds(user.uid, user.role);
 
     // Build lookup maps
     const tokenMap: Record<string, { clientId?: string; email?: string }> = {};
@@ -73,7 +76,12 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(submissions);
+    // For sales, only show submissions linked to own clients
+    const filtered = ownedClientIds
+      ? submissions.filter((s) => s.clientId && ownedClientIds.has(s.clientId))
+      : submissions;
+
+    return NextResponse.json(filtered);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

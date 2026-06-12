@@ -115,9 +115,13 @@ export async function POST(
         notes: leadData.notes || "",
       });
 
+      // Set salesOwnerUid from lead owner (any role — provize arise only for sales)
+      const salesOwnerUid = leadData.ownerUid || null;
+
       const clientRef = await db.collection("clients").add({
         ...clientData,
         leadId: id,
+        salesOwnerUid,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         createdBy: user.uid,

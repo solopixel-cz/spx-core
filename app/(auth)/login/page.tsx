@@ -60,7 +60,8 @@ export default function LoginPage() {
         throw new Error("Session creation failed");
       }
 
-      router.push("/");
+      const defaultPage = typeof window !== "undefined" ? localStorage.getItem("spx-default-page") : null;
+      router.push(defaultPage || "/");
       router.refresh();
     } catch (err) {
       const code = (err as { code?: string }).code;

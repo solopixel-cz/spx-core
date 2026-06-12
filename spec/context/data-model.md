@@ -13,6 +13,9 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   displayName: string
   role: 'admin' | 'member' | 'sales'  // zrcadlí custom claim, claim je zdroj pravdy
   active: boolean
+  commissionRate?: number    // osobní sazba provize (0–1); bez hodnoty platí default ze settings/commission
+  photoURL?: string          // profilová fotka (Storage avatars/{uid}), zrcadlí se do Auth
+  phone?: string
 }
 ```
 
@@ -27,6 +30,7 @@ Klienti (finanční poradci).
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
   advisorSlug: string        // vazba na spx-dbc instanci
+  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z leadu při výhře, mění jen admin/member. Provize vzniká jen vlastníkům s rolí sales.
   notes?: string
   leadId?: string            // odkud klient vznikl
 }
@@ -213,6 +217,29 @@ Vyplněné podklady z webového formuláře. Dokument ID = token.
   processedBy?: string     // uid kdo zpracoval
 }
 ```
+
+### `commissions`
+Provizní záznamy — vznikají automaticky při označení faktury jako zaplacené, pokud má klient `salesOwnerUid` s rolí sales. **Document ID = invoiceId** (idempotence — jedna faktura, jedna provize). Storno vyplacené faktury vytvoří záporný záznam s ID `{invoiceId}-reversal`.
+
+```ts
+{
+  invoiceId: string
+  clientId: string
+  salesUid: string
+  baseAmount: number         // zaplacená částka faktury (CZK), u storna záporná
+  rate: number               // sazba v momentě vzniku (snapshot — pozdější změna sazby nemění historii)
+  amount: number             // baseAmount * rate, zaokrouhleno na koruny
+  status: 'pending' | 'paid' | 'reversed'
+  earnedAt: Timestamp        // datum zaplacení faktury
+  paidAt?: Timestamp         // datum vyplacení obchodníkovi
+  payoutNote?: string        // např. číslo došlé faktury od obchodníka
+}
+```
+
+Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `users.commissionRate` ?? default ze `settings/commission`; změna `salesOwnerUid` ovlivní jen budoucí provize; bez vlastníka provize nevzniká (ani zpětně po přiřazení).
+
+### `settings/commission`
+`{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
 
 ### `outreachEmails`
 Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.

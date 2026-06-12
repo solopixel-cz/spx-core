@@ -2,6 +2,66 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 18 – Profil uživatele
+
+- **Stránka `/profil`:** 3 záložky — Profil (fotka, jméno, telefon, e-mail readonly, sazba provize u sales), Zabezpečení (změna hesla přesunutá z dialogu, info o účtu), Preference (vzhled light/dark/system přes next-themes, výchozí stránka po přihlášení v localStorage).
+- **Profilová fotka:** upload s client-side resize na 256×256 (canvas center-crop), Storage `avatars/{uid}.jpg`, `photoURL` propsán do `users` doc i Firebase Auth. Tlačítko „Odebrat fotku".
+- **API `PATCH /api/me`:** whitelist polí (displayName, phone, photoURL) — cizí pole ignorována. `GET /api/me` vrací i Auth metadata (createdAt, lastSignIn).
+- **UserAvatar komponenta:** `components/user-avatar.tsx` — fotka → fallback iniciály s deterministickou barvou dle uid. Použita v topbaru.
+- **Topbar:** avatar menu — „Změnit heslo" nahrazeno „Můj profil" → `/profil`. Zobrazuje `displayName` a `photoURL` (načteno z DB v layoutu).
+- **Login redirect:** respektuje `spx-default-page` z localStorage.
+- **Storage rules:** `avatars/{uid}.jpg` — write jen vlastní uid, max 2 MB, `image/*`; read pro přihlášené.
+- **User schema:** rozšířen o `photoURL`, `phone`.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 17 – Sales vidí jen své klienty
+
+- **Klienti:** server query `where('salesOwnerUid', '==', uid)` pro sales; detail → `notFound()` pro cizí klienty.
+- **Auto-přiřazení:** POST `/api/clients` — sales uživatel má `salesOwnerUid = uid` automaticky; payload je ignorován.
+- **API guard:** GET/PATCH `/api/clients/[id]` — sales smí pouze vlastní; PATCH `salesOwnerUid` ignoruje z sales payloadu.
+- **Vlastník = kdokoli:** select „Obchodní vlastník" rozšířen na všechny aktivní uživatele (admin si může přiřadit klienta na sebe). Provize vzniká jen vlastníkům s rolí sales (nezměněno).
+- **Konverze leadu:** `salesOwnerUid` se nyní propisuje z `ownerUid` bez ohledu na roli (ne jen pro sales).
+- **Navázaná data utěsněna pro sales:**
+  - **Tickety:** stránka `/tickety` filtruje na tickety vlastních klientů; dialog „Nový ticket" nabízí jen vlastní.
+  - **Podklady:** API `/api/submissions` filtruje submissions na submissions navázané na vlastní klienty.
+  - **Vyhledávání (Cmd+K):** klienti a tickety filtrováni na vlastní.
+  - **Aktivita:** stránka `/aktivita` + API `/api/activity/list` — client/ticket záznamy jen pro vlastní klienty.
+  - **Dashboard:** onboarding přehled jen vlastních klientů; recent activity filtruje client/ticket entity.
+  - **Attention feed:** tickety jen vlastních klientů; submissions pro sales skryté.
+- **Helper:** `lib/sales-clients.ts` — `getSalesClientIds(uid, role)` pro opakované použití.
+- **Firestore rules:** `clients` read — admin/member vše, sales jen `salesOwnerUid == uid`.
+- **Dokumentace:** `project.md` aktualizováno — sales vidí jen vlastní klienty, leady/prospekti sdílené, auto-přiřazení.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 16 – Provizní systém pro obchodníky
+
+- **Schémata:** `lib/schemas/commission.ts`, `clientSchema` rozšířen o `salesOwnerUid`, `userSchema` o `commissionRate`.
+- **Vznik provize při zaplacení:** invoice PATCH handler „paid" — vytvoří provizi (doc ID = invoiceId, idempotentní) pokud klient má `salesOwnerUid` s rolí sales. Sazba = `users.commissionRate` ?? `settings/commission.defaultRate`. Zaokrouhlení na celé Kč.
+- **Storno:** pending provize → `reversed`; paid provize → záporný záznam `{invoiceId}-reversal` (pending, odečte se v příštím vyúčtování).
+- **Konverze leadu:** „Vyhráno" → pokud lead `ownerUid` je sales, nastaví `clients.salesOwnerUid`.
+- **Detail klienta:** select „Obchodní vlastník" (sales uživatelé, mění jen admin/member) + logActivity.
+- **Admin stránka `/provize`:** souhrn per obchodník (sazba, k vyplacení, vyplaceno letos), tabulka záznamů s filtry (obchodník, stav). Checkbox výběr → „Označit vyplacené" s poznámkou + „Kopírovat podklad" do schránky.
+- **Sales stránka `/moje-vizitky`:** souhrn (čeká, vyplaceno letos, měsíční provize, sazba), tabulka mých klientů (stav, vizitka, tarif, cena/měs., provize/měs.), tabulka provizí (klient, částka, stav, datum).
+- **Nastavení → Šablony:** default sazba provize (% input + uložit).
+- **Users API:** rozšířeno o `commissionRate` update. Users page: role select doplněn o „Obchodník".
+- **Sidebar:** „Moje vizitky" (Obchod, jen sales), „Provize" (Finance, admin/member).
+- **Firestore rules:** `commissions` read (sales vlastní / admin+member vše), write deny. `settings` read pro přihlášené, write admin.
+- **Composite indexy:** `commissions(salesUid, status)`, `commissions(status, earnedAt)`.
+- **project.md:** aktualizována sekce o sales roli (výjimka — vidí provize a předplatné svých klientů).
+- **UI komponenta:** `components/ui/checkbox.tsx`.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 15 – Dashboard layout v2
+
+- **Nové rozložení dashboardu:** hlavní grid `lg:grid-cols-3` — levý sloupec (col-span-2): feed Vyžaduje akci (max 8 + „dalších N") → quick stats → onboarding přehled; pravý sloupec: kompaktní aktivita → oslovení tento týden → oslovování celkem.
+- **Kompaktní aktivita:** jednořádkové záznamy, kruhový avatar s iniciálami (5×5 px, deterministická barva z UID), truncate text, relativní čas vpravo (`teď`, `2 h`, `včera`), max 6 záznamů. Hlavička „Aktivita" + odkaz „Vše →" na `/aktivita`.
+- **Karta „Oslovení tento týden":** odesláno / otevřelo / kliklo na demo z `outreachEmails` (pro sales jen vlastní).
+- **Karta „Oslovování celkem":** přesun ze spodní sekce do pravého sloupce (3 čísla: osloveno / reaguje / konverze).
+- **Stránka `/aktivita`:** plný log aktivity s filtry (uživatel, typ entity, období od/do), server-side stránkování po 50 s „Načíst další". Proklik na entitu, avatar, badge entity typu, čas. EmptyState pro prázdné výsledky. API `GET /api/activity/list?cursor=`.
+- **Sidebar:** položka „Aktivita" v sekci Přehled pod Dashboard (ikona `History`), viditelná všem.
+- **Admin tabulka obchodníků:** zůstává pod gridem na celé šířce.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 14 – E-mailové oslovení (Resend)
 
 - **Resend integrace:** `npm i resend svix`, `lib/email.ts` — `sendOutreachEmail()` + `renderTemplate()` (plain text → HTML s paragrafy). Env: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`.

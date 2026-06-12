@@ -8,12 +8,14 @@ import { logActivity } from "@/lib/activity";
 // GET /api/clients
 export async function GET() {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const db = getAdminFirestore();
-    const snapshot = await db
-      .collection("clients")
-      .orderBy("createdAt", "desc")
-      .get();
+
+    const query = user.role === "sales"
+      ? db.collection("clients").where("salesOwnerUid", "==", user.uid).orderBy("createdAt", "desc")
+      : db.collection("clients").orderBy("createdAt", "desc");
+
+    const snapshot = await query.get();
 
     const clients = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -39,6 +41,8 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const docRef = await db.collection("clients").add({
       ...data,
+      // Auto-assign sales user as owner, ignore payload salesOwnerUid from sales
+      salesOwnerUid: user.role === "sales" ? user.uid : (body.salesOwnerUid || null),
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,
