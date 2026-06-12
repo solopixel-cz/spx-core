@@ -98,9 +98,13 @@ export default async function DashboardPage() {
     }
   }
 
-  // Onboarding clients
+  // Onboarding clients (sales sees only own)
   const onboardingClients = clientsSnap.docs
-    .filter((doc) => doc.data().status === "onboarding")
+    .filter((doc) => {
+      if (doc.data().status !== "onboarding") return false;
+      if (isSales && doc.data().salesOwnerUid !== user.uid) return false;
+      return true;
+    })
     .map((doc) => {
       const d = doc.data();
       const clientTasks = tasksSnap.docs.filter(
@@ -128,10 +132,21 @@ export default async function DashboardPage() {
     userMap[doc.id] = doc.data().displayName as string;
   });
 
-  // Recent activity
+  // Build sales owned client IDs
+  const salesClientIds = isSales
+    ? new Set(clientsSnap.docs.filter((d) => d.data().salesOwnerUid === user.uid).map((d) => d.id))
+    : null;
+
+  // Recent activity (sales: filter client/ticket to own)
   const recentActivity = activitySnap.docs
     .filter((doc) => {
-      if (isSales) return (doc.data().entityType as string) !== "invoice";
+      if (isSales) {
+        const et = doc.data().entityType as string;
+        if (et === "invoice") return false;
+        if ((et === "client" || et === "ticket") && salesClientIds) {
+          return salesClientIds.has(doc.data().entityId as string);
+        }
+      }
       return true;
     })
     .slice(0, 6)

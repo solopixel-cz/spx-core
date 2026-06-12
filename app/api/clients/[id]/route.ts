@@ -11,12 +11,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { id } = await params;
     const db = getAdminFirestore();
     const doc = await db.collection("clients").doc(id).get();
 
     if (!doc.exists) {
+      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
+    }
+
+    // Sales can only view their own clients
+    if (user.role === "sales" && doc.data()?.salesOwnerUid !== user.uid) {
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 
@@ -50,6 +55,11 @@ export async function PATCH(
     const existing = await docRef.get();
 
     if (!existing.exists) {
+      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
+    }
+
+    // Sales can only edit their own clients
+    if (user.role === "sales" && existing.data()?.salesOwnerUid !== user.uid) {
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 

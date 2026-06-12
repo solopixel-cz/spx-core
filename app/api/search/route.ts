@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 export async function GET(request: Request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get("q") ?? "").toLowerCase().trim();
 
@@ -20,8 +21,11 @@ export async function GET(request: Request) {
       db.collection("prospects").get(),
     ]);
 
+    const ownedClientIds = await getSalesClientIds(user.uid, user.role);
+
     const clients = clientsSnap.docs
       .filter((doc) => {
+        if (ownedClientIds && !ownedClientIds.has(doc.id)) return false;
         const d = doc.data();
         return (
           (d.name as string).toLowerCase().includes(q) ||
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
 
     const tickets = ticketsSnap.docs
       .filter((doc) => {
+        if (ownedClientIds && !ownedClientIds.has(doc.data().clientId as string)) return false;
         const d = doc.data();
         return (d.title as string).toLowerCase().includes(q);
       })

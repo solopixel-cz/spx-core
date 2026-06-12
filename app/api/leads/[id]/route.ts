@@ -115,14 +115,8 @@ export async function POST(
         notes: leadData.notes || "",
       });
 
-      // Check if lead owner is a sales user → set salesOwnerUid for commissions
-      let salesOwnerUid: string | null = null;
-      if (leadData.ownerUid) {
-        const ownerDoc = await db.collection("users").doc(leadData.ownerUid).get();
-        if (ownerDoc.exists && ownerDoc.data()?.role === "sales") {
-          salesOwnerUid = leadData.ownerUid;
-        }
-      }
+      // Set salesOwnerUid from lead owner (any role — provize arise only for sales)
+      const salesOwnerUid = leadData.ownerUid || null;
 
       const clientRef = await db.collection("clients").add({
         ...clientData,

@@ -20,7 +20,8 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 14 | [`14-emailove-osloveni.md`](14-emailove-osloveni.md) | E-mailové oslovení přes Resend — šablona, demo odkaz, webhooky | ✅ |
 | 15 | [`15-dashboard-layout.md`](15-dashboard-layout.md) | Dashboard layout v2 — kompaktní aktivita, stránka /aktivita | ✅ |
 | 16 | [`16-provize.md`](16-provize.md) | Provizní systém — vlastnictví, automatické provize, vyúčtování | ✅ |
-| 17 | [`17-sales-viditelnost-klientu.md`](17-sales-viditelnost-klientu.md) | Sales vidí jen své klienty + auto-přiřazení při vytvoření | ⬜ |
+| 17 | [`17-sales-viditelnost-klientu.md`](17-sales-viditelnost-klientu.md) | Sales vidí jen své klienty + auto-přiřazení při vytvoření | ✅ |
+| 18 | [`18-profil.md`](18-profil.md) | Profil uživatele — fotka, jméno, heslo, preference | ⬜ |
 
 **Pořadí:** fáze 1–16 hotové, aplikace v produkci.
 

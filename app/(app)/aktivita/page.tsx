@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { AktivitaPageClient } from "@/components/activity/aktivita-page-client";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -30,11 +31,17 @@ export default async function AktivitaPage() {
     displayName: doc.data().displayName as string,
   }));
 
+  const ownedClientIds = await getSalesClientIds(user.uid, user.role);
+
   const activities = activitySnap.docs
     .filter((doc) => {
       if (isSales) {
-        const et = doc.data().entityType as string;
-        return et !== "invoice";
+        const d = doc.data();
+        const et = d.entityType as string;
+        if (et === "invoice") return false;
+        if ((et === "client" || et === "ticket") && ownedClientIds) {
+          return ownedClientIds.has(d.entityId as string);
+        }
       }
       return true;
     })

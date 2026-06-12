@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -27,6 +28,8 @@ export async function GET(request: Request) {
       userMap[doc.id] = doc.data().displayName as string;
     });
 
+    const ownedClientIds = await getSalesClientIds(user.uid, user.role);
+
     let query = db.collection("activity").orderBy("createdAt", "desc");
 
     if (cursor) {
@@ -43,7 +46,15 @@ export async function GET(request: Request) {
 
     const activities = docs
       .filter((doc) => {
-        if (isSales) return (doc.data().entityType as string) !== "invoice";
+        const d = doc.data();
+        const et = d.entityType as string;
+        if (isSales) {
+          if (et === "invoice") return false;
+          // Filter client/ticket activities to own clients
+          if ((et === "client" || et === "ticket") && ownedClientIds) {
+            return ownedClientIds.has(d.entityId as string);
+          }
+        }
         return true;
       })
       .map((doc) => {

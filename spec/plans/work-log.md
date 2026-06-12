@@ -2,6 +2,25 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 17 – Sales vidí jen své klienty
+
+- **Klienti:** server query `where('salesOwnerUid', '==', uid)` pro sales; detail → `notFound()` pro cizí klienty.
+- **Auto-přiřazení:** POST `/api/clients` — sales uživatel má `salesOwnerUid = uid` automaticky; payload je ignorován.
+- **API guard:** GET/PATCH `/api/clients/[id]` — sales smí pouze vlastní; PATCH `salesOwnerUid` ignoruje z sales payloadu.
+- **Vlastník = kdokoli:** select „Obchodní vlastník" rozšířen na všechny aktivní uživatele (admin si může přiřadit klienta na sebe). Provize vzniká jen vlastníkům s rolí sales (nezměněno).
+- **Konverze leadu:** `salesOwnerUid` se nyní propisuje z `ownerUid` bez ohledu na roli (ne jen pro sales).
+- **Navázaná data utěsněna pro sales:**
+  - **Tickety:** stránka `/tickety` filtruje na tickety vlastních klientů; dialog „Nový ticket" nabízí jen vlastní.
+  - **Podklady:** API `/api/submissions` filtruje submissions na submissions navázané na vlastní klienty.
+  - **Vyhledávání (Cmd+K):** klienti a tickety filtrováni na vlastní.
+  - **Aktivita:** stránka `/aktivita` + API `/api/activity/list` — client/ticket záznamy jen pro vlastní klienty.
+  - **Dashboard:** onboarding přehled jen vlastních klientů; recent activity filtruje client/ticket entity.
+  - **Attention feed:** tickety jen vlastních klientů; submissions pro sales skryté.
+- **Helper:** `lib/sales-clients.ts` — `getSalesClientIds(uid, role)` pro opakované použití.
+- **Firestore rules:** `clients` read — admin/member vše, sales jen `salesOwnerUid == uid`.
+- **Dokumentace:** `project.md` aktualizováno — sales vidí jen vlastní klienty, leady/prospekti sdílené, auto-přiřazení.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 16 – Provizní systém pro obchodníky
 
 - **Schémata:** `lib/schemas/commission.ts`, `clientSchema` rozšířen o `salesOwnerUid`, `userSchema` o `commissionRate`.

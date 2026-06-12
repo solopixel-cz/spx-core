@@ -24,9 +24,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Clients — read for authenticated, write via admin SDK (deny client write for now)
+    // Clients — admin/member reads all; sales reads only own (salesOwnerUid == uid)
     match /clients/{clientId} {
-      allow read: if isAuth();
+      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesOwnerUid == request.auth.uid);
       allow write: if false;
     }
 

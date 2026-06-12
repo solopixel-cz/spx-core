@@ -16,6 +16,9 @@ export default async function ClientDetailPage({
   const doc = await db.collection("clients").doc(id).get();
   if (!doc.exists) notFound();
 
+  // Sales can only view their own clients
+  if (isSales && doc.data()?.salesOwnerUid !== user.uid) notFound();
+
   const data = doc.data()!;
   const client = {
     id: doc.id,
@@ -140,7 +143,7 @@ export default async function ClientDetailPage({
   });
 
   const salesUsers = usersSnap.docs
-    .filter((d) => d.data().role === "sales" && d.data().active)
+    .filter((d) => d.data().active)
     .map((d) => ({ id: d.id, displayName: d.data().displayName as string }));
 
   return (
