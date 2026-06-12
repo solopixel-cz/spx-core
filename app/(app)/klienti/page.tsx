@@ -14,11 +14,14 @@ interface ClientRow {
 }
 
 export default async function KlientiPage() {
-  await requireAuth();
+  const user = await requireAuth();
   const db = getAdminFirestore();
+  const isSales = user.role === "sales";
 
   const [clientsSnap, instancesSnap] = await Promise.all([
-    db.collection("clients").orderBy("createdAt", "desc").get(),
+    isSales
+      ? db.collection("clients").where("salesOwnerUid", "==", user.uid).orderBy("createdAt", "desc").get()
+      : db.collection("clients").orderBy("createdAt", "desc").get(),
     db.collection("instances").get(),
   ]);
 

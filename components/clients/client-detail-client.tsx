@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 import { ClientFormDialog } from "./client-form-dialog";
 import { InstancesTab } from "./instances-tab";
 import { ActivityTab } from "./activity-tab";
@@ -24,6 +32,7 @@ interface ClientData {
   status: string;
   advisorSlug: string;
   notes?: string;
+  salesOwnerUid: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -93,6 +102,7 @@ export function ClientDetailClient({
   invoices = [],
   tasks = [],
   tickets = [],
+  salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
 }: {
   client: ClientData;
@@ -102,6 +112,7 @@ export function ClientDetailClient({
   invoices?: InvoiceData[];
   tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
+  salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
 }) {
   const isSales = userRole === "sales";
@@ -208,6 +219,40 @@ export function ClientDetailClient({
               </dl>
             </div>
             {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
+            {!isSales && salesUsers.length > 0 && (
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold">Obchodní vlastník</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Obchodník s nárokem na provize z faktur tohoto klienta.</p>
+                <Select
+                  value={client.salesOwnerUid ?? "none"}
+                  onValueChange={async (val) => {
+                    const newUid = val === "none" ? null : val;
+                    try {
+                      const res = await fetch(`/api/clients/${client.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ salesOwnerUid: newUid }),
+                      });
+                      if (!res.ok) throw new Error();
+                      toast.success("Vlastník uložen");
+                      router.refresh();
+                    } catch {
+                      toast.error("Nepodařilo se změnit vlastníka");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Vyberte obchodníka" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Bez vlastníka —</SelectItem>
+                    {salesUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           {client.notes && (
             <div className="rounded-lg border p-4">

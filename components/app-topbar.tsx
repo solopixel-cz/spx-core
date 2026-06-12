@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Menu, Search, LogOut, Key } from "lucide-react";
+import { Menu, Search, LogOut, User } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,17 +23,19 @@ import {
 } from "@/components/ui/sheet";
 import { MobileSidebar } from "@/components/app-sidebar";
 import { CommandSearch } from "@/components/command-search";
-import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import type { SessionUser } from "@/lib/auth";
 
-function getInitials(email: string): string {
-  return email.charAt(0).toUpperCase();
-}
-
-export function AppTopbar({ user }: { user: SessionUser }) {
+export function AppTopbar({
+  user,
+  displayName,
+  photoURL,
+}: {
+  user: SessionUser;
+  displayName: string;
+  photoURL: string | null;
+}) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -99,21 +101,19 @@ export function AppTopbar({ user }: { user: SessionUser }) {
               <Button variant="ghost" size="icon" className="rounded-full" />
             }
           >
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar uid={user.uid} name={displayName} photoURL={photoURL} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user.email}</p>
+              <p className="text-sm font-medium">{displayName}</p>
               <p className="text-xs text-muted-foreground">
                 {user.role === "admin" ? "Administrátor" : user.role === "sales" ? "Obchodník" : "Člen"}
               </p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
-              <Key className="mr-2 h-4 w-4" />
-              Změnit heslo
+            <DropdownMenuItem onClick={() => router.push("/profil")}>
+              <User className="mr-2 h-4 w-4" />
+              Můj profil
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
@@ -124,7 +124,6 @@ export function AppTopbar({ user }: { user: SessionUser }) {
       </header>
 
       <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />
-      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </>
   );
 }

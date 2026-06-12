@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  History,
   Users,
   Briefcase,
   BookUser,
   Receipt,
+  Percent,
+  CreditCard,
   CheckSquare,
   TicketCheck,
   ClipboardList,
@@ -33,7 +36,10 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     title: "Přehled",
-    items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/", icon: LayoutDashboard },
+      { label: "Aktivita", href: "/aktivita", icon: History },
+    ],
   },
   {
     title: "Obchod",
@@ -41,6 +47,7 @@ const navGroups: NavGroup[] = [
       { label: "Leady", href: "/leady", icon: Briefcase },
       { label: "Prospekti", href: "/prospekti", icon: BookUser },
       { label: "Klienti", href: "/klienti", icon: Users },
+      { label: "Moje vizitky", href: "/moje-vizitky", icon: CreditCard, roles: ["sales"] },
       { label: "Podklady", href: "/podklady", icon: ClipboardList },
     ],
   },
@@ -58,6 +65,12 @@ const navGroups: NavGroup[] = [
         label: "Fakturace",
         href: "/fakturace",
         icon: Receipt,
+        roles: ["admin", "member"],
+      },
+      {
+        label: "Provize",
+        href: "/provize",
+        icon: Percent,
         roles: ["admin", "member"],
       },
     ],

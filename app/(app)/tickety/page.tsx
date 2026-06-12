@@ -1,9 +1,10 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { TicketsPageClient } from "@/components/tickets/tickets-page-client";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 export default async function TicketyPage() {
-  await requireAuth();
+  const user = await requireAuth();
   const db = getAdminFirestore();
 
   const [ticketsSnap, clientsSnap, usersSnap] = await Promise.all([
@@ -12,12 +13,19 @@ export default async function TicketyPage() {
     db.collection("users").where("active", "==", true).get(),
   ]);
 
+  const ownedClientIds = await getSalesClientIds(user.uid, user.role);
+
   const clientMap: Record<string, string> = {};
   clientsSnap.docs.forEach((doc) => {
     clientMap[doc.id] = doc.data().name;
   });
 
-  const tickets = ticketsSnap.docs.map((doc) => {
+  const filteredTickets = ticketsSnap.docs.filter((doc) => {
+    if (!ownedClientIds) return true; // admin/member sees all
+    return ownedClientIds.has(doc.data().clientId as string);
+  });
+
+  const tickets = filteredTickets.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -33,10 +41,13 @@ export default async function TicketyPage() {
     };
   });
 
-  const clients = clientsSnap.docs.map((doc) => ({
-    id: doc.id,
-    name: doc.data().name as string,
-  }));
+  // For sales, only show own clients in the client dropdown
+  const clients = clientsSnap.docs
+    .filter((doc) => !ownedClientIds || ownedClientIds.has(doc.id))
+    .map((doc) => ({
+      id: doc.id,
+      name: doc.data().name as string,
+    }));
 
   const users = usersSnap.docs.map((doc) => ({
     id: doc.id,
