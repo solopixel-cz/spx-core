@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     const { email, displayName, role } = (await request.json()) as {
       email: string;
       displayName: string;
-      role: "admin" | "member";
+      role: "admin" | "member" | "sales";
     };
 
     if (!email || !displayName || !role) {
