@@ -15,5 +15,6 @@
 | Fáze 11 — Redesign | ✅ Hotovo | [`../prompts/11-redesign.md`](../prompts/11-redesign.md) — po fázi 10 |
 | Fáze 12 — Akční dashboard | ✅ Hotovo | [`../prompts/12-dashboard.md`](../prompts/12-dashboard.md) |
 | Fáze 8 — Nasazení na Vercel | ✅ Hotovo | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) — jako poslední |
+| Fáze 13 — Prospekti | ✅ Hotovo | [`../prompts/13-prospekti.md`](../prompts/13-prospekti.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

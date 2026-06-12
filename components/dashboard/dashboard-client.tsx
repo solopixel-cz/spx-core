@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import {
   Receipt,
@@ -13,6 +21,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Info,
+  BookUser,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import type { AttentionItem } from "@/lib/attention";
@@ -29,6 +38,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   lead: <Briefcase className="h-4 w-4" />,
   submission: <ClipboardList className="h-4 w-4" />,
   task: <CheckSquare className="h-4 w-4" />,
+  prospect: <BookUser className="h-4 w-4" />,
 };
 
 const severityColors: Record<string, string> = {
@@ -63,6 +73,21 @@ interface OnboardingClient {
   stale: boolean;
 }
 
+interface ProspectStats {
+  contactedThisWeek: number;
+  responding: number;
+  converted: number;
+}
+
+interface ProspectOwnerStats {
+  uid: string;
+  name: string;
+  claimed: number;
+  contacted: number;
+  responding: number;
+  converted: number;
+}
+
 interface ActivityItem {
   id: string;
   actor: string;
@@ -82,6 +107,8 @@ export function DashboardClient({
   onboardingClients,
   recentActivity,
   myOpenTasks,
+  prospectStats,
+  prospectOwnerStats,
   userRole = "member",
 }: {
   attentionItems: AttentionItem[];
@@ -94,6 +121,8 @@ export function DashboardClient({
   onboardingClients: OnboardingClient[];
   recentActivity: ActivityItem[];
   myOpenTasks: number;
+  prospectStats: ProspectStats;
+  prospectOwnerStats: ProspectOwnerStats[];
   userRole?: string;
 }) {
   const isSales = userRole === "sales";
@@ -216,6 +245,63 @@ export function DashboardClient({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Outreach stats */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Oslovování</h2>
+        <div className="grid gap-3 grid-cols-3">
+          <Link href="/prospekti">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Osloveno tento týden</p>
+                <p className="text-xl font-bold">{prospectStats.contactedThisWeek}</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/prospekti">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Reaguje</p>
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{prospectStats.responding}</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/prospekti">
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Konvertováno</p>
+                <p className="text-xl font-bold">{prospectStats.converted}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+        {!isSales && prospectOwnerStats.length > 0 && (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Obchodník</TableHead>
+                  <TableHead className="text-right">Zabráno</TableHead>
+                  <TableHead className="text-right">Osloveno</TableHead>
+                  <TableHead className="text-right">Reaguje</TableHead>
+                  <TableHead className="text-right">Konverze</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {prospectOwnerStats.map((s) => (
+                  <TableRow key={s.uid}>
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell className="text-right">{s.claimed}</TableCell>
+                    <TableCell className="text-right">{s.contacted}</TableCell>
+                    <TableCell className="text-right">{s.responding}</TableCell>
+                    <TableCell className="text-right">{s.converted}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Onboarding overview */}

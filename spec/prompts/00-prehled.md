@@ -16,8 +16,9 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 10 | [`10-role-sales.md`](10-role-sales.md) | Role sales (obchodník) — bez přístupu k financím | ✅ |
 | 11 | [`11-redesign.md`](11-redesign.md) | Redesign — světlý teal vzhled, stavové barvy, sidebar skupiny | ✅ |
 | 12 | [`12-dashboard.md`](12-dashboard.md) | Akční dashboard: feed Vyžaduje akci, MRR, onboarding, aktivita | ✅ |
+| 13 | [`13-prospekti.md`](13-prospekti.md) | Prospekti — zásobník oslovení, zabírání, log kontaktů, CSV import | ✅ |
 
-**Pořadí:** zbývá 12 → 8 (nasazení jako poslední, ať jde do produkce kompletní aplikace).
+**Pořadí:** fáze 1–13 hotové, aplikace v produkci.
 
 ## Jak prompty používat
 

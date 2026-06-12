@@ -130,12 +130,39 @@ Bugy a požadavky na změnu vizitky.
 }
 ```
 
+### `prospects`
+Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
+
+```ts
+{
+  name: string
+  company?: string
+  email?: string
+  phone?: string
+  city?: string
+  portalUrl?: string         // odkaz na profil na portálu
+  status: 'new' | 'contacted' | 'responding' | 'not_interested' | 'unreachable' | 'converted'
+  ownerUid?: string          // kdo si prospekta zabral (null = volný)
+  claimedAt?: Timestamp
+  lastTouchAt?: Timestamp    // poslední kontakt
+  nextFollowUpAt?: Timestamp // připomínka do attention feedu
+  leadId?: string            // po konverzi na lead
+  source: 'import' | 'manual'
+  importBatchId?: string     // dávka CSV importu
+}
+```
+
+- **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
+- **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
+- **Konverze:** akce „Převést na lead" → vytvoří `lead` (source=`outreach`, ownerUid z prospekta), prospect.status=`converted` + `leadId`.
+- Viditelnost: všichni sales vidí všechno (transparentní koordinace).
+
 ### `activity`
 Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na detailu klienta/leadu.
 
 ```ts
 {
-  entityType: 'client' | 'lead' | 'ticket' | 'invoice'
+  entityType: 'client' | 'lead' | 'ticket' | 'invoice' | 'prospect'
   entityId: string
   kind: 'note' | 'status_change' | 'call' | 'email' | 'system'
   text: string

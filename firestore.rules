@@ -75,6 +75,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Prospects — read for authenticated, write via admin SDK (route handlers)
+    match /prospects/{prospectId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Activity — read for authenticated, append-only (no update/delete)
     match /activity/{activityId} {
       allow read: if isAuth();

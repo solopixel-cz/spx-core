@@ -2,7 +2,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { UserRole } from "@/lib/auth";
 
 export interface AttentionItem {
-  type: "invoice" | "ticket" | "lead" | "submission" | "task";
+  type: "invoice" | "ticket" | "lead" | "submission" | "task" | "prospect";
   severity: "high" | "medium" | "low";
   title: string;
   age: number; // days
@@ -148,6 +148,34 @@ export async function getAttentionItems(
             title: `Onboarding úkol „${d.title}" po termínu (${age} dní)`,
             age,
             href: "/ukoly",
+          });
+        });
+      })
+  );
+
+  // 6. Prospect follow-ups due today or overdue
+  fetches.push(
+    db
+      .collection("prospects")
+      .where("status", "in", ["new", "contacted", "responding"])
+      .get()
+      .then((snap) => {
+        snap.docs.forEach((doc) => {
+          const d = doc.data();
+          if (isSales && d.ownerUid !== uid) return;
+          if (!d.ownerUid) return; // skip unowned
+          const nextFollowUp = d.nextFollowUpAt?.toDate?.();
+          if (!nextFollowUp) return;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (nextFollowUp > today) return;
+          const age = Math.floor((now - nextFollowUp.getTime()) / DAY_MS);
+          items.push({
+            type: "prospect",
+            severity: age > 3 ? "high" : age > 0 ? "medium" : "low",
+            title: `Follow-up u prospekta „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
+            age,
+            href: "/prospekti",
           });
         });
       })

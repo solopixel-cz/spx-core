@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
+  BookUser,
   Receipt,
   CheckSquare,
   TicketCheck,
@@ -38,6 +39,7 @@ const navGroups: NavGroup[] = [
     title: "Obchod",
     items: [
       { label: "Leady", href: "/leady", icon: Briefcase },
+      { label: "Prospekti", href: "/prospekti", icon: BookUser },
       { label: "Klienti", href: "/klienti", icon: Users },
       { label: "Podklady", href: "/podklady", icon: ClipboardList },
     ],
