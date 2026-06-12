@@ -13,7 +13,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = (await request.json()) as {
-      role?: "admin" | "member";
+      role?: "admin" | "member" | "sales";
       active?: boolean;
     };
 

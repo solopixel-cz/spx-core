@@ -2,6 +2,18 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Zprovoznění formuláře podkladů na produkci (debugging)
+
+Odkaz z CRM vracel 404 / „Neplatný odkaz". Tři nezávislé příčiny, postupně odhalené a opravené:
+
+1. **Formulář nebyl na produkčním webu** — stránka `/vizitka-formular` žila jen na větvi `fixing` v solopixel-web, produkce (`main`) ji neměla. Fix: merge + deploy (spolu s migrací domény na solopixel.eu).
+2. **Firestore/Storage rules nebyly nikdy nasazené** — `firebase deploy` ze spx-core mířil do cizího projektu „staging" (starý `firebase use` v globální konfiguraci, chybělo `.firebaserc`). Fix: přidán `.firebaserc` s `markly-1bd84` + `firebase use markly-1bd84` + deploy rules a indexů.
+3. **Web na Vercelu neměl `NEXT_PUBLIC_FIREBASE_*` env proměnné** — klientský SDK se připojoval k `projects/undefined` (ověřeno v Network tabu na URL Firestore channel requestu). Fix: doplnění env proměnných ve Vercelu (projekt webu) + redeploy.
+
+Vedlejší opravy: CRM base URL formuláře přes `NEXT_PUBLIC_CARD_FORM_BASE_URL` (default `www.solopixel.eu/cs/...`); dialog předplatného umí „Platí od" / „Příští fakturace" pro import stávajících klientů.
+
+**Ponaučení pro příště:** při deploy vždy zkontrolovat řádek `Deploying to 'markly-1bd84'`; u nové stránky závislé na Firebase ověřit env proměnné v cílovém prostředí; `projects/undefined` v Network tabu = chybějící `NEXT_PUBLIC_FIREBASE_PROJECT_ID` v buildu.
+
 ## 2026-06-12 — ✅ Fáze 8 – Nasazení na Vercel
 
 - Build čistý, žádná tajemství v repu (.env.local v .gitignore).
