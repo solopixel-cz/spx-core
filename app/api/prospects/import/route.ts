@@ -11,6 +11,7 @@ interface ImportRow {
   phone?: string;
   city?: string;
   portalUrl?: string;
+  demoUrl?: string;
 }
 
 export async function POST(request: Request) {
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
           phone: row.phone?.trim() || null,
           city: row.city?.trim() || null,
           portalUrl: row.portalUrl?.trim() || null,
+          demoUrl: row.demoUrl?.trim() || null,
           status: "new",
           ownerUid: null,
           claimedAt: null,

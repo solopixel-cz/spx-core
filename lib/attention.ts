@@ -181,6 +181,46 @@ export async function getAttentionItems(
       })
   );
 
+  // 7. Prospects who clicked demo link — "zavolej" alert for owner
+  fetches.push(
+    db
+      .collection("outreachEmails")
+      .where("status", "==", "clicked")
+      .get()
+      .then(async (snap) => {
+        for (const doc of snap.docs) {
+          const d = doc.data();
+          const prospectId = d.prospectId as string;
+          if (!prospectId) continue;
+
+          // Check if there's been a newer contact logged after the click
+          const prospectDoc = await db.collection("prospects").doc(prospectId).get();
+          if (!prospectDoc.exists) continue;
+          const pData = prospectDoc.data()!;
+
+          // Only show for active prospects owned by this user (or all for admin)
+          if (["converted", "not_interested", "unreachable"].includes(pData.status as string)) continue;
+          if (isSales && pData.ownerUid !== uid) continue;
+          if (!pData.ownerUid) continue;
+
+          const clickedAt = d.lastEventAt?.toDate?.() ?? d.sentAt?.toDate?.();
+          const lastTouch = pData.lastTouchAt?.toDate?.();
+
+          // Hide if there's been a contact after the click
+          if (clickedAt && lastTouch && lastTouch > clickedAt) continue;
+
+          const age = clickedAt ? Math.floor((now - clickedAt.getTime()) / DAY_MS) : 0;
+          items.push({
+            type: "prospect",
+            severity: "high",
+            title: `„${pData.name}" kliknul na demo — zavolej!`,
+            age,
+            href: "/prospekti",
+          });
+        }
+      })
+  );
+
   await Promise.all(fetches);
 
   // Sort by severity (high first), then by age (oldest first)

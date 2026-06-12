@@ -88,6 +88,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Outreach emails — read for authenticated, write via admin SDK
+    match /outreachEmails/{emailId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Counters — admin only
     match /counters/{counterId} {
       allow read, write: if isAdmin();

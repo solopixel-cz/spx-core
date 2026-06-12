@@ -14,13 +14,28 @@ export default async function ProspektiPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
 
-  const [prospectsSnap, usersSnap] = await Promise.all([
+  const [prospectsSnap, usersSnap, emailsSnap] = await Promise.all([
     db.collection("prospects")
       .orderBy("createdAt", "desc")
       .limit(50)
       .get(),
     db.collection("users").get(),
+    db.collection("outreachEmails").get(),
   ]);
+
+  // Build map: prospectId -> latest email status
+  const emailStatusMap = new Map<string, string>();
+  emailsSnap.docs.forEach((doc) => {
+    const d = doc.data();
+    const pid = d.prospectId as string;
+    const status = d.status as string;
+    const existing = emailStatusMap.get(pid);
+    // Keep the "highest" status
+    const order: Record<string, number> = { sent: 0, delivered: 1, opened: 2, clicked: 3, bounced: 4, complained: 5 };
+    if (!existing || (order[status] ?? 0) > (order[existing] ?? 0)) {
+      emailStatusMap.set(pid, status);
+    }
+  });
 
   const prospects = prospectsSnap.docs.map((doc) => {
     const d = doc.data();
@@ -32,6 +47,7 @@ export default async function ProspektiPage() {
       phone: (d.phone as string) ?? null,
       city: (d.city as string) ?? null,
       portalUrl: (d.portalUrl as string) ?? null,
+      demoUrl: (d.demoUrl as string) ?? null,
       status: d.status as string,
       ownerUid: (d.ownerUid as string) ?? null,
       leadId: (d.leadId as string) ?? null,
@@ -40,6 +56,7 @@ export default async function ProspektiPage() {
       claimedAt: serializeTimestamp(d.claimedAt),
       lastTouchAt: serializeTimestamp(d.lastTouchAt),
       nextFollowUpAt: serializeTimestamp(d.nextFollowUpAt),
+      lastEmailStatus: emailStatusMap.get(doc.id) ?? null,
       createdAt: serializeTimestamp(d.createdAt),
       updatedAt: serializeTimestamp(d.updatedAt),
     };

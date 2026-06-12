@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Upload } from "lucide-react";
 
-type FieldKey = "name" | "company" | "email" | "phone" | "city" | "portalUrl" | "skip";
+type FieldKey = "name" | "company" | "email" | "phone" | "city" | "portalUrl" | "demoUrl" | "skip";
 
 const fieldLabels: Record<FieldKey, string> = {
   name: "Jméno",
@@ -36,6 +36,7 @@ const fieldLabels: Record<FieldKey, string> = {
   phone: "Telefon",
   city: "Město",
   portalUrl: "URL profilu",
+  demoUrl: "Demo vizitka",
   skip: "— Přeskočit —",
 };
 
@@ -124,6 +125,7 @@ export function CsvImportDialog({
         if (lower.includes("mail") || lower.includes("email") || lower.includes("e-mail")) return "email";
         if (lower.includes("tel") || lower.includes("phone") || lower.includes("mobil")) return "phone";
         if (lower.includes("měst") || lower.includes("city") || lower === "mesto") return "city";
+        if (lower.includes("demo")) return "demoUrl";
         if (lower.includes("url") || lower.includes("profil") || lower.includes("link") || lower.includes("web")) return "portalUrl";
         return "skip";
       });

@@ -28,6 +28,7 @@ export function ProspectFormDialog({
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [portalUrl, setPortalUrl] = useState("");
+  const [demoUrl, setDemoUrl] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +46,7 @@ export function ProspectFormDialog({
           phone: phone.trim() || undefined,
           city: city.trim() || undefined,
           portalUrl: portalUrl.trim() || undefined,
+          demoUrl: demoUrl.trim() || undefined,
         }),
       });
 
@@ -72,6 +74,7 @@ export function ProspectFormDialog({
     setPhone("");
     setCity("");
     setPortalUrl("");
+    setDemoUrl("");
   }
 
   return (
@@ -132,6 +135,15 @@ export function ProspectFormDialog({
               value={portalUrl}
               onChange={(e) => setPortalUrl(e.target.value)}
               placeholder="https://..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="prospect-demo">Demo vizitka URL</Label>
+            <Input
+              id="prospect-demo"
+              value={demoUrl}
+              onChange={(e) => setDemoUrl(e.target.value)}
+              placeholder="https://demo.solopixel.cz/..."
             />
           </div>
           <Button type="submit" disabled={saving || !name.trim()} className="w-full">

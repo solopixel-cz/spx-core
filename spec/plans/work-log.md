@@ -2,6 +2,22 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 14 – E-mailové oslovení (Resend)
+
+- **Resend integrace:** `npm i resend svix`, `lib/email.ts` — `sendOutreachEmail()` + `renderTemplate()` (plain text → HTML s paragrafy). Env: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`.
+- **Schémata:** `lib/schemas/outreach-email.ts` (status enum, statusOrder), prospect schéma rozšířeno o `demoUrl`.
+- **Šablona oslovení (Nastavení → Šablony):** editor předmětu + těla s placeholdery `{{jmeno}}` a `{{odkaz}}`, tlačítko „Testovací e-mail" (pošle na adresu přihlášeného). API `GET/PUT/POST /api/templates/outreach-email`.
+- **Odeslání z prospekta:** dialog s editovatelným oslovením (5. pád) a náhledem předmětu/těla. Route handler `POST /api/prospects/[id]` action=`send_email` — Resend send → doc `outreachEmails` → activity log → prospect status `contacted` (pokud `new`) + `lastTouchAt` + `nextFollowUpAt` (+3 pracovní dny). Ochrana: max 1 oslovení / 7 dní (429 s vysvětlením). Bez e-mailu nebo `demoUrl` = deaktivované tlačítko s důvodem.
+- **Webhook `/api/webhooks/resend`:** ověření podpisu (svix), eventy `delivered`/`opened`/`clicked`/`bounced`/`complained`. Status se upgraduje (vyšší přepisuje nižší, bounced/complained vždy). Activity log: otevřel / kliknul na demo ✨ / nedoručitelné. `bounced` → prospect `unreachable` pokud nemá telefon.
+- **Attention feed:** „Kliknul na demo — zavolej!" pro vlastníka prospekta (zmizí po dalším kontaktu).
+- **Viditelnost v UI:** `demoUrl` pole ve formuláři a CSV importu, ikona `Monitor` v tabulce s proklikem. Sloupec posledního e-mail stavu (StatusBadge, kliknuto = ring highlight). Detail prospekta: odkaz na demo vizitku.
+- **Status mapy:** `outreachEmailStatus` v `lib/status.ts`.
+- **Firestore rules:** `outreachEmails` read pro přihlášené, write deny.
+- **Composite index:** `outreachEmails(prospectId, sentAt)`.
+- `npm run lint` + `npm run build` čisté.
+
+**Manuální kroky pro uživatele:** (1) Resend: ověřit doménu solopixel.cz (DKIM/SPF), (2) API klíč → `RESEND_API_KEY` do Vercel + `.env.local`, (3) webhook URL `https://<crm>/api/webhooks/resend` + signing secret → `RESEND_WEBHOOK_SECRET`, (4) redeploy.
+
 ## 2026-06-12 — ✅ Fáze 13 – Prospekti (zásobník oslovení)
 
 - **Zod schéma:** `lib/schemas/prospect.ts` — `prospectSchema`, `prospectFormSchema`, `contactFormSchema` + typy.

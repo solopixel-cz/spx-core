@@ -23,9 +23,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { prospectStatus } from "@/lib/status";
+import { prospectStatus, outreachEmailStatus } from "@/lib/status";
 import { formatDate } from "@/lib/format";
-import { Plus, Upload, Hand } from "lucide-react";
+import { Plus, Upload, Hand, Monitor } from "lucide-react";
 import { ProspectDetailSheet } from "./prospect-detail-sheet";
 import { ProspectFormDialog } from "./prospect-form-dialog";
 import { CsvImportDialog } from "./csv-import-dialog";
@@ -38,6 +38,7 @@ export interface ProspectRow {
   phone: string | null;
   city: string | null;
   portalUrl: string | null;
+  demoUrl: string | null;
   status: string;
   ownerUid: string | null;
   leadId: string | null;
@@ -46,6 +47,7 @@ export interface ProspectRow {
   claimedAt: string | null;
   lastTouchAt: string | null;
   nextFollowUpAt: string | null;
+  lastEmailStatus: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -266,6 +268,8 @@ export function ProspektiPageClient({
               <TableHead>Firma</TableHead>
               <TableHead>Město</TableHead>
               <TableHead>Stav</TableHead>
+              <TableHead className="w-10"></TableHead>
+              <TableHead className="w-10"></TableHead>
               <TableHead>Vlastník</TableHead>
               <TableHead>Poslední kontakt</TableHead>
               <TableHead>Follow-up</TableHead>
@@ -275,7 +279,7 @@ export function ProspektiPageClient({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   Žádní prospekti
                 </TableCell>
               </TableRow>
@@ -300,6 +304,28 @@ export function ProspektiPageClient({
                     <TableCell>{prospect.city || "—"}</TableCell>
                     <TableCell>
                       <StatusBadge map={prospectStatus} value={prospect.status} />
+                    </TableCell>
+                    <TableCell>
+                      {prospect.demoUrl && (
+                        <a
+                          href={prospect.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Demo vizitka"
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Monitor className="h-4 w-4" />
+                        </a>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {prospect.lastEmailStatus && (
+                        <StatusBadge
+                          map={outreachEmailStatus}
+                          value={prospect.lastEmailStatus}
+                          className={prospect.lastEmailStatus === "clicked" ? "ring-1 ring-emerald-400" : ""}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>{owner?.displayName ?? "—"}</TableCell>
                     <TableCell>{formatDate(prospect.lastTouchAt)}</TableCell>

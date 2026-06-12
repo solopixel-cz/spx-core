@@ -141,6 +141,7 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. Smysl
   phone?: string
   city?: string
   portalUrl?: string         // odkaz na profil na portálu
+  demoUrl?: string           // odkaz na demo vizitku (Vercel) pro tohoto prospekta
   status: 'new' | 'contacted' | 'responding' | 'not_interested' | 'unreachable' | 'converted'
   ownerUid?: string          // kdo si prospekta zabral (null = volný)
   claimedAt?: Timestamp
@@ -212,6 +213,27 @@ Vyplněné podklady z webového formuláře. Dokument ID = token.
   processedBy?: string     // uid kdo zpracoval
 }
 ```
+
+### `outreachEmails`
+Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.
+
+```ts
+{
+  prospectId: string
+  toEmail: string
+  senderUid: string
+  resendId: string           // ID z Resend API — klíč pro webhook párování
+  subject: string
+  status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  sentAt: Timestamp
+  lastEventAt?: Timestamp
+}
+```
+
+Webhook `POST /api/webhooks/resend` (ověřeno signing secretem) aktualizuje `status` a zapisuje `activity` na prospekta (otevřel / kliknul / nedoručitelné).
+
+### `templates/outreach-email`
+Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
 
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.

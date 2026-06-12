@@ -114,6 +114,16 @@ export const prospectResult: Record<string, StatusConfig> = {
   email_sent: { label: "Poslán e-mail", color: "blue" },
 };
 
+// Outreach email status
+export const outreachEmailStatus: Record<string, StatusConfig> = {
+  sent: { label: "Odesláno", color: "blue" },
+  delivered: { label: "Doručeno", color: "blue" },
+  opened: { label: "Otevřeno", color: "yellow" },
+  clicked: { label: "Kliknuto", color: "green" },
+  bounced: { label: "Nedoručeno", color: "red" },
+  complained: { label: "Stížnost", color: "red" },
+};
+
 /** CSS classes for status badge colors */
 export const statusColorClasses: Record<StatusColor, string> = {
   green: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800",

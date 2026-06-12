@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { prospectFormSchema, contactFormSchema } from "@/lib/schemas/prospect";
 import { logActivity } from "@/lib/activity";
 import { leadFormSchema } from "@/lib/schemas/lead";
+import { renderTemplate, sendOutreachEmail } from "@/lib/email";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -276,6 +277,115 @@ export async function POST(
         entityId: id,
         kind: "status_change",
         text: `${label}${note ? `: ${note}` : ""}`,
+        actorUid: user.uid,
+      });
+
+      return NextResponse.json({ status: "ok" });
+    }
+
+    if (action === "send_email") {
+      const greeting = body.greeting as string | undefined;
+      const doc = await prospectRef.get();
+      if (!doc.exists) {
+        return NextResponse.json({ error: "Prospekt nenalezen" }, { status: 404 });
+      }
+      const prospectData = doc.data()!;
+
+      if (!prospectData.email) {
+        return NextResponse.json({ error: "Prospekt nemá e-mail" }, { status: 400 });
+      }
+      if (!prospectData.demoUrl) {
+        return NextResponse.json({ error: "Prospekt nemá odkaz na demo vizitku" }, { status: 400 });
+      }
+
+      // Check 7-day cooldown
+      const recentEmail = await db
+        .collection("outreachEmails")
+        .where("prospectId", "==", id)
+        .orderBy("sentAt", "desc")
+        .limit(1)
+        .get();
+
+      if (!recentEmail.empty) {
+        const lastSentAt = recentEmail.docs[0].data().sentAt?.toDate?.();
+        if (lastSentAt) {
+          const daysSince = (Date.now() - lastSentAt.getTime()) / 86400000;
+          if (daysSince < 7) {
+            const daysLeft = Math.ceil(7 - daysSince);
+            return NextResponse.json(
+              { error: `Oslovení bylo odesláno nedávno. Další je možné za ${daysLeft} dní.` },
+              { status: 429 }
+            );
+          }
+        }
+      }
+
+      // Load template
+      const templateDoc = await db.collection("templates").doc("outreach-email").get();
+      if (!templateDoc.exists) {
+        return NextResponse.json({ error: "Šablona oslovení není nastavena" }, { status: 400 });
+      }
+      const template = templateDoc.data() as { subject: string; body: string };
+
+      // Get sender info
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const senderName = (userDoc.data()?.displayName as string) || "SoloPixel";
+
+      // Render and send
+      const jmeno = greeting || prospectData.name.split(" ")[0];
+      const rendered = renderTemplate(template, {
+        jmeno,
+        odkaz: prospectData.demoUrl,
+      });
+
+      const result = await sendOutreachEmail({
+        to: prospectData.email,
+        senderName,
+        senderEmail: user.email,
+        subject: rendered.subject,
+        html: rendered.html,
+      });
+
+      // Save outreach email record
+      await db.collection("outreachEmails").add({
+        prospectId: id,
+        toEmail: prospectData.email,
+        senderUid: user.uid,
+        resendId: result?.id || "",
+        subject: rendered.subject,
+        status: "sent",
+        sentAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdBy: user.uid,
+      });
+
+      // Update prospect
+      const updateData: Record<string, unknown> = {
+        lastTouchAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      if (prospectData.status === "new") {
+        updateData.status = "contacted";
+      }
+      // Set follow-up to +3 business days if not set
+      if (!prospectData.nextFollowUpAt) {
+        const followUp = new Date();
+        let daysAdded = 0;
+        while (daysAdded < 3) {
+          followUp.setDate(followUp.getDate() + 1);
+          const day = followUp.getDay();
+          if (day !== 0 && day !== 6) daysAdded++;
+        }
+        updateData.nextFollowUpAt = followUp;
+      }
+      await prospectRef.update(updateData);
+
+      await logActivity({
+        entityType: "prospect",
+        entityId: id,
+        kind: "email",
+        text: `Odesláno oslovení na ${prospectData.email}`,
         actorUid: user.uid,
       });
 

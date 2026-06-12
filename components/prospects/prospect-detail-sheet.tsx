@@ -37,6 +37,8 @@ import {
   UserX,
   Unlock,
   ExternalLink,
+  Mail,
+  Monitor,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
@@ -72,6 +74,12 @@ export function ProspectDetailSheet({
   const [statusAction, setStatusAction] = useState<"not_interested" | "unreachable">("not_interested");
   const [statusNote, setStatusNote] = useState("");
   const [prevProspectId, setPrevProspectId] = useState<string | null>(null);
+
+  // Outreach email dialog state
+  const [outreachDialogOpen, setOutreachDialogOpen] = useState(false);
+  const [outreachGreeting, setOutreachGreeting] = useState("");
+  const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string; body: string } | null>(null);
+  const [outreachLoading, setOutreachLoading] = useState(false);
 
   // Contact form state
   const [channel, setChannel] = useState("phone");
@@ -189,6 +197,54 @@ export function ProspectDetailSheet({
     }
   }
 
+  async function openOutreachDialog() {
+    if (!prospect) return;
+    setOutreachLoading(true);
+    setOutreachGreeting(prospect.name.split(" ")[0]);
+    try {
+      const res = await fetch("/api/templates/outreach-email");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!data.subject || !data.body) {
+        toast.error("Šablona oslovení není nastavena (Nastavení → Šablony)");
+        return;
+      }
+      setOutreachTemplate(data);
+      setOutreachDialogOpen(true);
+    } catch {
+      toast.error("Nepodařilo se načíst šablonu");
+    } finally {
+      setOutreachLoading(false);
+    }
+  }
+
+  async function handleSendOutreach() {
+    if (!prospect) return;
+    setActing(true);
+    try {
+      const res = await fetch(`/api/prospects/${prospect.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send_email",
+          greeting: outreachGreeting.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Nepodařilo se odeslat");
+        return;
+      }
+      toast.success("Oslovení odesláno");
+      setOutreachDialogOpen(false);
+      onUpdate();
+    } catch {
+      toast.error("Nepodařilo se odeslat oslovení");
+    } finally {
+      setActing(false);
+    }
+  }
+
   function resetContactForm() {
     setChannel("phone");
     setResult("no_answer");
@@ -255,6 +311,21 @@ export function ProspectDetailSheet({
                     </dd>
                   </div>
                 )}
+                {prospect.demoUrl && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Demo vizitka</dt>
+                    <dd>
+                      <a
+                        href={prospect.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        Otevřít <Monitor className="h-3 w-3" />
+                      </a>
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Vlastník</dt>
                   <dd>{owner?.displayName ?? "Volný"}</dd>
@@ -283,6 +354,23 @@ export function ProspectDetailSheet({
               {!isTerminal && canAct && (
                 <>
                   <Separator />
+                  {/* Outreach email button */}
+                  {prospect.email && prospect.demoUrl ? (
+                    <Button
+                      onClick={openOutreachDialog}
+                      disabled={acting || outreachLoading}
+                      className="w-full"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      {outreachLoading ? "Načítám šablonu..." : "Odeslat oslovení"}
+                    </Button>
+                  ) : (
+                    <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                      <Mail className="mx-auto mb-1 h-4 w-4" />
+                      Oslovení nelze odeslat —{" "}
+                      {!prospect.email ? "chybí e-mail" : "chybí odkaz na demo vizitku"}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       onClick={() => setContactDialogOpen(true)}
@@ -406,6 +494,68 @@ export function ProspectDetailSheet({
               {acting ? "Ukládám..." : "Uložit"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Outreach email dialog */}
+      <Dialog open={outreachDialogOpen} onOpenChange={setOutreachDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Odeslat oslovení</DialogTitle>
+          </DialogHeader>
+          {outreachTemplate && prospect && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Oslovení (5. pád)</Label>
+                <Input
+                  value={outreachGreeting}
+                  onChange={(e) => setOutreachGreeting(e.target.value)}
+                  placeholder="Např. Jane, Honzo..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upravte oslovení — v šabloně nahradí <code>{"{{jmeno}}"}</code>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Odkaz na demo</Label>
+                <Input value={prospect.demoUrl || ""} disabled className="text-muted-foreground" />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Náhled předmětu</p>
+                <p className="text-sm font-medium">
+                  {outreachTemplate.subject
+                    .replace(/\{\{jmeno\}\}/g, outreachGreeting || prospect.name.split(" ")[0])
+                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "")}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Náhled těla</p>
+                <div className="max-h-48 overflow-y-auto rounded border p-3 text-sm whitespace-pre-wrap">
+                  {outreachTemplate.body
+                    .replace(/\{\{jmeno\}\}/g, outreachGreeting || prospect.name.split(" ")[0])
+                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "")}
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Příjemce: <span className="font-medium">{prospect.email}</span>
+              </div>
+
+              <Button
+                onClick={handleSendOutreach}
+                disabled={acting || !outreachGreeting.trim()}
+                className="w-full"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {acting ? "Odesílám..." : "Odeslat"}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

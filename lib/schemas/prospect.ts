@@ -20,6 +20,7 @@ export const prospectSchema = z.object({
   phone: z.string().optional(),
   city: z.string().optional(),
   portalUrl: z.string().optional(),
+  demoUrl: z.string().optional(),
   status: z.enum(prospectStatusValues),
   ownerUid: z.string().optional(),
   claimedAt: z.any().optional(),
@@ -39,6 +40,7 @@ export const prospectFormSchema = z.object({
   phone: z.string().optional(),
   city: z.string().optional(),
   portalUrl: z.string().url("Zadejte platnou URL").or(z.literal("")).optional(),
+  demoUrl: z.string().url("Zadejte platnou URL").or(z.literal("")).optional(),
 });
 
 export type ProspectFormData = z.infer<typeof prospectFormSchema>;

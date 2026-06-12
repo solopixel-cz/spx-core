@@ -17,8 +17,9 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 11 | [`11-redesign.md`](11-redesign.md) | Redesign — světlý teal vzhled, stavové barvy, sidebar skupiny | ✅ |
 | 12 | [`12-dashboard.md`](12-dashboard.md) | Akční dashboard: feed Vyžaduje akci, MRR, onboarding, aktivita | ✅ |
 | 13 | [`13-prospekti.md`](13-prospekti.md) | Prospekti — zásobník oslovení, zabírání, log kontaktů, CSV import | ✅ |
+| 14 | [`14-emailove-osloveni.md`](14-emailove-osloveni.md) | E-mailové oslovení přes Resend — šablona, demo odkaz, webhooky | ✅ |
 
-**Pořadí:** fáze 1–13 hotové, aplikace v produkci.
+**Pořadí:** fáze 1–14 hotové, aplikace v produkci.
 
 ## Jak prompty používat
 
