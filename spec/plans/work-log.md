@@ -2,6 +2,60 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 12 – Akční dashboard
+
+- `lib/attention.ts`: server-side agregace položek vyžadujících akci (faktury po splatnosti, urgentní tickety, stagnující leady, nevyřízené podklady, onboarding úkoly po termínu).
+- Feed „Vyžaduje akci": seznam s ikonami, barvami dle severity, prokliky. Prázdný stav „Vše vyřízeno".
+- Finanční řádek (admin/member): MRR, zaplaceno/vyfakturováno tento měsíc, pipeline hodnota, mini sloupcový graf (recharts) zaplacených faktur za 12 měsíců.
+- Onboarding přehled: klienti v onboardingu s progress barem úkolů, zvýraznění zaseknutých.
+- Aktivita týmu: posledních 10 záznamů s relativním časem a prokliky.
+- Sales role: ořezaný dashboard bez financí, jen vlastní položky.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 11 – Redesign (teal vzhled)
+
+- Theme tokeny: primary teal-600 (light) / teal-400 (dark), radius 0.5rem, sidebar zinc-50/zinc-925.
+- `lib/status.ts`: jednotný systém stavových barev (zelená/žlutá/červená/modrá/šedá) pro všechny entity.
+- `lib/format.ts`: `formatCurrency()`, `formatNumber()`, `formatDate()` přes Intl.NumberFormat/DateTimeFormat.
+- Sdílené komponenty: `StatusBadge`, `PageHeader`, `EmptyState`.
+- Sidebar: seskupený do bloků (Přehled, Obchod, Provoz, Finance) s drobnými nadpisy.
+- Logo SPX Core v teal barvě.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 10 – Role sales (obchodník)
+
+- Třetí role `sales` v user schema, auth, custom claims.
+- `requireRole()` podporuje více rolí (`requireRole('admin', 'member')`).
+- Firestore rules: `invoices`/`subscriptions` read jen admin/member (ne sales).
+- API ochrana: invoice/subscription route handlers vyžadují admin/member.
+- Sidebar: Fakturace jen admin/member, Nastavení jen admin.
+- Server-side ochrana `/fakturace` (requireRole), detail klienta nepředává finanční data sales uživateli.
+- Dashboard pro sales: bez karty faktur po splatnosti.
+- Správa uživatelů: role „Obchodník" v selectu.
+- Datový model a project.md aktualizovány.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 9 – Podklady z webového formuláře
+
+- Firestore rules: `card-tokens` (public get, list pro přihlášené), `card-submissions` (public create s validací, read pro přihlášené).
+- Storage rules: `cards/{token}/{fileName}` (public read/write, max 5 MB, images).
+- Zod schémata: `card-token.ts`, `card-submission.ts`. Data model aktualizován.
+- Generování odkazu z detailu klienta: tlačítko „Poslat formulář podkladů", nanoid token, kopírování URL, detekce existujícího tokenu.
+- Stránka `/podklady` v sidebaru: tabulka submissions, detail v Sheet (po sekcích), akce „Označit zpracované".
+- Dashboard: karta „Nevyřízené podklady" s počtem a proklikem.
+- API: `GET/POST /api/card-tokens`, `GET /api/submissions`, `PATCH /api/submissions/[id]`.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-12 — ✅ Fáze 7 – Doplňky a dotažení
+
+- `useCollection<T>` hook pro realtime Firestore listenery (onSnapshot, unsubscribe, loading/error).
+- Globální vyhledávání Cmd+K: cmdk dialog, API `GET /api/search?q=`, prohledává klienty/leady/tickety.
+- Správa hesel: změna vlastního hesla (reauthenticate + updatePassword), admin reset hesla, zapomenuté heslo na login stránce.
+- Task schema rozšířen o `ticketId`.
+- Filtry ticketů rozšířeny: stav, typ, priorita, klient.
+- Storage rules: ticket přílohy (max 10 MB, images/PDF).
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 6 – Úkoly, tickety a dashboard
 
 - `/ukoly`: seznam Moje/Všechny, filtr, checkbox dokončení, dialog nového úkolu (klient, řešitel, termín), overdue zvýraznění.

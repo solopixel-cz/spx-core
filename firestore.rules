@@ -13,6 +13,11 @@ service cloud.firestore {
       return isAuth() && request.auth.token.role == 'admin';
     }
 
+    // Helper: is user admin or member (not sales)?
+    function isAdminOrMember() {
+      return isAuth() && request.auth.token.role in ['admin', 'member'];
+    }
+
     // Users — read for authenticated, write for admin only
     match /users/{userId} {
       allow read: if isAuth();
@@ -38,15 +43,15 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
-    // Subscriptions — read for authenticated, write denied (opens in phase 5)
+    // Subscriptions — read for admin/member only (not sales)
     match /subscriptions/{subId} {
-      allow read: if isAuth();
+      allow read: if isAdminOrMember();
       allow write: if false;
     }
 
-    // Invoices — read for authenticated, write denied (opens in phase 5)
+    // Invoices — read for admin/member only (not sales)
     match /invoices/{invoiceId} {
-      allow read: if isAuth();
+      allow read: if isAdminOrMember();
       allow write: if false;
     }
 
@@ -80,6 +85,27 @@ service cloud.firestore {
     // Counters — admin only
     match /counters/{counterId} {
       allow read, write: if isAdmin();
+    }
+
+    // Card tokens — public get (token is secret in URL), no list, write via admin SDK
+    match /card-tokens/{token} {
+      allow get: if true;
+      allow list: if isAuth();
+      allow create, update, delete: if false;
+    }
+
+    // Card submissions — public create (from web form), read via admin SDK
+    match /card-submissions/{token} {
+      allow create: if true
+        && request.resource.data.keys().hasAll(['fullName', 'email', 'token', 'createdAt'])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() < 200
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.token is string;
+      allow read: if isAuth();
+      allow update, delete: if false;
     }
   }
 }

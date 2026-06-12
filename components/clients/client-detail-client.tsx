@@ -11,6 +11,7 @@ import { InstancesTab } from "./instances-tab";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
+import { CardFormButton } from "./card-form-button";
 
 interface ClientData {
   id: string;
@@ -92,6 +93,7 @@ export function ClientDetailClient({
   invoices = [],
   tasks = [],
   tickets = [],
+  userRole = "member" as "admin" | "member" | "sales",
 }: {
   client: ClientData;
   instances: InstanceData[];
@@ -100,7 +102,9 @@ export function ClientDetailClient({
   invoices?: InvoiceData[];
   tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
+  userRole?: "admin" | "member" | "sales";
 }) {
+  const isSales = userRole === "sales";
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -124,6 +128,7 @@ export function ClientDetailClient({
             <span>Slug: {client.advisorSlug}</span>
           </div>
         </div>
+        <div className="flex flex-col items-end gap-2">
         <ClientFormDialog
           open={editOpen}
           onOpenChange={setEditOpen}
@@ -150,6 +155,12 @@ export function ClientDetailClient({
             notes: client.notes ?? "",
           }}
         />
+        <CardFormButton
+          clientId={client.id}
+          clientName={client.name}
+          clientEmail={client.email}
+        />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -157,7 +168,7 @@ export function ClientDetailClient({
         <TabsList>
           <TabsTrigger value="prehled">Přehled</TabsTrigger>
           <TabsTrigger value="instance">Instance</TabsTrigger>
-          <TabsTrigger value="faktury">Faktury</TabsTrigger>
+          {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
           <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
           <TabsTrigger value="tickety">Tickety</TabsTrigger>
           <TabsTrigger value="aktivita">Aktivita</TabsTrigger>
@@ -196,7 +207,7 @@ export function ClientDetailClient({
                 </div>
               </dl>
             </div>
-            <SubscriptionCard clientId={client.id} subscription={subscription} />
+            {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
           </div>
           {client.notes && (
             <div className="rounded-lg border p-4">
@@ -210,9 +221,11 @@ export function ClientDetailClient({
           <InstancesTab clientId={client.id} instances={instances} />
         </TabsContent>
 
-        <TabsContent value="faktury" className="mt-6">
-          <ClientInvoicesTab invoices={invoices} />
-        </TabsContent>
+        {!isSales && (
+          <TabsContent value="faktury" className="mt-6">
+            <ClientInvoicesTab invoices={invoices} />
+          </TabsContent>
+        )}
 
         <TabsContent value="ukoly" className="mt-6">
           {tasks.length === 0 ? (

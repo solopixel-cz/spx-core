@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   const {
     register,
@@ -126,6 +127,31 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Přihlašování..." : "Přihlásit se"}
             </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-sm text-muted-foreground hover:underline"
+                onClick={async () => {
+                  const email = (document.getElementById("email") as HTMLInputElement)?.value;
+                  if (!email) return;
+                  try {
+                    const auth = getClientAuth();
+                    await sendPasswordResetEmail(auth, email);
+                  } catch {
+                    // always show neutral message
+                  }
+                  setResetSent(true);
+                }}
+              >
+                Zapomenuté heslo?
+              </button>
+              {resetSent && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Pokud účet existuje, poslali jsme e-mail s odkazem pro reset hesla.
+                </p>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>

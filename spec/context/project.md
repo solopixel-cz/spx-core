@@ -58,6 +58,7 @@ Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `inst
 
 ## Neobvyklé / důležité chování
 
-- Role se řeší přes Firebase Auth **custom claims** (`role: admin | member`) — nastavuje se server-side, klient je jen čte.
+- Role se řeší přes Firebase Auth **custom claims** (`role: admin | member | sales`) — nastavuje se server-side, klient je jen čte. Sales nemá přístup k financím (faktury, předplatná).
+- **Budoucí rozhodnutí:** Až přijdou externí provizní obchodníci, omezit viditelnost leadů pro sales na `ownerUid` (vlastní leady). Zatím vidí všechny — malý interní tým.
 - Registrace je **uzavřená** — uživatele zakládá admin, žádný veřejný signup.
 - Čísla faktur generuje transakce nad počítadlem v dokumentu `counters/invoices` (formát `RRRR-NNN`).

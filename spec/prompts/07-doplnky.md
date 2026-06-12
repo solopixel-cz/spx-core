@@ -31,7 +31,13 @@
 - V seznamu úkolů ukaž odznak/odkaz na ticket, pokud existuje.
 - Index `tasks(ticketId, status)` pokud bude dotaz potřebovat.
 
-### 5. Drobnosti
+### 5. Správa hesel
+
+- **Změna vlastního hesla:** položka „Změnit heslo" v avatar menu → dialog (současné heslo, nové heslo 2×, zod validace min. 8 znaků). Klientský SDK: `reauthenticateWithCredential` (EmailAuthProvider) → `updatePassword`. České chybové hlášky (špatné současné heslo, slabé heslo).
+- **Reset adminem:** ve správě uživatelů (`/nastaveni/uzivatele`) akce „Resetovat heslo" → route handler s `requireRole('admin')`, admin SDK `updateUser(uid, { password })` s vygenerovaným dočasným heslem, zobrazit ho adminovi jednorázově v dialogu.
+- **Zapomenuté heslo:** odkaz na login stránce → dialog s e-mailem → `sendPasswordResetEmail`. Vždy ukázat neutrální potvrzení („Pokud účet existuje, poslali jsme e-mail") — nezveřejňovat existenci účtu.
+
+### 6. Drobnosti
 
 - Filtry na `/tickety` rozšiř dle promptu fáze 6: typ, priorita, klient (teď je jen stav).
 - Zkontroluj, že všechny mutace volají `logActivity()` (namátkou: tickets, tasks, invoices).
@@ -42,4 +48,5 @@
 - Ticket s přílohou: upload, zobrazení, stažení funguje; storage.rules nasazené.
 - Cmd+K najde klienta, lead i ticket a naviguje na ně.
 - Z detailu ticketu lze založit úkol s předvyplněnou vazbou; úkol ukazuje odkaz na ticket.
+- Změna vlastního hesla, admin reset i zapomenuté heslo fungují (ověřit ručně).
 - Lint + build čisté, ověření v prohlížeči, work-log, stav fáze, commit (`feat: [changelog] realtime, přílohy ticketů a globální vyhledávání`).
