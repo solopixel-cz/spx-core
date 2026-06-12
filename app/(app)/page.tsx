@@ -18,16 +18,18 @@ export default async function DashboardPage() {
     clientsSnap,
     usersSnap,
     prospectsSnap,
+    outreachSnap,
   ] = await Promise.all([
     getAttentionItems(user.uid, user.role),
     db.collection("leads").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
     isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
     db.collection("tasks").get(),
-    db.collection("activity").orderBy("createdAt", "desc").limit(10).get(),
+    db.collection("activity").orderBy("createdAt", "desc").limit(6).get(),
     db.collection("clients").get(),
     db.collection("users").get(),
     db.collection("prospects").get(),
+    db.collection("outreachEmails").get(),
   ]);
 
   // Lead funnel
@@ -132,13 +134,14 @@ export default async function DashboardPage() {
       if (isSales) return (doc.data().entityType as string) !== "invoice";
       return true;
     })
-    .slice(0, 10)
+    .slice(0, 6)
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
       const href = et === "client" ? `/klienti/${d.entityId}` : et === "lead" ? "/leady" : et === "ticket" ? "/tickety" : et === "prospect" ? "/prospekti" : "/fakturace";
       return {
         id: doc.id,
+        actorUid: d.actorUid as string,
         actor: userMap[d.actorUid as string] ?? "Systém",
         text: d.text as string,
         href,
@@ -190,6 +193,19 @@ export default async function DashboardPage() {
     ...stats,
   }));
 
+  // Outreach email stats this week
+  const outreachWeekStats = { sent: 0, opened: 0, clicked: 0 };
+  outreachSnap.docs.forEach((doc) => {
+    const d = doc.data();
+    if (isSales && d.senderUid !== user.uid) return;
+    const sentAt = d.sentAt?.toDate?.();
+    if (!sentAt || sentAt < weekAgo) return;
+    outreachWeekStats.sent++;
+    const status = d.status as string;
+    if (status === "opened" || status === "clicked") outreachWeekStats.opened++;
+    if (status === "clicked") outreachWeekStats.clicked++;
+  });
+
   const myOpenTasks = tasksSnap.docs.filter(
     (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
   ).length;
@@ -208,6 +224,7 @@ export default async function DashboardPage() {
       myOpenTasks={myOpenTasks}
       prospectStats={prospectStats}
       prospectOwnerStats={prospectOwnerStats}
+      outreachWeekStats={outreachWeekStats}
       userRole={user.role}
     />
   );

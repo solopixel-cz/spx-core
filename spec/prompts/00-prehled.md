@@ -18,8 +18,10 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 12 | [`12-dashboard.md`](12-dashboard.md) | Akční dashboard: feed Vyžaduje akci, MRR, onboarding, aktivita | ✅ |
 | 13 | [`13-prospekti.md`](13-prospekti.md) | Prospekti — zásobník oslovení, zabírání, log kontaktů, CSV import | ✅ |
 | 14 | [`14-emailove-osloveni.md`](14-emailove-osloveni.md) | E-mailové oslovení přes Resend — šablona, demo odkaz, webhooky | ✅ |
+| 15 | [`15-dashboard-layout.md`](15-dashboard-layout.md) | Dashboard layout v2 — kompaktní aktivita, stránka /aktivita | ✅ |
+| 16 | [`16-provize.md`](16-provize.md) | Provizní systém — vlastnictví, automatické provize, vyúčtování | ⬜ |
 
-**Pořadí:** fáze 1–14 hotové, aplikace v produkci.
+**Pořadí:** fáze 1–15 hotové, aplikace v produkci.
 
 ## Jak prompty používat
 

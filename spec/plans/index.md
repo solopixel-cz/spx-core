@@ -17,5 +17,7 @@
 | Fáze 8 — Nasazení na Vercel | ✅ Hotovo | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) — jako poslední |
 | Fáze 13 — Prospekti | ✅ Hotovo | [`../prompts/13-prospekti.md`](../prompts/13-prospekti.md) |
 | Fáze 14 — E-mailové oslovení | ✅ Hotovo | [`../prompts/14-emailove-osloveni.md`](../prompts/14-emailove-osloveni.md) |
+| Fáze 15 — Dashboard layout v2 | ✅ Hotovo | [`../prompts/15-dashboard-layout.md`](../prompts/15-dashboard-layout.md) |
+| Fáze 16 — Provize | ⬜ Čeká | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

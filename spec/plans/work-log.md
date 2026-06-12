@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 15 – Dashboard layout v2
+
+- **Nové rozložení dashboardu:** hlavní grid `lg:grid-cols-3` — levý sloupec (col-span-2): feed Vyžaduje akci (max 8 + „dalších N") → quick stats → onboarding přehled; pravý sloupec: kompaktní aktivita → oslovení tento týden → oslovování celkem.
+- **Kompaktní aktivita:** jednořádkové záznamy, kruhový avatar s iniciálami (5×5 px, deterministická barva z UID), truncate text, relativní čas vpravo (`teď`, `2 h`, `včera`), max 6 záznamů. Hlavička „Aktivita" + odkaz „Vše →" na `/aktivita`.
+- **Karta „Oslovení tento týden":** odesláno / otevřelo / kliklo na demo z `outreachEmails` (pro sales jen vlastní).
+- **Karta „Oslovování celkem":** přesun ze spodní sekce do pravého sloupce (3 čísla: osloveno / reaguje / konverze).
+- **Stránka `/aktivita`:** plný log aktivity s filtry (uživatel, typ entity, období od/do), server-side stránkování po 50 s „Načíst další". Proklik na entitu, avatar, badge entity typu, čas. EmptyState pro prázdné výsledky. API `GET /api/activity/list?cursor=`.
+- **Sidebar:** položka „Aktivita" v sekci Přehled pod Dashboard (ikona `History`), viditelná všem.
+- **Admin tabulka obchodníků:** zůstává pod gridem na celé šířce.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 14 – E-mailové oslovení (Resend)
 
 - **Resend integrace:** `npm i resend svix`, `lib/email.ts` — `sendOutreachEmail()` + `renderTemplate()` (plain text → HTML s paragrafy). Env: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`.
