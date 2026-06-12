@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     }
 
     await logActivity({
-      entityType: entityType as "client" | "lead" | "ticket" | "invoice",
+      entityType: entityType as "client" | "lead" | "ticket" | "invoice" | "prospect",
       entityId,
       kind: "note",
       text,

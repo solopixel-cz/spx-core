@@ -17,6 +17,7 @@ export default async function DashboardPage() {
     activitySnap,
     clientsSnap,
     usersSnap,
+    prospectsSnap,
   ] = await Promise.all([
     getAttentionItems(user.uid, user.role),
     db.collection("leads").get(),
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     db.collection("activity").orderBy("createdAt", "desc").limit(10).get(),
     db.collection("clients").get(),
     db.collection("users").get(),
+    db.collection("prospects").get(),
   ]);
 
   // Lead funnel
@@ -134,7 +136,7 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
-      const href = et === "client" ? `/klienti/${d.entityId}` : et === "lead" ? "/leady" : et === "ticket" ? "/tickety" : "/fakturace";
+      const href = et === "client" ? `/klienti/${d.entityId}` : et === "lead" ? "/leady" : et === "ticket" ? "/tickety" : et === "prospect" ? "/prospekti" : "/fakturace";
       return {
         id: doc.id,
         actor: userMap[d.actorUid as string] ?? "Systém",
@@ -143,6 +145,50 @@ export default async function DashboardPage() {
         createdAt: d.createdAt?.toDate?.()?.toISOString() ?? null,
       };
     });
+
+  // Prospect outreach stats
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 86400000);
+  const prospectStats = { contactedThisWeek: 0, responding: 0, converted: 0 };
+  const prospectsByOwner: Record<string, { claimed: number; contacted: number; responding: number; converted: number }> = {};
+
+  prospectsSnap.docs.forEach((doc) => {
+    const d = doc.data();
+    const ownerId = d.ownerUid as string | null;
+
+    if (ownerId) {
+      if (!prospectsByOwner[ownerId]) {
+        prospectsByOwner[ownerId] = { claimed: 0, contacted: 0, responding: 0, converted: 0 };
+      }
+      prospectsByOwner[ownerId].claimed++;
+    }
+
+    const lastTouch = d.lastTouchAt?.toDate?.();
+    if (lastTouch && lastTouch >= weekAgo) {
+      prospectStats.contactedThisWeek++;
+      if (ownerId && prospectsByOwner[ownerId]) {
+        prospectsByOwner[ownerId].contacted++;
+      }
+    }
+    if (d.status === "responding") {
+      prospectStats.responding++;
+      if (ownerId && prospectsByOwner[ownerId]) {
+        prospectsByOwner[ownerId].responding++;
+      }
+    }
+    if (d.status === "converted") {
+      prospectStats.converted++;
+      if (ownerId && prospectsByOwner[ownerId]) {
+        prospectsByOwner[ownerId].converted++;
+      }
+    }
+  });
+
+  const prospectOwnerStats = Object.entries(prospectsByOwner).map(([uid, stats]) => ({
+    uid,
+    name: userMap[uid] ?? uid,
+    ...stats,
+  }));
 
   const myOpenTasks = tasksSnap.docs.filter(
     (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
@@ -160,6 +206,8 @@ export default async function DashboardPage() {
       onboardingClients={onboardingClients}
       recentActivity={recentActivity}
       myOpenTasks={myOpenTasks}
+      prospectStats={prospectStats}
+      prospectOwnerStats={prospectOwnerStats}
       userRole={user.role}
     />
   );

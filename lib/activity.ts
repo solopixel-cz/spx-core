@@ -2,7 +2,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 interface LogActivityParams {
-  entityType: "client" | "lead" | "ticket" | "invoice";
+  entityType: "client" | "lead" | "ticket" | "invoice" | "prospect";
   entityId: string;
   kind: "note" | "status_change" | "call" | "email" | "system";
   text: string;

@@ -88,6 +88,42 @@ export const leadSource: Record<string, StatusConfig> = {
   other: { label: "Jiné", color: "gray" },
 };
 
+// Prospect status
+export const prospectStatus: Record<string, StatusConfig> = {
+  new: { label: "Nový", color: "blue" },
+  contacted: { label: "Osloven", color: "yellow" },
+  responding: { label: "Reaguje", color: "green" },
+  not_interested: { label: "Nemá zájem", color: "gray" },
+  unreachable: { label: "Nedostupný", color: "red" },
+  converted: { label: "Konvertován", color: "green" },
+};
+
+// Prospect contact channel
+export const prospectChannel: Record<string, StatusConfig> = {
+  phone: { label: "Telefon", color: "blue" },
+  email: { label: "E-mail", color: "blue" },
+  linkedin: { label: "LinkedIn", color: "blue" },
+  in_person: { label: "Osobně", color: "green" },
+};
+
+// Prospect contact result
+export const prospectResult: Record<string, StatusConfig> = {
+  no_answer: { label: "Nedovoláno", color: "gray" },
+  left_message: { label: "Nechal vzkaz", color: "yellow" },
+  conversation: { label: "Proběhl rozhovor", color: "green" },
+  email_sent: { label: "Poslán e-mail", color: "blue" },
+};
+
+// Outreach email status
+export const outreachEmailStatus: Record<string, StatusConfig> = {
+  sent: { label: "Odesláno", color: "blue" },
+  delivered: { label: "Doručeno", color: "blue" },
+  opened: { label: "Otevřeno", color: "yellow" },
+  clicked: { label: "Kliknuto", color: "green" },
+  bounced: { label: "Nedoručeno", color: "red" },
+  complained: { label: "Stížnost", color: "red" },
+};
+
 /** CSS classes for status badge colors */
 export const statusColorClasses: Record<StatusColor, string> = {
   green: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800",

@@ -2,6 +2,45 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 14 – E-mailové oslovení (Resend)
+
+- **Resend integrace:** `npm i resend svix`, `lib/email.ts` — `sendOutreachEmail()` + `renderTemplate()` (plain text → HTML s paragrafy). Env: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`.
+- **Schémata:** `lib/schemas/outreach-email.ts` (status enum, statusOrder), prospect schéma rozšířeno o `demoUrl`.
+- **Šablona oslovení (Nastavení → Šablony):** editor předmětu + těla s placeholdery `{{jmeno}}` a `{{odkaz}}`, tlačítko „Testovací e-mail" (pošle na adresu přihlášeného). API `GET/PUT/POST /api/templates/outreach-email`.
+- **Odeslání z prospekta:** dialog s editovatelným oslovením (5. pád) a náhledem předmětu/těla. Route handler `POST /api/prospects/[id]` action=`send_email` — Resend send → doc `outreachEmails` → activity log → prospect status `contacted` (pokud `new`) + `lastTouchAt` + `nextFollowUpAt` (+3 pracovní dny). Ochrana: max 1 oslovení / 7 dní (429 s vysvětlením). Bez e-mailu nebo `demoUrl` = deaktivované tlačítko s důvodem.
+- **Webhook `/api/webhooks/resend`:** ověření podpisu (svix), eventy `delivered`/`opened`/`clicked`/`bounced`/`complained`. Status se upgraduje (vyšší přepisuje nižší, bounced/complained vždy). Activity log: otevřel / kliknul na demo ✨ / nedoručitelné. `bounced` → prospect `unreachable` pokud nemá telefon.
+- **Attention feed:** „Kliknul na demo — zavolej!" pro vlastníka prospekta (zmizí po dalším kontaktu).
+- **Viditelnost v UI:** `demoUrl` pole ve formuláři a CSV importu, ikona `Monitor` v tabulce s proklikem. Sloupec posledního e-mail stavu (StatusBadge, kliknuto = ring highlight). Detail prospekta: odkaz na demo vizitku.
+- **Status mapy:** `outreachEmailStatus` v `lib/status.ts`.
+- **Firestore rules:** `outreachEmails` read pro přihlášené, write deny.
+- **Composite index:** `outreachEmails(prospectId, sentAt)`.
+- `npm run lint` + `npm run build` čisté.
+
+**Manuální kroky pro uživatele:** (1) Resend: ověřit doménu solopixel.cz (DKIM/SPF), (2) API klíč → `RESEND_API_KEY` do Vercel + `.env.local`, (3) webhook URL `https://<crm>/api/webhooks/resend` + signing secret → `RESEND_WEBHOOK_SECRET`, (4) redeploy.
+
+## 2026-06-12 — ✅ Fáze 13 – Prospekti (zásobník oslovení)
+
+- **Zod schéma:** `lib/schemas/prospect.ts` — `prospectSchema`, `prospectFormSchema`, `contactFormSchema` + typy.
+- **Activity rozšíření:** `entityType` nyní zahrnuje `"prospect"` v schématu, helperu i API.
+- **Status mapy:** `lib/status.ts` — `prospectStatus`, `prospectChannel`, `prospectResult` se stavovými barvami.
+- **API route handlers:**
+  - `GET/POST /api/prospects` — seznam se stránkováním (cursor, limit 50), ruční přidání s deduplikací (e-mail / jméno+firma).
+  - `GET/PATCH /api/prospects/[id]` — detail, editace.
+  - `POST /api/prospects/[id]` — akce: `claim` (transakce brání souběhu), `release`, `contact` (zápis do activity + stav + follow-up), `convert` (vytvoří lead source=outreach), `not_interested`, `unreachable`.
+  - `POST /api/prospects/import` — CSV import: deduplikace (e-mail / jméno+firma), batched writes po 500, `importBatchId`.
+- **Stránka `/prospekti`:** záložky Volní/Moji/Všichni, filtry stav/vlastník/město/text, tabulka s řádkovou akcí Zabrat (optimistické UI + 409 toast), stránkování „Načíst další".
+- **Detail prospekta (Sheet):** všechna pole, StatusBadge, odkaz na profil. Akce: Zapsat kontakt (kanál, výsledek, poznámka, follow-up), Převést na lead, Nemá zájem, Nedostupný, Uvolnit. Historie kontaktů přes ActivityTab.
+- **CSV import dialog:** upload → automatické mapování sloupců → náhled 10 řádků → import s počtem nových/přeskočených.
+- **Ruční přidání:** dialog s deduplikací (409 conflict).
+- **Attention feed:** follow-up prospektů dnes/po termínu (jen vlastníkovy pro sales).
+- **Dashboard:** sekce „Oslovování" — osloveno tento týden / reaguje / konvertováno. Admin/member vidí tabulku rozpad po obchodnících (zabráno, osloveno, reaguje, konverze).
+- **Cmd+K:** prohledává prospekty (jméno, firma, město).
+- **Sidebar:** „Prospekti" v sekci Obchod, mezi Leady a Klienti, ikona `BookUser`.
+- **Firestore rules:** `prospects` read pro přihlášené, write deny (vše přes admin SDK).
+- **Composite indexy:** `prospects(ownerUid, lastTouchAt)`, `prospects(status, lastTouchAt)`, `prospects(ownerUid, nextFollowUpAt)`.
+- **UI komponenta:** `components/ui/textarea.tsx` (shadcn pattern).
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Zprovoznění formuláře podkladů na produkci (debugging)
 
 Odkaz z CRM vracel 404 / „Neplatný odkaz". Tři nezávislé příčiny, postupně odhalené a opravené:

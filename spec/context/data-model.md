@@ -130,12 +130,40 @@ Bugy a požadavky na změnu vizitky.
 }
 ```
 
+### `prospects`
+Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
+
+```ts
+{
+  name: string
+  company?: string
+  email?: string
+  phone?: string
+  city?: string
+  portalUrl?: string         // odkaz na profil na portálu
+  demoUrl?: string           // odkaz na demo vizitku (Vercel) pro tohoto prospekta
+  status: 'new' | 'contacted' | 'responding' | 'not_interested' | 'unreachable' | 'converted'
+  ownerUid?: string          // kdo si prospekta zabral (null = volný)
+  claimedAt?: Timestamp
+  lastTouchAt?: Timestamp    // poslední kontakt
+  nextFollowUpAt?: Timestamp // připomínka do attention feedu
+  leadId?: string            // po konverzi na lead
+  source: 'import' | 'manual'
+  importBatchId?: string     // dávka CSV importu
+}
+```
+
+- **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
+- **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
+- **Konverze:** akce „Převést na lead" → vytvoří `lead` (source=`outreach`, ownerUid z prospekta), prospect.status=`converted` + `leadId`.
+- Viditelnost: všichni sales vidí všechno (transparentní koordinace).
+
 ### `activity`
 Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na detailu klienta/leadu.
 
 ```ts
 {
-  entityType: 'client' | 'lead' | 'ticket' | 'invoice'
+  entityType: 'client' | 'lead' | 'ticket' | 'invoice' | 'prospect'
   entityId: string
   kind: 'note' | 'status_change' | 'call' | 'email' | 'system'
   text: string
@@ -185,6 +213,27 @@ Vyplněné podklady z webového formuláře. Dokument ID = token.
   processedBy?: string     // uid kdo zpracoval
 }
 ```
+
+### `outreachEmails`
+Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.
+
+```ts
+{
+  prospectId: string
+  toEmail: string
+  senderUid: string
+  resendId: string           // ID z Resend API — klíč pro webhook párování
+  subject: string
+  status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  sentAt: Timestamp
+  lastEventAt?: Timestamp
+}
+```
+
+Webhook `POST /api/webhooks/resend` (ověřeno signing secretem) aktualizuje `status` a zapisuje `activity` na prospekta (otevřel / kliknul / nedoručitelné).
+
+### `templates/outreach-email`
+Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
 
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.

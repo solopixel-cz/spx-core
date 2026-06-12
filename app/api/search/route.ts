@@ -9,14 +9,15 @@ export async function GET(request: Request) {
     const q = (searchParams.get("q") ?? "").toLowerCase().trim();
 
     if (!q || q.length < 2) {
-      return NextResponse.json({ clients: [], leads: [], tickets: [] });
+      return NextResponse.json({ clients: [], leads: [], tickets: [], prospects: [] });
     }
 
     const db = getAdminFirestore();
-    const [clientsSnap, leadsSnap, ticketsSnap] = await Promise.all([
+    const [clientsSnap, leadsSnap, ticketsSnap, prospectsSnap] = await Promise.all([
       db.collection("clients").get(),
       db.collection("leads").get(),
       db.collection("tickets").get(),
+      db.collection("prospects").get(),
     ]);
 
     const clients = clientsSnap.docs
@@ -63,7 +64,24 @@ export async function GET(request: Request) {
         status: doc.data().status,
       }));
 
-    return NextResponse.json({ clients, leads, tickets });
+    const prospects = prospectsSnap.docs
+      .filter((doc) => {
+        const d = doc.data();
+        return (
+          (d.name as string).toLowerCase().includes(q) ||
+          (d.company as string | undefined)?.toLowerCase().includes(q) ||
+          (d.city as string | undefined)?.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 5)
+      .map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+        company: doc.data().company,
+        status: doc.data().status,
+      }));
+
+    return NextResponse.json({ clients, leads, tickets, prospects });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
