@@ -13,6 +13,11 @@ service cloud.firestore {
       return isAuth() && request.auth.token.role == 'admin';
     }
 
+    // Helper: is user admin or member (not sales)?
+    function isAdminOrMember() {
+      return isAuth() && request.auth.token.role in ['admin', 'member'];
+    }
+
     // Users — read for authenticated, write for admin only
     match /users/{userId} {
       allow read: if isAuth();
@@ -38,15 +43,15 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
-    // Subscriptions — read for authenticated, write denied (opens in phase 5)
+    // Subscriptions — read for admin/member only (not sales)
     match /subscriptions/{subId} {
-      allow read: if isAuth();
+      allow read: if isAdminOrMember();
       allow write: if false;
     }
 
-    // Invoices — read for authenticated, write denied (opens in phase 5)
+    // Invoices — read for admin/member only (not sales)
     match /invoices/{invoiceId} {
-      allow read: if isAuth();
+      allow read: if isAdminOrMember();
       allow write: if false;
     }
 

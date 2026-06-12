@@ -15,11 +15,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type UserRole = "admin" | "member" | "sales";
+
 interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  adminOnly?: boolean;
+  roles?: UserRole[]; // if set, only these roles see the item
 }
 
 const navItems: NavItem[] = [
@@ -27,19 +29,19 @@ const navItems: NavItem[] = [
   { label: "Leady", href: "/leady", icon: Briefcase },
   { label: "Klienti", href: "/klienti", icon: Users },
   { label: "Podklady", href: "/podklady", icon: ClipboardList },
-  { label: "Fakturace", href: "/fakturace", icon: Receipt },
+  { label: "Fakturace", href: "/fakturace", icon: Receipt, roles: ["admin", "member"] },
   { label: "Úkoly", href: "/ukoly", icon: CheckSquare },
   { label: "Tickety", href: "/tickety", icon: TicketCheck },
-  { label: "Nastavení", href: "/nastaveni", icon: Settings },
+  { label: "Nastavení", href: "/nastaveni", icon: Settings, roles: ["admin"] },
 ];
 
-function NavLinks({ role }: { role: "admin" | "member" }) {
+function NavLinks({ role }: { role: UserRole }) {
   const pathname = usePathname();
 
   return (
     <>
       {navItems
-        .filter((item) => !item.adminOnly || role === "admin")
+        .filter((item) => !item.roles || item.roles.includes(role))
         .map((item) => {
           const isActive =
             item.href === "/"
@@ -65,7 +67,7 @@ function NavLinks({ role }: { role: "admin" | "member" }) {
   );
 }
 
-export function AppSidebar({ role }: { role: "admin" | "member" }) {
+export function AppSidebar({ role }: { role: UserRole }) {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4">
@@ -80,13 +82,13 @@ export function AppSidebar({ role }: { role: "admin" | "member" }) {
   );
 }
 
-export function MobileSidebar({ role }: { role: "admin" | "member" }) {
+export function MobileSidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
 
   return (
     <nav className="space-y-1 p-3">
       {navItems
-        .filter((item) => !item.adminOnly || role === "admin")
+        .filter((item) => !item.roles || item.roles.includes(role))
         .map((item) => {
           const isActive =
             item.href === "/"

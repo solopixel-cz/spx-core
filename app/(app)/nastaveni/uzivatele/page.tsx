@@ -217,6 +217,7 @@ export default function UzivatelePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="member">Člen</SelectItem>
+                    <SelectItem value="sales">Obchodník</SelectItem>
                     <SelectItem value="admin">Administrátor</SelectItem>
                   </SelectContent>
                 </Select>

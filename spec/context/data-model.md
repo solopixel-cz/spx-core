@@ -11,7 +11,7 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
 {
   email: string
   displayName: string
-  role: 'admin' | 'member'   // zrcadlí custom claim, claim je zdroj pravdy
+  role: 'admin' | 'member' | 'sales'  // zrcadlí custom claim, claim je zdroj pravdy
   active: boolean
 }
 ```

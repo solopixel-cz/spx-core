@@ -38,6 +38,7 @@ export function DashboardClient({
   openTicketCount,
   myTasks,
   newSubmissionsCount,
+  userRole = "member",
 }: {
   leadsByStage: Record<string, number>;
   overdueInvoiceCount: number;
@@ -46,7 +47,9 @@ export function DashboardClient({
   openTicketCount: number;
   myTasks: MyTask[];
   newSubmissionsCount: number;
+  userRole?: string;
 }) {
+  const isSales = userRole === "sales";
   const todayTasks = myTasks.filter((t) => t.isDueToday || t.isOverdue);
   const overdueTasks = myTasks.filter((t) => t.isOverdue);
 
@@ -76,24 +79,26 @@ export function DashboardClient({
           </Card>
         </Link>
 
-        {/* Overdue invoices */}
-        <Link href="/fakturace">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Faktury po splatnosti
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-destructive">
-                {overdueInvoiceCount}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {overdueInvoiceSum.toLocaleString("cs-CZ")} Kč
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Overdue invoices — hidden for sales */}
+        {!isSales && (
+          <Link href="/fakturace">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Faktury po splatnosti
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-destructive">
+                  {overdueInvoiceCount}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {overdueInvoiceSum.toLocaleString("cs-CZ")} Kč
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
 
         {/* Open tickets */}
         <Link href="/tickety">

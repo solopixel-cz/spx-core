@@ -60,6 +60,7 @@ export default async function DashboardPage() {
       openTicketCount={ticketsSnap.size}
       myTasks={myTasks}
       newSubmissionsCount={submissionsSnap.docs.filter((d) => !d.data().processedAt).length}
+      userRole={user.role}
     />
   );
 }

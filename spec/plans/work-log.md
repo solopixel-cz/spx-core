@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 10 – Role sales (obchodník)
+
+- Třetí role `sales` v user schema, auth, custom claims.
+- `requireRole()` podporuje více rolí (`requireRole('admin', 'member')`).
+- Firestore rules: `invoices`/`subscriptions` read jen admin/member (ne sales).
+- API ochrana: invoice/subscription route handlers vyžadují admin/member.
+- Sidebar: Fakturace jen admin/member, Nastavení jen admin.
+- Server-side ochrana `/fakturace` (requireRole), detail klienta nepředává finanční data sales uživateli.
+- Dashboard pro sales: bez karty faktur po splatnosti.
+- Správa uživatelů: role „Obchodník" v selectu.
+- Datový model a project.md aktualizovány.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 9 – Podklady z webového formuláře
 
 - Firestore rules: `card-tokens` (public get, list pro přihlášené), `card-submissions` (public create s validací, read pro přihlášené).

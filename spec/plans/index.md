@@ -11,7 +11,7 @@
 | Fáze 6 — Úkoly, tickety, dashboard | ✅ Hotovo | [`../prompts/06-ukoly-tickety.md`](../prompts/06-ukoly-tickety.md) |
 | Fáze 7 — Doplňky (realtime, přílohy, cmd+K) | ✅ Hotovo | [`../prompts/07-doplnky.md`](../prompts/07-doplnky.md) |
 | Fáze 9 — Podklady z formuláře | ✅ Hotovo | [`../prompts/09-podklady-formulare.md`](../prompts/09-podklady-formulare.md) — spustit PŘED fází 8 (rules fix) |
-| Fáze 10 — Role sales | ⬜ Čeká | [`../prompts/10-role-sales.md`](../prompts/10-role-sales.md) — po fázi 9 |
+| Fáze 10 — Role sales | ✅ Hotovo | [`../prompts/10-role-sales.md`](../prompts/10-role-sales.md) — po fázi 9 |
 | Fáze 11 — Redesign | ⬜ Čeká | [`../prompts/11-redesign.md`](../prompts/11-redesign.md) — po fázi 10 |
 | Fáze 8 — Nasazení na Vercel | ⬜ Čeká | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) |
 
