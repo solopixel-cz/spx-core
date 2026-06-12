@@ -3,7 +3,7 @@ import { baseFields } from "./timestamp";
 
 export const activitySchema = z.object({
   ...baseFields,
-  entityType: z.enum(["client", "lead", "ticket", "invoice"]),
+  entityType: z.enum(["client", "lead", "ticket", "invoice", "prospect"]),
   entityId: z.string().min(1),
   kind: z.enum(["note", "status_change", "call", "email", "system"]),
   text: z.string().min(1),
