@@ -8,7 +8,8 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAuth();
+  const user = await requireAuth();
+  const isSales = user.role === "sales";
   const { id } = await params;
   const db = getAdminFirestore();
 
@@ -46,8 +47,8 @@ export default async function ClientDetailPage({
         .orderBy("createdAt", "desc")
         .limit(50)
         .get(),
-      db.collection("subscriptions").where("clientId", "==", id).get(),
-      db
+      isSales ? Promise.resolve({ docs: [] }) : db.collection("subscriptions").where("clientId", "==", id).get(),
+      isSales ? Promise.resolve({ docs: [] }) : db
         .collection("invoices")
         .where("clientId", "==", id)
         .orderBy("issuedAt", "desc")
@@ -145,6 +146,7 @@ export default async function ClientDetailPage({
       invoices={invoices}
       tasks={clientTasks}
       tickets={clientTickets}
+      userRole={user.role}
     />
   );
 }

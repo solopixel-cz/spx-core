@@ -4,10 +4,12 @@ import { getAdminAuth } from "@/lib/firebase/admin";
 const SESSION_COOKIE_NAME = "__session";
 const SESSION_EXPIRY_MS = 60 * 60 * 24 * 5 * 1000; // 5 days
 
+export type UserRole = "admin" | "member" | "sales";
+
 export interface SessionUser {
   uid: string;
   email: string;
-  role: "admin" | "member";
+  role: UserRole;
 }
 
 export async function createSessionCookie(idToken: string): Promise<string> {
@@ -29,7 +31,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     return {
       uid: decoded.uid,
       email: decoded.email ?? "",
-      role: (decoded.role as "admin" | "member") ?? "member",
+      role: (decoded.role as UserRole) ?? "member",
     };
   } catch {
     return null;
@@ -44,10 +46,10 @@ export async function requireAuth(): Promise<SessionUser> {
   return user;
 }
 
-export async function requireRole(role: "admin" | "member"): Promise<SessionUser> {
+export async function requireRole(...roles: UserRole[]): Promise<SessionUser> {
   const user = await requireAuth();
-  if (user.role !== role && role === "admin") {
-    throw new Error("Forbidden: admin role required");
+  if (!roles.includes(user.role)) {
+    throw new Error(`Forbidden: required role ${roles.join(" or ")}`);
   }
   return user;
 }

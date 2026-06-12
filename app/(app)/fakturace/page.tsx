@@ -1,9 +1,9 @@
-import { requireAuth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { InvoicesPageClient } from "@/components/invoices/invoices-page-client";
 
 export default async function FakturacePage() {
-  await requireAuth();
+  await requireRole("admin", "member");
   const db = getAdminFirestore();
 
   const [invoicesSnap, clientsSnap] = await Promise.all([

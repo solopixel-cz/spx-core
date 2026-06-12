@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { subscriptionFormSchema } from "@/lib/schemas/subscription";
 
 export async function GET(request: Request) {
   try {
-    await requireAuth();
+    await requireRole("admin", "member");
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get("clientId");
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
+    const user = await requireRole("admin", "member");
     const body = await request.json();
     const { clientId, ...rest } = body as { clientId: string } & Record<string, unknown>;
     const data = subscriptionFormSchema.parse(rest);

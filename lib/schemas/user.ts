@@ -5,7 +5,7 @@ export const userSchema = z.object({
   ...baseFields,
   email: z.string().email(),
   displayName: z.string().min(1),
-  role: z.enum(["admin", "member"]),
+  role: z.enum(["admin", "member", "sales"]),
   active: z.boolean(),
 });
 
