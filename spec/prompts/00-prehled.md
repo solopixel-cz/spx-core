@@ -11,7 +11,7 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 5 | [`05-fakturace.md`](05-fakturace.md) | Předplatné, faktury, číslování, přehled splatností | ✅ |
 | 6 | [`06-ukoly-tickety.md`](06-ukoly-tickety.md) | Úkoly, onboarding šablony, tickety (bug/change request), dashboard | ✅ |
 | 7 | [`07-doplnky.md`](07-doplnky.md) | Realtime, přílohy ticketů, cmd+K, úkoly k ticketům, správa hesel | ✅ |
-| 8 | [`08-nasazeni-vercel.md`](08-nasazeni-vercel.md) | Nasazení na Vercel, env, rules deploy, smoke test | ⬜ |
+| 8 | [`08-nasazeni-vercel.md`](08-nasazeni-vercel.md) | Nasazení na Vercel, env, rules deploy, smoke test | ✅ |
 | 9 | [`09-podklady-formulare.md`](09-podklady-formulare.md) | Podklady z webového formuláře: rules fix, generování tokenů, inbox | ✅ |
 | 10 | [`10-role-sales.md`](10-role-sales.md) | Role sales (obchodník) — bez přístupu k financím | ✅ |
 | 11 | [`11-redesign.md`](11-redesign.md) | Redesign — světlý teal vzhled, stavové barvy, sidebar skupiny | ✅ |

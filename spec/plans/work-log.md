@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 8 – Nasazení na Vercel
+
+- Build čistý, žádná tajemství v repu (.env.local v .gitignore).
+- Session cookie `secure: true` v produkci ověřeno.
+- Vercel.json nepotřeba (Next.js auto-detect).
+- Manuální kroky: env proměnné ve Vercel UI, firebase deploy (rules + indexy + storage), authorized domains, smoke test.
+
 ## 2026-06-12 — ✅ Fáze 12 – Akční dashboard
 
 - `lib/attention.ts`: server-side agregace položek vyžadujících akci (faktury po splatnosti, urgentní tickety, stagnující leady, nevyřízené podklady, onboarding úkoly po termínu).
