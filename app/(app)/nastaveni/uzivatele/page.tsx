@@ -45,7 +45,7 @@ interface UserRow {
 const addUserSchema = z.object({
   email: z.string().email("Zadejte platný e-mail"),
   displayName: z.string().min(1, "Zadejte jméno"),
-  role: z.enum(["admin", "member"]),
+  role: z.enum(["admin", "member", "sales"]),
 });
 
 type AddUserForm = z.infer<typeof addUserSchema>;
@@ -208,9 +208,9 @@ export default function UzivatelePage() {
                 <Label>Role</Label>
                 <Select
                   defaultValue="member"
-                  onValueChange={(val) =>
-                    setValue("role", val as "admin" | "member")
-                  }
+                  onValueChange={(val) => {
+                    if (val) setValue("role", val as "admin" | "member" | "sales");
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
