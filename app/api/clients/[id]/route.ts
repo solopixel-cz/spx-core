@@ -42,7 +42,8 @@ export async function PATCH(
     const user = await requireAuth();
     const { id } = await params;
     const body = await request.json();
-    const data = clientFormSchema.partial().parse(body);
+    const { salesOwnerUid: newSalesOwner, ...rest } = body;
+    const data = clientFormSchema.partial().parse(rest);
 
     const db = getAdminFirestore();
     const docRef = db.collection("clients").doc(id);
@@ -52,10 +53,29 @@ export async function PATCH(
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 
-    await docRef.update({
+    const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+
+    // Handle salesOwnerUid change (admin/member only)
+    if (newSalesOwner !== undefined && user.role !== "sales") {
+      updateData.salesOwnerUid = newSalesOwner || null;
+      const oldOwner = existing.data()?.salesOwnerUid;
+      if (newSalesOwner !== oldOwner) {
+        await logActivity({
+          entityType: "client",
+          entityId: id,
+          kind: "status_change",
+          text: newSalesOwner
+            ? `Obchodní vlastník přiřazen`
+            : `Obchodní vlastník odebrán`,
+          actorUid: user.uid,
+        });
+      }
+    }
+
+    await docRef.update(updateData);
 
     // Log status change specifically
     const oldStatus = existing.data()?.status;

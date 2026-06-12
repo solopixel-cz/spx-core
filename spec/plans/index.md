@@ -18,6 +18,7 @@
 | Fáze 13 — Prospekti | ✅ Hotovo | [`../prompts/13-prospekti.md`](../prompts/13-prospekti.md) |
 | Fáze 14 — E-mailové oslovení | ✅ Hotovo | [`../prompts/14-emailove-osloveni.md`](../prompts/14-emailove-osloveni.md) |
 | Fáze 15 — Dashboard layout v2 | ✅ Hotovo | [`../prompts/15-dashboard-layout.md`](../prompts/15-dashboard-layout.md) |
-| Fáze 16 — Provize | ⬜ Čeká | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
+| Fáze 16 — Provize | ✅ Hotovo | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
+| Fáze 17 — Sales viditelnost klientů | ⬜ Čeká | [`../prompts/17-sales-viditelnost-klientu.md`](../prompts/17-sales-viditelnost-klientu.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

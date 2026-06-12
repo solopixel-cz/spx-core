@@ -115,9 +115,19 @@ export async function POST(
         notes: leadData.notes || "",
       });
 
+      // Check if lead owner is a sales user → set salesOwnerUid for commissions
+      let salesOwnerUid: string | null = null;
+      if (leadData.ownerUid) {
+        const ownerDoc = await db.collection("users").doc(leadData.ownerUid).get();
+        if (ownerDoc.exists && ownerDoc.data()?.role === "sales") {
+          salesOwnerUid = leadData.ownerUid;
+        }
+      }
+
       const clientRef = await db.collection("clients").add({
         ...clientData,
         leadId: id,
+        salesOwnerUid,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         createdBy: user.uid,

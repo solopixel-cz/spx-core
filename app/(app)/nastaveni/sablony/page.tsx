@@ -26,6 +26,10 @@ export default function SablonyPage() {
   const [emailSaving, setEmailSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
 
+  // Commission settings
+  const [defaultRate, setDefaultRate] = useState(20);
+  const [commSaving, setCommSaving] = useState(false);
+
   useEffect(() => {
     fetch("/api/templates/onboarding")
       .then((res) => (res.ok ? res.json() : { steps: [] }))
@@ -41,6 +45,11 @@ export default function SablonyPage() {
       })
       .catch(() => {})
       .finally(() => setEmailLoading(false));
+
+    fetch("/api/settings/commission")
+      .then((res) => (res.ok ? res.json() : { defaultRate: 0.2 }))
+      .then((data) => setDefaultRate(Math.round((data.defaultRate ?? 0.2) * 100)))
+      .catch(() => {});
   }, []);
 
   function addStep() {
@@ -222,6 +231,53 @@ export default function SablonyPage() {
           Compliance: E-mail by měl obsahovat plný podpis s identifikací firmy a větu
           s možností odmítnout další kontakt.
         </p>
+      </div>
+
+      <Separator className="my-8" />
+
+      {/* Commission default rate */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Provize</h2>
+          <Button
+            size="sm"
+            onClick={async () => {
+              setCommSaving(true);
+              try {
+                const res = await fetch("/api/settings/commission", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ defaultRate: defaultRate / 100 }),
+                });
+                if (!res.ok) throw new Error();
+                toast.success("Sazba uložena");
+              } catch {
+                toast.error("Nepodařilo se uložit sazbu");
+              } finally {
+                setCommSaving(false);
+              }
+            }}
+            disabled={commSaving}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {commSaving ? "Ukládám..." : "Uložit"}
+          </Button>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Výchozí sazba provize pro obchodníky. Individuální sazbu lze nastavit u každého uživatele v sekci Uživatelé.
+        </p>
+
+        <div className="flex items-center gap-2 w-40">
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            value={defaultRate}
+            onChange={(e) => setDefaultRate(parseInt(e.target.value) || 0)}
+          />
+          <span className="text-sm text-muted-foreground">%</span>
+        </div>
       </div>
     </div>
   );

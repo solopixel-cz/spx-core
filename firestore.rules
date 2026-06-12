@@ -88,6 +88,18 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Commissions — sales reads own, admin/member reads all, write via admin SDK
+    match /commissions/{commId} {
+      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesUid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Settings — read for authenticated, write for admin
+    match /settings/{settingId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
     // Outreach emails — read for authenticated, write via admin SDK
     match /outreachEmails/{emailId} {
       allow read: if isAuth();

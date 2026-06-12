@@ -38,8 +38,9 @@ interface UserRow {
   id: string;
   email: string;
   displayName: string;
-  role: "admin" | "member";
+  role: "admin" | "member" | "sales";
   active: boolean;
+  commissionRate?: number;
 }
 
 const addUserSchema = z.object({
@@ -142,7 +143,7 @@ export default function UzivatelePage() {
 
   async function handleChangeRole(
     userId: string,
-    newRole: "admin" | "member"
+    newRole: "admin" | "member" | "sales"
   ) {
     try {
       const res = await fetch(`/api/users/${userId}`, {
@@ -252,7 +253,7 @@ export default function UzivatelePage() {
                   <Select
                     value={user.role}
                     onValueChange={(val) =>
-                      handleChangeRole(user.id, val as "admin" | "member")
+                      handleChangeRole(user.id, val as "admin" | "member" | "sales")
                     }
                   >
                     <SelectTrigger className="h-8 w-36">
@@ -260,6 +261,7 @@ export default function UzivatelePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="member">Člen</SelectItem>
+                      <SelectItem value="sales">Obchodník</SelectItem>
                       <SelectItem value="admin">Administrátor</SelectItem>
                     </SelectContent>
                   </Select>

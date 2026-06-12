@@ -2,6 +2,24 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 16 – Provizní systém pro obchodníky
+
+- **Schémata:** `lib/schemas/commission.ts`, `clientSchema` rozšířen o `salesOwnerUid`, `userSchema` o `commissionRate`.
+- **Vznik provize při zaplacení:** invoice PATCH handler „paid" — vytvoří provizi (doc ID = invoiceId, idempotentní) pokud klient má `salesOwnerUid` s rolí sales. Sazba = `users.commissionRate` ?? `settings/commission.defaultRate`. Zaokrouhlení na celé Kč.
+- **Storno:** pending provize → `reversed`; paid provize → záporný záznam `{invoiceId}-reversal` (pending, odečte se v příštím vyúčtování).
+- **Konverze leadu:** „Vyhráno" → pokud lead `ownerUid` je sales, nastaví `clients.salesOwnerUid`.
+- **Detail klienta:** select „Obchodní vlastník" (sales uživatelé, mění jen admin/member) + logActivity.
+- **Admin stránka `/provize`:** souhrn per obchodník (sazba, k vyplacení, vyplaceno letos), tabulka záznamů s filtry (obchodník, stav). Checkbox výběr → „Označit vyplacené" s poznámkou + „Kopírovat podklad" do schránky.
+- **Sales stránka `/moje-vizitky`:** souhrn (čeká, vyplaceno letos, měsíční provize, sazba), tabulka mých klientů (stav, vizitka, tarif, cena/měs., provize/měs.), tabulka provizí (klient, částka, stav, datum).
+- **Nastavení → Šablony:** default sazba provize (% input + uložit).
+- **Users API:** rozšířeno o `commissionRate` update. Users page: role select doplněn o „Obchodník".
+- **Sidebar:** „Moje vizitky" (Obchod, jen sales), „Provize" (Finance, admin/member).
+- **Firestore rules:** `commissions` read (sales vlastní / admin+member vše), write deny. `settings` read pro přihlášené, write admin.
+- **Composite indexy:** `commissions(salesUid, status)`, `commissions(status, earnedAt)`.
+- **project.md:** aktualizována sekce o sales roli (výjimka — vidí provize a předplatné svých klientů).
+- **UI komponenta:** `components/ui/checkbox.tsx`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 15 – Dashboard layout v2
 
 - **Nové rozložení dashboardu:** hlavní grid `lg:grid-cols-3` — levý sloupec (col-span-2): feed Vyžaduje akci (max 8 + „dalších N") → quick stats → onboarding přehled; pravý sloupec: kompaktní aktivita → oslovení tento týden → oslovování celkem.

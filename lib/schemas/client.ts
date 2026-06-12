@@ -11,6 +11,7 @@ export const clientSchema = z.object({
   phone: z.string().optional(),
   status: z.enum(["onboarding", "active", "paused", "churned"]),
   advisorSlug: z.string().min(1),
+  salesOwnerUid: z.string().optional(),
   notes: z.string().optional(),
   leadId: z.string().optional(),
 });
