@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 11 – Redesign (teal vzhled)
+
+- Theme tokeny: primary teal-600 (light) / teal-400 (dark), radius 0.5rem, sidebar zinc-50/zinc-925.
+- `lib/status.ts`: jednotný systém stavových barev (zelená/žlutá/červená/modrá/šedá) pro všechny entity.
+- `lib/format.ts`: `formatCurrency()`, `formatNumber()`, `formatDate()` přes Intl.NumberFormat/DateTimeFormat.
+- Sdílené komponenty: `StatusBadge`, `PageHeader`, `EmptyState`.
+- Sidebar: seskupený do bloků (Přehled, Obchod, Provoz, Finance) s drobnými nadpisy.
+- Logo SPX Core v teal barvě.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 10 – Role sales (obchodník)
 
 - Třetí role `sales` v user schema, auth, custom claims.
