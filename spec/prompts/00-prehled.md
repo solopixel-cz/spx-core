@@ -10,7 +10,7 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 4 | [`04-leady-pipeline.md`](04-leady-pipeline.md) | Kanban pipeline, konverze lead → klient + onboarding úkoly | ✅ |
 | 5 | [`05-fakturace.md`](05-fakturace.md) | Předplatné, faktury, číslování, přehled splatností | ✅ |
 | 6 | [`06-ukoly-tickety.md`](06-ukoly-tickety.md) | Úkoly, onboarding šablony, tickety (bug/change request), dashboard | ✅ |
-| 7 | [`07-doplnky.md`](07-doplnky.md) | Realtime listenery, přílohy ticketů (Storage), cmd+K vyhledávání | ⬜ |
+| 7 | [`07-doplnky.md`](07-doplnky.md) | Realtime, přílohy ticketů, cmd+K, úkoly k ticketům, správa hesel | ✅ |
 | 8 | [`08-nasazeni-vercel.md`](08-nasazeni-vercel.md) | Nasazení na Vercel, env, rules deploy, smoke test | ⬜ |
 
 ## Jak prompty používat

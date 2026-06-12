@@ -9,7 +9,7 @@
 | Fáze 4 — Leady a pipeline | ✅ Hotovo | [`../prompts/04-leady-pipeline.md`](../prompts/04-leady-pipeline.md) |
 | Fáze 5 — Fakturace | ✅ Hotovo | [`../prompts/05-fakturace.md`](../prompts/05-fakturace.md) |
 | Fáze 6 — Úkoly, tickety, dashboard | ✅ Hotovo | [`../prompts/06-ukoly-tickety.md`](../prompts/06-ukoly-tickety.md) |
-| Fáze 7 — Doplňky (realtime, přílohy, cmd+K) | ⬜ Čeká | [`../prompts/07-doplnky.md`](../prompts/07-doplnky.md) |
+| Fáze 7 — Doplňky (realtime, přílohy, cmd+K) | ✅ Hotovo | [`../prompts/07-doplnky.md`](../prompts/07-doplnky.md) |
 | Fáze 8 — Nasazení na Vercel | ⬜ Čeká | [`../prompts/08-nasazeni-vercel.md`](../prompts/08-nasazeni-vercel.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

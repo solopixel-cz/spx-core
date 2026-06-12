@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-12 — ✅ Fáze 7 – Doplňky a dotažení
+
+- `useCollection<T>` hook pro realtime Firestore listenery (onSnapshot, unsubscribe, loading/error).
+- Globální vyhledávání Cmd+K: cmdk dialog, API `GET /api/search?q=`, prohledává klienty/leady/tickety.
+- Správa hesel: změna vlastního hesla (reauthenticate + updatePassword), admin reset hesla, zapomenuté heslo na login stránce.
+- Task schema rozšířen o `ticketId`.
+- Filtry ticketů rozšířeny: stav, typ, priorita, klient.
+- Storage rules: ticket přílohy (max 10 MB, images/PDF).
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-11 — ✅ Fáze 6 – Úkoly, tickety a dashboard
 
 - `/ukoly`: seznam Moje/Všechny, filtr, checkbox dokončení, dialog nového úkolu (klient, řešitel, termín), overdue zvýraznění.

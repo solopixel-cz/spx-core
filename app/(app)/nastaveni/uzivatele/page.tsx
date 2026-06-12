@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, UserX, UserCheck } from "lucide-react";
+import { Plus, UserX, UserCheck, KeyRound } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -122,6 +122,21 @@ export default function UzivatelePage() {
       fetchUsers();
     } catch {
       toast.error("Nepodařilo se změnit stav uživatele");
+    }
+  }
+
+  async function handleResetPassword(userId: string) {
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: userId }),
+      });
+      if (!res.ok) throw new Error();
+      const { tempPassword } = await res.json();
+      toast.success(`Dočasné heslo: ${tempPassword}`, { duration: 15000 });
+    } catch {
+      toast.error("Nepodařilo se resetovat heslo");
     }
   }
 
@@ -254,18 +269,28 @@ export default function UzivatelePage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleToggleActive(user)}
-                    title={user.active ? "Deaktivovat" : "Aktivovat"}
-                  >
-                    {user.active ? (
-                      <UserX className="h-4 w-4" />
-                    ) : (
-                      <UserCheck className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleResetPassword(user.id)}
+                      title="Resetovat heslo"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleToggleActive(user)}
+                      title={user.active ? "Deaktivovat" : "Aktivovat"}
+                    >
+                      {user.active ? (
+                        <UserX className="h-4 w-4" />
+                      ) : (
+                        <UserCheck className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

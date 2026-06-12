@@ -80,9 +80,18 @@ export function TicketsPageClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [clientFilter, setClientFilter] = useState("all");
   const [now] = useState(() => Date.now());
 
-  const filtered = statusFilter === "all" ? tickets : tickets.filter((t) => t.status === statusFilter);
+  const filtered = tickets.filter((t) => {
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (typeFilter !== "all" && t.type !== typeFilter) return false;
+    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
+    if (clientFilter !== "all" && t.clientId !== clientFilter) return false;
+    return true;
+  });
 
   const {
     register,
@@ -195,13 +204,36 @@ export function TicketsPageClient({
         </Dialog>
       </div>
 
-      <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
-        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Všechny stavy</SelectItem>
-          {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap gap-3">
+        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny stavy</SelectItem>
+            {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? "all")}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny typy</SelectItem>
+            {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={priorityFilter} onValueChange={(val) => setPriorityFilter(val ?? "all")}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny priority</SelectItem>
+            {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={clientFilter} onValueChange={(val) => setClientFilter(val ?? "all")}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všichni klienti</SelectItem>
+            {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="rounded-md border">
         <Table>
