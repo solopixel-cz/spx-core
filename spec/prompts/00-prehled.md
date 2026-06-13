@@ -22,6 +22,8 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 16 | [`16-provize.md`](16-provize.md) | Provizní systém — vlastnictví, automatické provize, vyúčtování | ✅ |
 | 17 | [`17-sales-viditelnost-klientu.md`](17-sales-viditelnost-klientu.md) | Sales vidí jen své klienty + auto-přiřazení při vytvoření | ✅ |
 | 18 | [`18-profil.md`](18-profil.md) | Profil uživatele — fotka, jméno, heslo, preference | ✅ |
+| 19 | [`19-rename-prospekti.md`](19-rename-prospekti.md) | Přejmenování UI „Prospekti” → „Oslovení” (Firestore beze změny) | ✅ |
+| 20 | [`20-mazani-archivace.md`](20-mazani-archivace.md) | Archivace (měkké smazání) + trvalé mazání bez vazeb | ⬜ |
 
 **Pořadí:** fáze 1–18 hotové, aplikace v produkci.
 

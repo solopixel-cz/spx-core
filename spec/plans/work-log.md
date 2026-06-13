@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 19 – Přejmenování Prospekti → Oslovení
+
+- Všechny viditelné UI texty „Prospekti/prospekt/prospekta" přejmenovány na „Oslovení / kontakt".
+- Sidebar: „Oslovení". Cmd+K: placeholder a skupina „Oslovení". Aktivita: badge „Oslovení". Attention feed: „Follow-up" bez slova prospekt.
+- Stránka `/prospekti`: nadpis „Oslovení", „Přidat kontakt", „Žádné kontakty k oslovení". Dialogy: „Přidat kontakt", „CSV Import kontaktů".
+- Detail: toasty s „kontakt" místo „prospekt". Šablona oslovení: „kontaktů" místo „prospektů".
+- Profil: výchozí stránka „Oslovení".
+- Spec: `data-model.md` — poznámka „v UI zobrazeno jako »Oslovení«" u kolekce `prospects`.
+- URL, kolekce, API, typy a proměnné beze změny.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 18 – Profil uživatele
 
 - **Stránka `/profil`:** 3 záložky — Profil (fotka, jméno, telefon, e-mail readonly, sazba provize u sales), Zabezpečení (změna hesla přesunutá z dialogu, info o účtu), Preference (vzhled light/dark/system přes next-themes, výchozí stránka po přihlášení v localStorage).

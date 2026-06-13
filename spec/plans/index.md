@@ -21,5 +21,7 @@
 | Fáze 16 — Provize | ✅ Hotovo | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
 | Fáze 17 — Sales viditelnost klientů | ✅ Hotovo | [`../prompts/17-sales-viditelnost-klientu.md`](../prompts/17-sales-viditelnost-klientu.md) |
 | Fáze 18 — Profil uživatele | ✅ Hotovo | [`../prompts/18-profil.md`](../prompts/18-profil.md) |
+| Fáze 19 — Přejmenování Prospekti→Oslovení | ✅ Hotovo | [`../prompts/19-rename-prospekti.md`](../prompts/19-rename-prospekti.md) |
+| Fáze 20 — Mazání a archivace | ⬜ Čeká | [`../prompts/20-mazani-archivace.md`](../prompts/20-mazani-archivace.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

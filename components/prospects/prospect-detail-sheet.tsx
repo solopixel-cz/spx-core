@@ -142,7 +142,7 @@ export function ProspectDetailSheet({
         body: JSON.stringify({ action: "convert" }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Prospekt konvertován na lead");
+      toast.success("Kontakt konvertován na lead");
       onClose();
       router.push("/leady");
       router.refresh();
@@ -167,7 +167,7 @@ export function ProspectDetailSheet({
       });
       if (!res.ok) throw new Error();
       const label = statusAction === "not_interested" ? "Nemá zájem" : "Nedostupný";
-      toast.success(`Prospekt označen: ${label}`);
+      toast.success(`Kontakt označen: ${label}`);
       setStatusDialogOpen(false);
       setStatusNote("");
       onUpdate();
@@ -188,10 +188,10 @@ export function ProspectDetailSheet({
         body: JSON.stringify({ action: "release" }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Prospekt uvolněn");
+      toast.success("Kontakt uvolněn");
       onUpdate();
     } catch {
-      toast.error("Nepodařilo se uvolnit prospekta");
+      toast.error("Nepodařilo se uvolnit kontakt");
     } finally {
       setActing(false);
     }
@@ -419,7 +419,7 @@ export function ProspectDetailSheet({
                       className="w-full"
                     >
                       <Unlock className="mr-2 h-4 w-4" />
-                      Uvolnit prospekta
+                      Uvolnit kontakt
                     </Button>
                   )}
                 </>

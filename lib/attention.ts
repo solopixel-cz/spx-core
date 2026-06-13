@@ -176,7 +176,7 @@ export async function getAttentionItems(
           items.push({
             type: "prospect",
             severity: age > 3 ? "high" : age > 0 ? "medium" : "low",
-            title: `Follow-up u prospekta „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
+            title: `Follow-up „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
             age,
             href: "/prospekti",
           });

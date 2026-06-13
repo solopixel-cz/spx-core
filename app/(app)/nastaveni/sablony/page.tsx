@@ -201,7 +201,7 @@ export default function SablonyPage() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Šablona e-mailu pro oslovení prospektů. Použijte placeholdery{" "}
+          Šablona e-mailu pro oslovení kontaktů. Použijte placeholdery{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{jmeno}}"}</code> (oslovení, 5. pád) a{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{odkaz}}"}</code> (odkaz na demo vizitku).
           Testovací e-mail se pošle na vaši adresu s ukázkovými hodnotami.

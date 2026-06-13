@@ -73,7 +73,7 @@ const defaultPages = [
   { value: "/", label: "Dashboard" },
   { value: "/leady", label: "Leady" },
   { value: "/klienti", label: "Klienti" },
-  { value: "/prospekti", label: "Prospekti" },
+  { value: "/prospekti", label: "Oslovení" },
   { value: "/ukoly", label: "Úkoly" },
   { value: "/tickety", label: "Tickety" },
 ];

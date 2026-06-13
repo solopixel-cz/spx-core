@@ -152,9 +152,9 @@ export function ProspektiPageClient({
             : p
         )
       );
-      toast.success("Prospekt zabrán");
+      toast.success("Kontakt zabrán");
     } catch {
-      toast.error("Nepodařilo se zabrat prospekta");
+      toast.error("Nepodařilo se zabrat kontakt");
     } finally {
       setClaiming(null);
     }
@@ -185,7 +185,7 @@ export function ProspektiPageClient({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Prospekti"
+        title="Oslovení"
         action={
           <div className="flex gap-2">
             {isAdminOrMember && (
@@ -196,7 +196,7 @@ export function ProspektiPageClient({
             )}
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Nový prospekt
+              Přidat kontakt
             </Button>
           </div>
         }
@@ -280,7 +280,7 @@ export function ProspektiPageClient({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-muted-foreground">
-                  Žádní prospekti
+                  Žádné kontakty k oslovení
                 </TableCell>
               </TableRow>
             ) : (
