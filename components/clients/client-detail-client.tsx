@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil } from "lucide-react";
+import { Pencil, Archive, RotateCcw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,6 +33,7 @@ interface ClientData {
   advisorSlug: string;
   notes?: string;
   salesOwnerUid: string | null;
+  deletedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -116,11 +117,62 @@ export function ClientDetailClient({
   userRole?: "admin" | "member" | "sales";
 }) {
   const isSales = userRole === "sales";
+  const isAdminOrMember = !isSales;
+  const isArchived = !!client.deletedAt;
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
 
+  async function handleArchive() {
+    if (!confirm("Opravdu archivovat tohoto klienta? Instance, tickety a předplatné budou archivovány/zrušeny.")) return;
+    try {
+      const res = await fetch("/api/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive", collection: "clients", id: client.id }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Klient archivován");
+      router.refresh();
+    } catch {
+      toast.error("Nepodařilo se archivovat");
+    }
+  }
+
+  async function handleRestore() {
+    try {
+      const res = await fetch("/api/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore", collection: "clients", id: client.id }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Klient obnoven");
+      router.refresh();
+    } catch {
+      toast.error("Nepodařilo se obnovit");
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Archived banner */}
+      {isArchived && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950">
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Archivováno</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {client.deletedAt ? new Date(client.deletedAt).toLocaleDateString("cs-CZ") : ""}
+            </p>
+          </div>
+          {isAdminOrMember && (
+            <Button variant="outline" size="sm" onClick={handleRestore}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Obnovit
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -171,6 +223,12 @@ export function ClientDetailClient({
           clientName={client.name}
           clientEmail={client.email}
         />
+        {isAdminOrMember && !isArchived && (
+          <Button variant="ghost" size="sm" onClick={handleArchive} className="text-muted-foreground">
+            <Archive className="mr-2 h-4 w-4" />
+            Archivovat
+          </Button>
+        )}
         </div>
       </div>
 

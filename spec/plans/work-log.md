@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 20 – Mazání a archivace
+
+- **Archivace (měkké smazání):** `deletedAt` + `deletedBy` na `clients`, `instances`, `leads`, `tickets`. Akce „Archivovat" na detailu klienta (admin/member). Dialog s potvrzením.
+- **Kaskáda u klienta:** archivace klienta archivuje instance, tickety (otevřené) a zruší předplatné (`cancelled`). Faktury a provize zůstávají.
+- **Filtrace archivovaných:** všechny seznamy, vyhledávání (Cmd+K), dashboard (leady, onboarding, aktivita), attention feed (tickety, leady), provize, API routes, sales-clients helper — filtrují `!deletedAt`.
+- **Detail archivovaného:** baner „Archivováno" s datem + tlačítko „Obnovit" (admin/member).
+- **Archiv stránka (`/nastaveni/archiv`):** tabulka archivovaných záznamů s filtrem dle typu. Akce Obnovit + Trvale smazat (jen admin). Trvalé smazání vyžaduje přepsání názvu a ověřuje vazby (409 pokud existují).
+- **API `POST /api/archive`:** akce `archive` (+ kaskáda), `restore`, `delete` (admin only, constraint check). `GET /api/archive` — list archivovaných.
+- **Helper:** `lib/archive.ts` — `archiveDocument`, `restoreDocument`, `cascadeArchiveClient`, `checkDeleteConstraints`, `permanentlyDelete`.
+- **Nastavení layout:** rozšířen na admin+member (pro přístup k archivu).
+- **Sidebar:** „Archiv" viditelný pro admin+member.
+- Faktury: žádná mazací akce — beze změny, jen storno.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-13 — ✅ Fáze 19 – Přejmenování Prospekti → Oslovení
 
 - Všechny viditelné UI texty „Prospekti/prospekt/prospekta" přejmenovány na „Oslovení / kontakt".

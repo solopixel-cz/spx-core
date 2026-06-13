@@ -14,6 +14,7 @@ import {
   CheckSquare,
   TicketCheck,
   ClipboardList,
+  Archive,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,12 @@ const navGroups: NavGroup[] = [
   },
   {
     items: [
+      {
+        label: "Archiv",
+        href: "/nastaveni/archiv",
+        icon: Archive,
+        roles: ["admin", "member"],
+      },
       {
         label: "Nastavení",
         href: "/nastaveni",

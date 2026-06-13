@@ -35,7 +35,7 @@ export default async function MojeVizitkyPage() {
   ]);
 
   // Build client rows with subscription info
-  const clients = clientsSnap.docs.map((doc) => {
+  const clients = clientsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
     const d = doc.data();
     const sub = subsSnap.docs.find((s) => s.data().clientId === doc.id);
     const inst = instancesSnap.docs.find((i) => i.data().clientId === doc.id);

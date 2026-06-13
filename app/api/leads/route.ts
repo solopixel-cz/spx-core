@@ -11,7 +11,7 @@ export async function GET() {
     const db = getAdminFirestore();
     const snapshot = await db.collection("leads").orderBy("updatedAt", "desc").get();
 
-    const leads = snapshot.docs.map((doc) => ({
+    const leads = snapshot.docs.filter((d) => !d.data().deletedAt).map((doc) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,

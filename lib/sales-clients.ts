@@ -8,5 +8,5 @@ export async function getSalesClientIds(uid: string, role: string): Promise<Set<
   if (role !== "sales") return null;
   const db = getAdminFirestore();
   const snap = await db.collection("clients").where("salesOwnerUid", "==", uid).get();
-  return new Set(snap.docs.map((d) => d.id));
+  return new Set(snap.docs.filter((d) => !d.data().deletedAt).map((d) => d.id));
 }

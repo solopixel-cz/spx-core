@@ -31,10 +31,12 @@ export default async function UkolyPage() {
     displayName: doc.data().displayName as string,
   }));
 
-  const clients = clientsSnap.docs.map((doc) => ({
-    id: doc.id,
-    name: doc.data().name as string,
-  }));
+  const clients = clientsSnap.docs
+    .filter((d) => !d.data().deletedAt)
+    .map((doc) => ({
+      id: doc.id,
+      name: doc.data().name as string,
+    }));
 
   return (
     <TasksPageClient
