@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { renderTemplate, sendOutreachEmail } from "@/lib/email";
+import { renderSubject, sendOutreachEmail } from "@/lib/email";
+import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
 
 export async function GET() {
   try {
@@ -10,10 +11,12 @@ export async function GET() {
     const doc = await db.collection("templates").doc("outreach-email").get();
 
     if (!doc.exists) {
-      return NextResponse.json({ subject: "", body: "" });
+      return NextResponse.json({ subject: DEFAULT_OUTREACH_SUBJECT });
     }
 
-    return NextResponse.json(doc.data());
+    return NextResponse.json({
+      subject: doc.data()?.subject || DEFAULT_OUTREACH_SUBJECT,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -24,23 +27,14 @@ export async function PUT(request: Request) {
   try {
     await requireRole("admin");
     const body = await request.json();
-    const { subject, body: templateBody } = body as {
-      subject: string;
-      body: string;
-    };
+    const { subject } = body as { subject: string };
 
-    if (!subject || !templateBody) {
-      return NextResponse.json(
-        { error: "Předmět a tělo jsou povinné" },
-        { status: 400 }
-      );
+    if (!subject) {
+      return NextResponse.json({ error: "Předmět je povinný" }, { status: 400 });
     }
 
     const db = getAdminFirestore();
-    await db.collection("templates").doc("outreach-email").set({
-      subject,
-      body: templateBody,
-    });
+    await db.collection("templates").doc("outreach-email").set({ subject });
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
@@ -54,35 +48,27 @@ export async function POST(request: Request) {
   try {
     const user = await requireRole("admin");
     const body = await request.json();
-    const { subject, body: templateBody } = body as {
-      subject: string;
-      body: string;
-    };
+    const { subject } = body as { subject: string };
 
-    if (!subject || !templateBody) {
-      return NextResponse.json(
-        { error: "Předmět a tělo jsou povinné" },
-        { status: 400 }
-      );
+    if (!subject) {
+      return NextResponse.json({ error: "Předmět je povinný" }, { status: 400 });
     }
 
-    // Get user details
     const db = getAdminFirestore();
     const userDoc = await db.collection("users").doc(user.uid).get();
-    const userData = userDoc.data();
-    const displayName = (userData?.displayName as string) || "Test";
+    const displayName = (userDoc.data()?.displayName as string) || "Test";
 
-    const rendered = renderTemplate(
-      { subject, body: templateBody },
-      { jmeno: "Jane", odkaz: "https://demo.solopixel.cz" }
-    );
+    const testVars = { jmeno: "Jane", odkaz: "https://demo.solopixel.cz" };
+    const renderedSubject = renderSubject(subject, testVars);
+    const { html, text } = renderOutreachEmail(testVars);
 
     await sendOutreachEmail({
       to: user.email,
       senderName: displayName,
       senderEmail: user.email,
-      subject: rendered.subject,
-      html: rendered.html,
+      subject: renderedSubject,
+      html,
+      text,
     });
 
     return NextResponse.json({ status: "ok" });

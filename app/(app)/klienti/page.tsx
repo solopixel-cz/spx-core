@@ -32,7 +32,7 @@ export default async function KlientiPage() {
     instanceCounts[clientId] = (instanceCounts[clientId] || 0) + 1;
   });
 
-  const clients: ClientRow[] = clientsSnap.docs.map((doc) => {
+  const clients: ClientRow[] = clientsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,

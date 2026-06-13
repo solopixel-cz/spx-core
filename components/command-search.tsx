@@ -65,7 +65,7 @@ export function CommandSearch({
             <Command.Input
               value={query}
               onValueChange={setQuery}
-              placeholder="Hledat klienty, leady, prospekty, tickety..."
+              placeholder="Hledat klienty, leady, oslovení, tickety..."
               className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -152,7 +152,7 @@ export function CommandSearch({
               <Command.Group
                 heading={
                   <span className="px-2 text-xs font-medium text-muted-foreground">
-                    Prospekti
+                    Oslovení
                   </span>
                 }
               >

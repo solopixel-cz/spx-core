@@ -2,6 +2,54 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 23 – Sjednocení domény na solopixel.cz
+
+- `lib/siteUrl.ts` — centrální konstanty `WEB_URL`, `DEMO_URL`.
+- Všechny `solopixel.eu` v kódu, šablonách a env nahrazeny za `solopixel.cz`.
+- `npm run lint` + `npm run build` čisté.
+- Manuální kroky: Vercel doména, Firebase Auth, Resend webhook, env redeploy.
+
+## 2026-06-13 — ✅ Fáze 22 – HTML šablona oslovení (SoloPixel design)
+
+- **Pevná HTML šablona:** `lib/email-templates/outreach.ts` — `renderOutreachEmail({ jmeno, odkaz })` vrací `{ html, text }`. HTML: brandový tabulkový layout SoloPixel (header s logem, CTA tlačítko, 4 body „Co v demu uvidíte", tip box, sign-off, compliance patička). Plain-text fallback pro doručitelnost.
+- **Napojení na odesílání:** `lib/email.ts` zjednodušen — `renderTemplate` odstraněn, nahrazen `renderSubject` (jen předmět). Prospect send_email action a template test API používají `renderOutreachEmail` + `text` fallback do Resendu.
+- **Nastavení → Šablony:** sekce zjednodušena — editovatelný jen předmět, tělo v iframe náhledu (ukázkové „Jan Nováku" + demo URL). Info „Tělo je v jednotném designu SoloPixel".
+- **Dialog odeslání (detail prospekta):** náhled přepnut na HTML iframe s reálným oslovením a odkazem. Template type zjednodušen na `{ subject }` (bez `body`).
+- **Default předmět:** `{{jmeno}}, takhle dnes vypadá vizitka, co pracuje za vás`. Fallback odkaz: `https://demo.solopixel.cz` pokud prospekt nemá `demoUrl`.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-13 — ✅ Fáze 21 – Nastavení jako rozcestník
+
+- `/nastaveni` předěláno z redirectu na rozcestník s dlaždicemi: Uživatelé (admin), Šablony (admin), Archiv (admin+member), Provize (admin+member), Můj profil (všichni).
+- Dlaždice filtrované dle role — member vidí jen Archiv, Provize, Profil.
+- Sidebar: „Nastavení" nyní viditelné pro admin+member (ne jen admin); samostatný odkaz „Archiv" odstraněn (přístup přes rozcestník).
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-13 — ✅ Fáze 20 – Mazání a archivace
+
+- **Archivace (měkké smazání):** `deletedAt` + `deletedBy` na `clients`, `instances`, `leads`, `tickets`. Akce „Archivovat" na detailu klienta (admin/member). Dialog s potvrzením.
+- **Kaskáda u klienta:** archivace klienta archivuje instance, tickety (otevřené) a zruší předplatné (`cancelled`). Faktury a provize zůstávají.
+- **Filtrace archivovaných:** všechny seznamy, vyhledávání (Cmd+K), dashboard (leady, onboarding, aktivita), attention feed (tickety, leady), provize, API routes, sales-clients helper — filtrují `!deletedAt`.
+- **Detail archivovaného:** baner „Archivováno" s datem + tlačítko „Obnovit" (admin/member).
+- **Archiv stránka (`/nastaveni/archiv`):** tabulka archivovaných záznamů s filtrem dle typu. Akce Obnovit + Trvale smazat (jen admin). Trvalé smazání vyžaduje přepsání názvu a ověřuje vazby (409 pokud existují).
+- **API `POST /api/archive`:** akce `archive` (+ kaskáda), `restore`, `delete` (admin only, constraint check). `GET /api/archive` — list archivovaných.
+- **Helper:** `lib/archive.ts` — `archiveDocument`, `restoreDocument`, `cascadeArchiveClient`, `checkDeleteConstraints`, `permanentlyDelete`.
+- **Nastavení layout:** rozšířen na admin+member (pro přístup k archivu).
+- **Sidebar:** „Archiv" viditelný pro admin+member.
+- Faktury: žádná mazací akce — beze změny, jen storno.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-13 — ✅ Fáze 19 – Přejmenování Prospekti → Oslovení
+
+- Všechny viditelné UI texty „Prospekti/prospekt/prospekta" přejmenovány na „Oslovení / kontakt".
+- Sidebar: „Oslovení". Cmd+K: placeholder a skupina „Oslovení". Aktivita: badge „Oslovení". Attention feed: „Follow-up" bez slova prospekt.
+- Stránka `/prospekti`: nadpis „Oslovení", „Přidat kontakt", „Žádné kontakty k oslovení". Dialogy: „Přidat kontakt", „CSV Import kontaktů".
+- Detail: toasty s „kontakt" místo „prospekt". Šablona oslovení: „kontaktů" místo „prospektů".
+- Profil: výchozí stránka „Oslovení".
+- Spec: `data-model.md` — poznámka „v UI zobrazeno jako »Oslovení«" u kolekce `prospects`.
+- URL, kolekce, API, typy a proměnné beze změny.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-12 — ✅ Fáze 18 – Profil uživatele
 
 - **Stránka `/profil`:** 3 záložky — Profil (fotka, jméno, telefon, e-mail readonly, sazba provize u sales), Zabezpečení (změna hesla přesunutá z dialogu, info o účtu), Preference (vzhled light/dark/system přes next-themes, výchozí stránka po přihlášení v localStorage).

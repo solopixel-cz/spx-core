@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, Save, Send } from "lucide-react";
+import { renderOutreachEmail } from "@/lib/email-templates/outreach";
 
 interface Step {
   title: string;
@@ -21,7 +21,6 @@ export default function SablonyPage() {
 
   // Outreach email template
   const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
   const [emailLoading, setEmailLoading] = useState(true);
   const [emailSaving, setEmailSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
@@ -38,10 +37,9 @@ export default function SablonyPage() {
       .finally(() => setLoading(false));
 
     fetch("/api/templates/outreach-email")
-      .then((res) => (res.ok ? res.json() : { subject: "", body: "" }))
+      .then((res) => (res.ok ? res.json() : { subject: "" }))
       .then((data) => {
         setEmailSubject(data.subject || "");
-        setEmailBody(data.body || "");
       })
       .catch(() => {})
       .finally(() => setEmailLoading(false));
@@ -89,7 +87,7 @@ export default function SablonyPage() {
       const res = await fetch("/api/templates/outreach-email", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: emailSubject, body: emailBody }),
+        body: JSON.stringify({ subject: emailSubject }),
       });
       if (!res.ok) throw new Error();
       toast.success("Šablona oslovení uložena");
@@ -101,8 +99,8 @@ export default function SablonyPage() {
   }
 
   async function handleSendTest() {
-    if (!emailSubject.trim() || !emailBody.trim()) {
-      toast.error("Vyplňte předmět i tělo šablony");
+    if (!emailSubject.trim()) {
+      toast.error("Vyplňte předmět");
       return;
     }
     setSendingTest(true);
@@ -110,7 +108,7 @@ export default function SablonyPage() {
       const res = await fetch("/api/templates/outreach-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: emailSubject, body: emailBody }),
+        body: JSON.stringify({ subject: emailSubject }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -188,7 +186,7 @@ export default function SablonyPage() {
               variant="outline"
               size="sm"
               onClick={handleSendTest}
-              disabled={sendingTest || !emailSubject.trim() || !emailBody.trim()}
+              disabled={sendingTest || !emailSubject.trim()}
             >
               <Send className="mr-2 h-4 w-4" />
               {sendingTest ? "Odesílám..." : "Testovací e-mail"}
@@ -201,10 +199,11 @@ export default function SablonyPage() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Šablona e-mailu pro oslovení prospektů. Použijte placeholdery{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{jmeno}}"}</code> (oslovení, 5. pád) a{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{odkaz}}"}</code> (odkaz na demo vizitku).
-          Testovací e-mail se pošle na vaši adresu s ukázkovými hodnotami.
+          Editovatelný je jen předmět — tělo e-mailu je v jednotném designu SoloPixel.
+          Placeholdery:{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{jmeno}}"}</code> (oslovení, 5. pád),{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{{odkaz}}"}</code> (demo URL).
+          Testovací e-mail se pošle na vaši adresu.
         </p>
 
         <div className="space-y-2">
@@ -212,25 +211,25 @@ export default function SablonyPage() {
           <Input
             value={emailSubject}
             onChange={(e) => setEmailSubject(e.target.value)}
-            placeholder="Např. Digitální vizitka pro vás, {{jmeno}}"
+            placeholder="{{jmeno}}, takhle dnes vypadá vizitka, co pracuje za vás"
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Tělo e-mailu</Label>
-          <Textarea
-            value={emailBody}
-            onChange={(e) => setEmailBody(e.target.value)}
-            placeholder={"Dobrý den {{jmeno}},\n\nrádi bychom vám představili...\n\nPodívejte se na ukázku: {{odkaz}}\n\nS pozdravem\nJméno Příjmení\nSoloPixel s.r.o.\n\nPokud si nepřejete být dále kontaktováni, odpovězte na tento e-mail."}
-            rows={12}
-            className="font-mono text-sm"
-          />
+          <Label>Náhled e-mailu</Label>
+          <div className="rounded-lg border overflow-hidden bg-[#F1F5F9]">
+            <iframe
+              srcDoc={renderOutreachEmail({ jmeno: "Jan Nováku", odkaz: "https://demo.solopixel.cz" }).html}
+              sandbox=""
+              className="w-full border-0"
+              style={{ height: "600px" }}
+              title="Náhled e-mailu"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Tělo je fixní — obsahuje branding SoloPixel, compliance patičku a kontaktní údaje.
+          </p>
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Compliance: E-mail by měl obsahovat plný podpis s identifikací firmy a větu
-          s možností odmítnout další kontakt.
-        </p>
       </div>
 
       <Separator className="my-8" />

@@ -52,16 +52,16 @@ export function ProspectFormDialog({
 
       if (res.status === 409) {
         const data = await res.json();
-        toast.error(data.error || "Prospekt již existuje");
+        toast.error(data.error || "Kontakt již existuje");
         return;
       }
       if (!res.ok) throw new Error();
 
-      toast.success("Prospekt vytvořen");
+      toast.success("Kontakt vytvořen");
       resetForm();
       onSuccess();
     } catch {
-      toast.error("Nepodařilo se vytvořit prospekta");
+      toast.error("Nepodařilo se vytvořit kontakt");
     } finally {
       setSaving(false);
     }
@@ -81,7 +81,7 @@ export function ProspectFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nový prospekt</DialogTitle>
+          <DialogTitle>Přidat kontakt</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

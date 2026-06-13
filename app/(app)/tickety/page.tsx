@@ -21,7 +21,8 @@ export default async function TicketyPage() {
   });
 
   const filteredTickets = ticketsSnap.docs.filter((doc) => {
-    if (!ownedClientIds) return true; // admin/member sees all
+    if (doc.data().deletedAt) return false;
+    if (!ownedClientIds) return true;
     return ownedClientIds.has(doc.data().clientId as string);
   });
 
@@ -43,7 +44,7 @@ export default async function TicketyPage() {
 
   // For sales, only show own clients in the client dropdown
   const clients = clientsSnap.docs
-    .filter((doc) => !ownedClientIds || ownedClientIds.has(doc.id))
+    .filter((doc) => !doc.data().deletedAt && (!ownedClientIds || ownedClientIds.has(doc.id)))
     .map((doc) => ({
       id: doc.id,
       name: doc.data().name as string,

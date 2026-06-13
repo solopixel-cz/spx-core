@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   const leadsByStage: Record<string, number> = {};
   let pipelineValue = 0;
   const activeLeadStages = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
-  leadsSnap.docs.forEach((doc) => {
+  leadsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
     const d = doc.data();
     const stage = d.stage as string;
     leadsByStage[stage] = (leadsByStage[stage] || 0) + 1;
@@ -101,6 +101,7 @@ export default async function DashboardPage() {
   // Onboarding clients (sales sees only own)
   const onboardingClients = clientsSnap.docs
     .filter((doc) => {
+      if (doc.data().deletedAt) return false;
       if (doc.data().status !== "onboarding") return false;
       if (isSales && doc.data().salesOwnerUid !== user.uid) return false;
       return true;
@@ -134,7 +135,7 @@ export default async function DashboardPage() {
 
   // Build sales owned client IDs
   const salesClientIds = isSales
-    ? new Set(clientsSnap.docs.filter((d) => d.data().salesOwnerUid === user.uid).map((d) => d.id))
+    ? new Set(clientsSnap.docs.filter((d) => !d.data().deletedAt && d.data().salesOwnerUid === user.uid).map((d) => d.id))
     : null;
 
   // Recent activity (sales: filter client/ticket to own)

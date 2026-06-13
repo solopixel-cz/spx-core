@@ -45,7 +45,7 @@ const navGroups: NavGroup[] = [
     title: "Obchod",
     items: [
       { label: "Leady", href: "/leady", icon: Briefcase },
-      { label: "Prospekti", href: "/prospekti", icon: BookUser },
+      { label: "Oslovení", href: "/prospekti", icon: BookUser },
       { label: "Klienti", href: "/klienti", icon: Users },
       { label: "Moje vizitky", href: "/moje-vizitky", icon: CreditCard, roles: ["sales"] },
       { label: "Podklady", href: "/podklady", icon: ClipboardList },
@@ -81,7 +81,7 @@ const navGroups: NavGroup[] = [
         label: "Nastavení",
         href: "/nastaveni",
         icon: Settings,
-        roles: ["admin"],
+        roles: ["admin", "member"],
       },
     ],
   },

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { renderOutreachEmail } from "@/lib/email-templates/outreach";
 import {
   Sheet,
   SheetContent,
@@ -78,7 +79,7 @@ export function ProspectDetailSheet({
   // Outreach email dialog state
   const [outreachDialogOpen, setOutreachDialogOpen] = useState(false);
   const [outreachGreeting, setOutreachGreeting] = useState("");
-  const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string; body: string } | null>(null);
+  const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string } | null>(null);
   const [outreachLoading, setOutreachLoading] = useState(false);
 
   // Contact form state
@@ -142,7 +143,7 @@ export function ProspectDetailSheet({
         body: JSON.stringify({ action: "convert" }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Prospekt konvertován na lead");
+      toast.success("Kontakt konvertován na lead");
       onClose();
       router.push("/leady");
       router.refresh();
@@ -167,7 +168,7 @@ export function ProspectDetailSheet({
       });
       if (!res.ok) throw new Error();
       const label = statusAction === "not_interested" ? "Nemá zájem" : "Nedostupný";
-      toast.success(`Prospekt označen: ${label}`);
+      toast.success(`Kontakt označen: ${label}`);
       setStatusDialogOpen(false);
       setStatusNote("");
       onUpdate();
@@ -188,10 +189,10 @@ export function ProspectDetailSheet({
         body: JSON.stringify({ action: "release" }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Prospekt uvolněn");
+      toast.success("Kontakt uvolněn");
       onUpdate();
     } catch {
-      toast.error("Nepodařilo se uvolnit prospekta");
+      toast.error("Nepodařilo se uvolnit kontakt");
     } finally {
       setActing(false);
     }
@@ -205,8 +206,8 @@ export function ProspectDetailSheet({
       const res = await fetch("/api/templates/outreach-email");
       if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.subject || !data.body) {
-        toast.error("Šablona oslovení není nastavena (Nastavení → Šablony)");
+      if (!data.subject) {
+        toast.error("Předmět oslovení není nastaven (Nastavení → Šablony)");
         return;
       }
       setOutreachTemplate(data);
@@ -419,7 +420,7 @@ export function ProspectDetailSheet({
                       className="w-full"
                     >
                       <Unlock className="mr-2 h-4 w-4" />
-                      Uvolnit prospekta
+                      Uvolnit kontakt
                     </Button>
                   )}
                 </>
@@ -529,16 +530,23 @@ export function ProspectDetailSheet({
                 <p className="text-sm font-medium">
                   {outreachTemplate.subject
                     .replace(/\{\{jmeno\}\}/g, outreachGreeting || prospect.name.split(" ")[0])
-                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "")}
+                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "https://demo.solopixel.cz")}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Náhled těla</p>
-                <div className="max-h-48 overflow-y-auto rounded border p-3 text-sm whitespace-pre-wrap">
-                  {outreachTemplate.body
-                    .replace(/\{\{jmeno\}\}/g, outreachGreeting || prospect.name.split(" ")[0])
-                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "")}
+                <p className="text-xs font-medium text-muted-foreground">Náhled e-mailu</p>
+                <div className="rounded border overflow-hidden bg-[#F1F5F9]">
+                  <iframe
+                    srcDoc={renderOutreachEmail({
+                      jmeno: outreachGreeting || prospect.name.split(" ")[0],
+                      odkaz: prospect.demoUrl || "https://demo.solopixel.cz",
+                    }).html}
+                    sandbox=""
+                    className="w-full border-0"
+                    style={{ height: "400px" }}
+                    title="Náhled e-mailu"
+                  />
                 </div>
               </div>
 

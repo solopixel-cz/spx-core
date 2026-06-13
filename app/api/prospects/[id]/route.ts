@@ -5,7 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { prospectFormSchema, contactFormSchema } from "@/lib/schemas/prospect";
 import { logActivity } from "@/lib/activity";
 import { leadFormSchema } from "@/lib/schemas/lead";
-import { renderTemplate, sendOutreachEmail } from "@/lib/email";
+import { renderSubject, sendOutreachEmail } from "@/lib/email";
+import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -320,12 +321,9 @@ export async function POST(
         }
       }
 
-      // Load template
+      // Load subject template
       const templateDoc = await db.collection("templates").doc("outreach-email").get();
-      if (!templateDoc.exists) {
-        return NextResponse.json({ error: "Šablona oslovení není nastavena" }, { status: 400 });
-      }
-      const template = templateDoc.data() as { subject: string; body: string };
+      const subjectTemplate = (templateDoc.data()?.subject as string) || DEFAULT_OUTREACH_SUBJECT;
 
       // Get sender info
       const userDoc = await db.collection("users").doc(user.uid).get();
@@ -333,17 +331,17 @@ export async function POST(
 
       // Render and send
       const jmeno = greeting || prospectData.name.split(" ")[0];
-      const rendered = renderTemplate(template, {
-        jmeno,
-        odkaz: prospectData.demoUrl,
-      });
+      const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
+      const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
+      const { html, text } = renderOutreachEmail({ jmeno, odkaz });
 
       const result = await sendOutreachEmail({
         to: prospectData.email,
         senderName,
         senderEmail: user.email,
-        subject: rendered.subject,
-        html: rendered.html,
+        subject: renderedSubject,
+        html,
+        text,
       });
 
       // Save outreach email record
@@ -352,7 +350,7 @@ export async function POST(
         toEmail: prospectData.email,
         senderUid: user.uid,
         resendId: result?.id || "",
-        subject: rendered.subject,
+        subject: renderedSubject,
         status: "sent",
         sentAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),

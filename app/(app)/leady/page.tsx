@@ -11,7 +11,7 @@ export default async function LeadyPage() {
     db.collection("users").where("active", "==", true).get(),
   ]);
 
-  const leads = leadsSnap.docs.map((doc) => {
+  const leads = leadsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,

@@ -32,6 +32,7 @@ export default async function ClientDetailPage({
     advisorSlug: data.advisorSlug as string,
     notes: data.notes as string | undefined,
     salesOwnerUid: (data.salesOwnerUid as string) ?? null,
+    deletedAt: data.deletedAt?.toDate?.()?.toISOString() ?? null,
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
   };
@@ -62,7 +63,7 @@ export default async function ClientDetailPage({
       db.collection("users").get(),
     ]);
 
-  const instances = instancesSnap.docs.map((d) => ({
+  const instances = instancesSnap.docs.filter((d) => !d.data().deletedAt).map((d) => ({
     id: d.id,
     clientId: d.data().clientId as string,
     advisorSlug: d.data().advisorSlug as string,
@@ -130,7 +131,7 @@ export default async function ClientDetailPage({
     };
   });
 
-  const clientTickets = ticketsSnap.docs.map((d) => {
+  const clientTickets = ticketsSnap.docs.filter((d) => !d.data().deletedAt).map((d) => {
     const tData = d.data();
     return {
       id: d.id,
