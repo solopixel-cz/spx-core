@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 22 – HTML šablona oslovení (SoloPixel design)
+
+- **Pevná HTML šablona:** `lib/email-templates/outreach.ts` — `renderOutreachEmail({ jmeno, odkaz })` vrací `{ html, text }`. HTML: brandový tabulkový layout SoloPixel (header s logem, CTA tlačítko, 4 body „Co v demu uvidíte", tip box, sign-off, compliance patička). Plain-text fallback pro doručitelnost.
+- **Napojení na odesílání:** `lib/email.ts` zjednodušen — `renderTemplate` odstraněn, nahrazen `renderSubject` (jen předmět). Prospect send_email action a template test API používají `renderOutreachEmail` + `text` fallback do Resendu.
+- **Nastavení → Šablony:** sekce zjednodušena — editovatelný jen předmět, tělo v iframe náhledu (ukázkové „Jan Nováku" + demo URL). Info „Tělo je v jednotném designu SoloPixel".
+- **Dialog odeslání (detail prospekta):** náhled přepnut na HTML iframe s reálným oslovením a odkazem. Template type zjednodušen na `{ subject }` (bez `body`).
+- **Default předmět:** `{{jmeno}}, takhle dnes vypadá vizitka, co pracuje za vás`. Fallback odkaz: `https://demo.solopixel.cz` pokud prospekt nemá `demoUrl`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-13 — ✅ Fáze 21 – Nastavení jako rozcestník
 
 - `/nastaveni` předěláno z redirectu na rozcestník s dlaždicemi: Uživatelé (admin), Šablony (admin), Archiv (admin+member), Provize (admin+member), Můj profil (všichni).

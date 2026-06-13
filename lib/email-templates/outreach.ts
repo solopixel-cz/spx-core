@@ -1,0 +1,160 @@
+/**
+ * SoloPixel branded outreach email template.
+ * Fixed HTML design — only {{jmeno}} and {{odkaz}} are replaced at runtime.
+ */
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function renderOutreachEmail(vars: {
+  jmeno: string;
+  odkaz: string;
+}): { html: string; text: string } {
+  const jmeno = escapeHtml(vars.jmeno);
+  const odkaz = escapeHtml(vars.odkaz);
+
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="cs">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>SoloPixel — vizitka, co pracuje za vás</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style type="text/css">
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #F1F5F9; font-family: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        a { color: #0F766E; text-decoration: underline; }
+        @media only screen and (max-width:620px) {
+            .container { width: 100% !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .h1 { font-size: 26px !important; line-height: 32px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background:#F1F5F9;">
+    <div style="display:none; font-size:1px; color:#F1F5F9; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;"> Mrkněte na živé demo — za 60 sekund uvidíte, co všechno digitální vizitka zvládne. </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F1F5F9;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+                <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background:#FFFFFF; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,0.06);">
+                    <tr>
+                        <td style="background:#0F1220; padding:24px 32px; border-bottom:3px solid #5DEAD4;" class="px">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="left" style="vertical-align:middle;"><a href="https://solopixel.eu/?utm_source=email&amp;utm_medium=outreach&amp;utm_content=header-logo" style="text-decoration:none; color:#FFFFFF;"><img src="https://solopixel.cz/images/logo/logo-line-light.svg" width="160" height="32" alt="SoloPixel" style="display:block; border:0; outline:none; max-height:32px;" /></a></td>
+                                    <td align="right" style="vertical-align:middle;"><span style="font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; color:#5DEAD4; text-transform:uppercase;">Pro poradce</span></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" style="padding:40px 48px 8px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <h1 class="h1" style="margin:0 0 16px 0; font-size:28px; line-height:34px; font-weight:800; color:#0F172A; letter-spacing:-0.3px;"> Vizitka, která pracuje<br />i po schůzce. </h1>
+                            <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> Dobrý den, ${jmeno}, </p>
+                            <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> z každé schůzky odcházíte s podanou rukou — ale co po vás zůstane klientovi v telefonu? Papírová vizitka skončí v šuplíku do druhého dne. </p>
+                            <p style="margin:0 0 28px 0; font-size:16px; line-height:26px; color:#334155;"> Postavili jsme pro finanční poradce <strong style="color:#0F172A;">digitální vizitku</strong>, která klientovi zůstane po ruce, sama sbírá kontakty a odpovídá za vás i ve tři ráno. Nejlíp to uvidíte na živém demu — projděte si ho jako klient. </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" align="center" style="padding:0 48px 8px 48px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" style="border-radius:10px; background:#5DEAD4;"><a href="${odkaz}" style="display:inline-block; padding:16px 32px; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:16px; font-weight:700; color:#0F1220; text-decoration:none; border-radius:10px; letter-spacing:0.3px;"> Prohlédnout živé demo → </a></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" align="center" style="padding:0 48px 36px 48px;">
+                            <p style="margin:8px 0 0 0; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; color:#94A3B8; word-break:break-all;"><a href="${odkaz}" style="color:#94A3B8; text-decoration:none;">${odkaz}</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" style="padding:0 48px 8px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <p style="margin:0 0 20px 0; font-size:11px; line-height:18px; font-weight:700; color:#64748B; letter-spacing:2px; text-transform:uppercase;"> Na co se v demu mrknout (60 sekund) </p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;">
+                                <tr><td style="padding:0 0 18px 0; vertical-align:top;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:32px; vertical-align:top; padding-top:2px;"><div style="width:24px; height:24px; background:#5DEAD4; border-radius:6px; text-align:center; line-height:24px; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:13px; font-weight:800; color:#0F1220;"> 1</div></td><td style="vertical-align:top; padding-left:8px;"><strong style="color:#0F172A; font-weight:700; display:block; margin-bottom:4px;">Profil, který prodává</strong><span style="color:#475569;">O vás, vaše služby a reference na jednom místě — vždy aktuální, vždy po ruce.</span></td></tr></table></td></tr>
+                                <tr><td style="padding:0 0 18px 0; vertical-align:top;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:32px; vertical-align:top; padding-top:2px;"><div style="width:24px; height:24px; background:#5DEAD4; border-radius:6px; text-align:center; line-height:24px; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:13px; font-weight:800; color:#0F1220;"> 2</div></td><td style="vertical-align:top; padding-left:8px;"><strong style="color:#0F172A; font-weight:700; display:block; margin-bottom:4px;">Kalkulačky, co zaujmou</strong><span style="color:#475569;">Hypotéka, penze, investice. Klient si sám spočítá orientační čísla.</span></td></tr></table></td></tr>
+                                <tr><td style="padding:0 0 18px 0; vertical-align:top;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:32px; vertical-align:top; padding-top:2px;"><div style="width:24px; height:24px; background:#5DEAD4; border-radius:6px; text-align:center; line-height:24px; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:13px; font-weight:800; color:#0F1220;"> 3</div></td><td style="vertical-align:top; padding-left:8px;"><strong style="color:#0F172A; font-weight:700; display:block; margin-bottom:4px;">AI asistentka Pixela</strong><span style="color:#475569;">Odpovídá na dotazy klientů 24/7 z vaší knowledge base.</span></td></tr></table></td></tr>
+                                <tr><td style="padding:0 0 4px 0; vertical-align:top;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:32px; vertical-align:top; padding-top:2px;"><div style="width:24px; height:24px; background:#5DEAD4; border-radius:6px; text-align:center; line-height:24px; font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:13px; font-weight:800; color:#0F1220;"> 4</div></td><td style="vertical-align:top; padding-left:8px;"><strong style="color:#0F172A; font-weight:700; display:block; margin-bottom:4px;">Sběr kontaktů a rezervace</strong><span style="color:#475569;">Klient zanechá číslo nebo si vybere termín schůzky.</span></td></tr></table></td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" style="padding:0 48px 32px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <div style="background:#F8FAFC; border-radius:12px; padding:20px 24px; border-left:3px solid #5DEAD4;">
+                                <p style="margin:0 0 6px 0; font-size:14px; line-height:22px; font-weight:700; color:#0F172A;"> Tip: otevřete demo na mobilu </p>
+                                <p style="margin:0; font-size:14px; line-height:22px; color:#475569;"> Tak ji uvidí i váš klient. Přidejte si ji na plochu, vyzkoušejte kalkulačku, napište Pixele. </p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" style="padding:0 48px 32px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <p style="margin:0 0 12px 0; font-size:16px; line-height:26px; color:#334155;"> Pokud vás to zaujme, ozvěte se — <strong style="color:#0F172A;">vaši vlastní vizitku máme hotovou do pár dní</strong>. Rád vám ji ukážu na míru vašemu poradenství. </p>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#475569;"><a href="mailto:hello@solopixel.cz" style="color:#0F766E; text-decoration:none; font-weight:600;">hello@solopixel.cz</a> &nbsp;·&nbsp; <a href="tel:+420774291077" style="color:#0F766E; text-decoration:none; font-weight:600;">+420 774 291 077</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px" style="padding:0 48px 40px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <p style="margin:0 0 4px 0; font-size:15px; line-height:22px; color:#0F172A;"> Hezký den<br /><strong style="color:#0F172A; font-weight:700;">Lukáš Kaleta</strong></p>
+                            <p style="margin:0; font-size:13px; line-height:20px; color:#64748B;"> SoloPixel — váš digitální parťák </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background:#F8FAFC; padding:24px 48px; border-top:1px solid #E2E8F0;" class="px">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#94A3B8;"><strong style="color:#475569;">SoloPixel</strong> · Frýdek-Místek<br /><a href="mailto:hello@solopixel.cz" style="color:#0F766E; text-decoration:none;">hello@solopixel.cz</a> &nbsp;·&nbsp; <a href="tel:+420774291077" style="color:#0F766E; text-decoration:none;">+420 774 291 077</a> &nbsp;·&nbsp; <a href="https://solopixel.eu/?utm_source=email&amp;utm_medium=outreach&amp;utm_content=footer-brand" style="color:#0F766E; text-decoration:none;">solopixel.eu</a><br /><br /><span style="color:#B6C0CC;">Tento e-mail jsme vám poslali jako finančnímu poradci v rámci nabídky našich služeb. Pokud nemáte zájem o další zprávy, odpovězte „NEMÁM ZÁJEM" a už se neozveme.</span></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+
+  const text = `Dobrý den, ${vars.jmeno},
+
+z každé schůzky odcházíte s podanou rukou — ale co po vás zůstane klientovi v telefonu?
+
+Postavili jsme pro finanční poradce digitální vizitku, která klientovi zůstane po ruce, sama sbírá kontakty a odpovídá za vás i ve tři ráno.
+
+Prohlédněte si živé demo: ${vars.odkaz}
+
+Co v demu uvidíte:
+1. Profil, který prodává — o vás, služby a reference na jednom místě.
+2. Kalkulačky — hypotéka, penze, investice.
+3. AI asistentka Pixela — odpovídá klientům 24/7.
+4. Sběr kontaktů a rezervace schůzek.
+
+Tip: otevřete demo na mobilu — tak ji uvidí i váš klient.
+
+Pokud vás to zaujme, ozvěte se — vaši vlastní vizitku máme hotovou do pár dní.
+
+hello@solopixel.cz · +420 774 291 077
+
+Hezký den
+Lukáš Kaleta
+SoloPixel — váš digitální parťák
+
+---
+SoloPixel · Frýdek-Místek · solopixel.eu
+Tento e-mail jsme vám poslali jako finančnímu poradci v rámci nabídky našich služeb.
+Pokud nemáte zájem o další zprávy, odpovězte „NEMÁM ZÁJEM" a už se neozveme.`;
+
+  return { html, text };
+}
+
+export const DEFAULT_OUTREACH_SUBJECT = "{{jmeno}}, takhle dnes vypadá vizitka, co pracuje za vás";

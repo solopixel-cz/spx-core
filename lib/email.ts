@@ -14,38 +14,15 @@ function getResend(): Resend {
 }
 
 /**
- * Render outreach email template: replace {{jmeno}} and {{odkaz}} placeholders.
- * Body text is converted to minimal HTML (paragraphs separated by blank lines).
+ * Replace {{jmeno}} and {{odkaz}} in a subject string.
  */
-export function renderTemplate(
-  template: { subject: string; body: string },
+export function renderSubject(
+  subject: string,
   variables: { jmeno: string; odkaz: string }
-): { subject: string; html: string } {
-  const replaceVars = (text: string) =>
-    text
-      .replace(/\{\{jmeno\}\}/g, variables.jmeno)
-      .replace(/\{\{odkaz\}\}/g, variables.odkaz);
-
-  const subject = replaceVars(template.subject);
-  const bodyText = replaceVars(template.body);
-
-  // Convert plain text to simple HTML paragraphs
-  const paragraphs = bodyText
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p style="margin:0 0 16px 0;line-height:1.5;">${p.replace(/\n/g, "<br>")}</p>`)
-    .join("\n");
-
-  const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;color:#1a1a1a;max-width:600px;margin:0 auto;padding:20px;">
-${paragraphs}
-</body>
-</html>`;
-
-  return { subject, html };
+): string {
+  return subject
+    .replace(/\{\{jmeno\}\}/g, variables.jmeno)
+    .replace(/\{\{odkaz\}\}/g, variables.odkaz);
 }
 
 export interface SendOutreachEmailParams {
@@ -54,6 +31,7 @@ export interface SendOutreachEmailParams {
   senderEmail: string;
   subject: string;
   html: string;
+  text?: string;
 }
 
 export async function sendOutreachEmail(params: SendOutreachEmailParams) {
@@ -65,6 +43,7 @@ export async function sendOutreachEmail(params: SendOutreachEmailParams) {
     to: params.to,
     subject: params.subject,
     html: params.html,
+    text: params.text,
   });
 
   if (result.error) {
