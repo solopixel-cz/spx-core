@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 23 – Sjednocení domény na solopixel.cz
+
+- `lib/siteUrl.ts` — centrální konstanty `WEB_URL`, `DEMO_URL`.
+- Všechny `solopixel.eu` v kódu, šablonách a env nahrazeny za `solopixel.cz`.
+- `npm run lint` + `npm run build` čisté.
+- Manuální kroky: Vercel doména, Firebase Auth, Resend webhook, env redeploy.
+
 ## 2026-06-13 — ✅ Fáze 22 – HTML šablona oslovení (SoloPixel design)
 
 - **Pevná HTML šablona:** `lib/email-templates/outreach.ts` — `renderOutreachEmail({ jmeno, odkaz })` vrací `{ html, text }`. HTML: brandový tabulkový layout SoloPixel (header s logem, CTA tlačítko, 4 body „Co v demu uvidíte", tip box, sign-off, compliance patička). Plain-text fallback pro doručitelnost.

@@ -26,9 +26,9 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 20 | [`20-mazani-archivace.md`](20-mazani-archivace.md) | Archivace (měkké smazání) + trvalé mazání bez vazeb | ✅ |
 | 21 | [`21-nastaveni-rozcestnik.md`](21-nastaveni-rozcestnik.md) | Nastavení jako rozcestník — zpřístupnění šablon a archivu | ✅ |
 | 22 | [`22-html-sablona-osloveni.md`](22-html-sablona-osloveni.md) | HTML šablona oslovení v designu SoloPixel (pevný design, editovatelný předmět) | ✅ |
-| 23 | [`23-sjednoceni-domeny-cz.md`](23-sjednoceni-domeny-cz.md) | Sjednocení domény na solopixel.cz (CRM + e-mail; web zvlášť) | ⬜ |
+| 23 | [`23-sjednoceni-domeny-cz.md`](23-sjednoceni-domeny-cz.md) | Sjednocení domény na solopixel.cz (CRM + e-mail; web zvlášť) | ✅ |
 
-**Pořadí:** fáze 1–22 hotové, aplikace v produkci.
+**Pořadí:** fáze 1–23 hotové, aplikace v produkci.
 
 ## Jak prompty používat
 

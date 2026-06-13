@@ -25,6 +25,6 @@
 | Fáze 20 — Mazání a archivace | ✅ Hotovo | [`../prompts/20-mazani-archivace.md`](../prompts/20-mazani-archivace.md) |
 | Fáze 21 — Nastavení rozcestník | ✅ Hotovo | [`../prompts/21-nastaveni-rozcestnik.md`](../prompts/21-nastaveni-rozcestnik.md) |
 | Fáze 22 — HTML šablona oslovení | ✅ Hotovo | [`../prompts/22-html-sablona-osloveni.md`](../prompts/22-html-sablona-osloveni.md) |
-| Fáze 23 — Sjednocení domény na .cz | ⬜ Čeká | [`../prompts/23-sjednoceni-domeny-cz.md`](../prompts/23-sjednoceni-domeny-cz.md) |
+| Fáze 23 — Sjednocení domény na .cz | ✅ Hotovo | [`../prompts/23-sjednoceni-domeny-cz.md`](../prompts/23-sjednoceni-domeny-cz.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).
