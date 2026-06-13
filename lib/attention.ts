@@ -58,6 +58,7 @@ export async function getAttentionItems(
       .then((snap) => {
         snap.docs.forEach((doc) => {
           const d = doc.data();
+          if (d.deletedAt) return;
           if (ownedClientIds && !ownedClientIds.has(d.clientId as string)) return;
           const priority = d.priority as string;
           const updatedAt = d.updatedAt?.toDate?.() ?? d.createdAt?.toDate?.();
@@ -88,6 +89,7 @@ export async function getAttentionItems(
         const activeStages = ["contacted", "demo", "offer", "contract"];
         snap.docs.forEach((doc) => {
           const d = doc.data();
+          if (d.deletedAt) return;
           if (!activeStages.includes(d.stage)) return;
           if (isSales && d.ownerUid !== uid) return;
           const updatedAt = d.updatedAt?.toDate?.();
@@ -176,7 +178,7 @@ export async function getAttentionItems(
           items.push({
             type: "prospect",
             severity: age > 3 ? "high" : age > 0 ? "medium" : "low",
-            title: `Follow-up u prospekta „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
+            title: `Follow-up „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
             age,
             href: "/prospekti",
           });

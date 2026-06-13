@@ -21,5 +21,10 @@
 | Fáze 16 — Provize | ✅ Hotovo | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
 | Fáze 17 — Sales viditelnost klientů | ✅ Hotovo | [`../prompts/17-sales-viditelnost-klientu.md`](../prompts/17-sales-viditelnost-klientu.md) |
 | Fáze 18 — Profil uživatele | ✅ Hotovo | [`../prompts/18-profil.md`](../prompts/18-profil.md) |
+| Fáze 19 — Přejmenování Prospekti→Oslovení | ✅ Hotovo | [`../prompts/19-rename-prospekti.md`](../prompts/19-rename-prospekti.md) |
+| Fáze 20 — Mazání a archivace | ✅ Hotovo | [`../prompts/20-mazani-archivace.md`](../prompts/20-mazani-archivace.md) |
+| Fáze 21 — Nastavení rozcestník | ✅ Hotovo | [`../prompts/21-nastaveni-rozcestnik.md`](../prompts/21-nastaveni-rozcestnik.md) |
+| Fáze 22 — HTML šablona oslovení | ✅ Hotovo | [`../prompts/22-html-sablona-osloveni.md`](../prompts/22-html-sablona-osloveni.md) |
+| Fáze 23 — Sjednocení domény na .cz | ✅ Hotovo | [`../prompts/23-sjednoceni-domeny-cz.md`](../prompts/23-sjednoceni-domeny-cz.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

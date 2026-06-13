@@ -185,13 +185,13 @@ export function CsvImportDialog({
     >
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>CSV Import prospektů</DialogTitle>
+          <DialogTitle>CSV Import kontaktů</DialogTitle>
         </DialogHeader>
 
         {step === "upload" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Nahrajte CSV soubor s prospekty. Soubor by měl mít hlavičku na prvním řádku.
+              Nahrajte CSV soubor s kontakty k oslovení. Soubor by měl mít hlavičku na prvním řádku.
               Podporovaný oddělovač: čárka nebo středník.
             </p>
             <Label

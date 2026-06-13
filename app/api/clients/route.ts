@@ -17,7 +17,7 @@ export async function GET() {
 
     const snapshot = await query.get();
 
-    const clients = snapshot.docs.map((doc) => ({
+    const clients = snapshot.docs.filter((d) => !d.data().deletedAt).map((doc) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,

@@ -2,6 +2,8 @@
 
 Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). Typy se definují zod schématy v `lib/schemas/` a odvozují přes `z.infer`.
 
+**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury se nemažou — jen stornují** (status `cancelled`). `commissions`, `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
+
 ## Kolekce
 
 ### `users`
@@ -135,7 +137,7 @@ Bugy a požadavky na změnu vizitky.
 ```
 
 ### `prospects`
-Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
+Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
 
 ```ts
 {

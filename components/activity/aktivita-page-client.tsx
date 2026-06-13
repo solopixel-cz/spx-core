@@ -46,7 +46,7 @@ const entityTypeLabels: Record<string, string> = {
   lead: "Lead",
   ticket: "Ticket",
   invoice: "Faktura",
-  prospect: "Prospekt",
+  prospect: "Oslovení",
 };
 
 const kindIcons: Record<string, React.ReactNode> = {

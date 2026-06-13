@@ -14,7 +14,7 @@ import { Copy, Send } from "lucide-react";
 
 const FORM_BASE_URL =
   process.env.NEXT_PUBLIC_CARD_FORM_BASE_URL ??
-  "https://www.solopixel.eu/cs/vizitka-formular?token=";
+  "https://www.solopixel.cz/cs/vizitka-formular?token=";
 
 export function CardFormButton({
   clientId,

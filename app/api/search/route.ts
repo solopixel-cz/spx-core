@@ -25,6 +25,7 @@ export async function GET(request: Request) {
 
     const clients = clientsSnap.docs
       .filter((doc) => {
+        if (doc.data().deletedAt) return false;
         if (ownedClientIds && !ownedClientIds.has(doc.id)) return false;
         const d = doc.data();
         return (
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
 
     const leads = leadsSnap.docs
       .filter((doc) => {
+        if (doc.data().deletedAt) return false;
         const d = doc.data();
         return (
           (d.name as string).toLowerCase().includes(q) ||
@@ -58,6 +60,7 @@ export async function GET(request: Request) {
 
     const tickets = ticketsSnap.docs
       .filter((doc) => {
+        if (doc.data().deletedAt) return false;
         if (ownedClientIds && !ownedClientIds.has(doc.data().clientId as string)) return false;
         const d = doc.data();
         return (d.title as string).toLowerCase().includes(q);
