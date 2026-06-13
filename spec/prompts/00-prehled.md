@@ -24,9 +24,10 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 18 | [`18-profil.md`](18-profil.md) | Profil uživatele — fotka, jméno, heslo, preference | ✅ |
 | 19 | [`19-rename-prospekti.md`](19-rename-prospekti.md) | Přejmenování UI „Prospekti” → „Oslovení” (Firestore beze změny) | ✅ |
 | 20 | [`20-mazani-archivace.md`](20-mazani-archivace.md) | Archivace (měkké smazání) + trvalé mazání bez vazeb | ✅ |
-| 21 | [`21-nastaveni-rozcestnik.md`](21-nastaveni-rozcestnik.md) | Nastavení jako rozcestník — zpřístupnění šablon a archivu | ⬜ |
+| 21 | [`21-nastaveni-rozcestnik.md`](21-nastaveni-rozcestnik.md) | Nastavení jako rozcestník — zpřístupnění šablon a archivu | ✅ |
+| 22 | [`22-html-sablona-osloveni.md`](22-html-sablona-osloveni.md) | HTML šablona oslovení v designu SoloPixel (pevný design, editovatelný předmět) | ⬜ |
 
-**Pořadí:** fáze 1–18 hotové, aplikace v produkci.
+**Pořadí:** fáze 1–21 hotové, aplikace v produkci.
 
 ## Jak prompty používat
 

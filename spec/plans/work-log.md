@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-13 — ✅ Fáze 21 – Nastavení jako rozcestník
+
+- `/nastaveni` předěláno z redirectu na rozcestník s dlaždicemi: Uživatelé (admin), Šablony (admin), Archiv (admin+member), Provize (admin+member), Můj profil (všichni).
+- Dlaždice filtrované dle role — member vidí jen Archiv, Provize, Profil.
+- Sidebar: „Nastavení" nyní viditelné pro admin+member (ne jen admin); samostatný odkaz „Archiv" odstraněn (přístup přes rozcestník).
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-13 — ✅ Fáze 20 – Mazání a archivace
 
 - **Archivace (měkké smazání):** `deletedAt` + `deletedBy` na `clients`, `instances`, `leads`, `tickets`. Akce „Archivovat" na detailu klienta (admin/member). Dialog s potvrzením.
