@@ -40,6 +40,7 @@ import {
   ExternalLink,
   Mail,
   Monitor,
+  Archive,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
@@ -80,6 +81,7 @@ export function ProspectDetailSheet({
   const [outreachDialogOpen, setOutreachDialogOpen] = useState(false);
   const [outreachGreeting, setOutreachGreeting] = useState("");
   const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string } | null>(null);
+  const [outreachSender, setOutreachSender] = useState("");
   const [outreachLoading, setOutreachLoading] = useState(false);
 
   // Contact form state
@@ -106,6 +108,14 @@ export function ProspectDetailSheet({
     return () => { cancelled = true; };
   }, [prospectId]);
 
+  function refreshActivities() {
+    if (!prospectId) return;
+    fetch(`/api/activity?entityType=prospect&entityId=${prospectId}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setActivities(data))
+      .catch(() => {});
+  }
+
   async function handleContact() {
     if (!prospect) return;
     setActing(true);
@@ -125,7 +135,8 @@ export function ProspectDetailSheet({
       toast.success("Kontakt zaznamenán");
       setContactDialogOpen(false);
       resetContactForm();
-      onUpdate();
+      refreshActivities();
+      router.refresh();
     } catch {
       toast.error("Nepodařilo se zapsat kontakt");
     } finally {
@@ -211,6 +222,14 @@ export function ProspectDetailSheet({
         return;
       }
       setOutreachTemplate(data);
+      // Fetch sender info
+      const meRes = await fetch("/api/me");
+      if (meRes.ok) {
+        const me = await meRes.json();
+        const name = me.senderName || me.displayName || "";
+        const email = me.senderEmail || me.email || "";
+        setOutreachSender(`${name} <${email}>`);
+      }
       setOutreachDialogOpen(true);
     } catch {
       toast.error("Nepodařilo se načíst šablonu");
@@ -238,7 +257,8 @@ export function ProspectDetailSheet({
       }
       toast.success("Oslovení odesláno");
       setOutreachDialogOpen(false);
-      onUpdate();
+      refreshActivities();
+      router.refresh();
     } catch {
       toast.error("Nepodařilo se odeslat oslovení");
     } finally {
@@ -426,6 +446,37 @@ export function ProspectDetailSheet({
                 </>
               )}
 
+              {/* Archive action (admin/member only) */}
+              {isAdminOrMember && !isTerminal && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm("Archivovat tento kontakt?")) return;
+                    setActing(true);
+                    try {
+                      const res = await fetch("/api/archive", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "archive", collection: "prospects", id: prospect.id }),
+                      });
+                      if (!res.ok) throw new Error();
+                      toast.success("Kontakt archivován");
+                      onUpdate();
+                    } catch {
+                      toast.error("Nepodařilo se archivovat");
+                    } finally {
+                      setActing(false);
+                    }
+                  }}
+                  disabled={acting}
+                  className="w-full text-muted-foreground"
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archivovat
+                </Button>
+              )}
+
               <Separator />
               <ActivityTab
                 entityType="prospect"
@@ -550,8 +601,9 @@ export function ProspectDetailSheet({
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground">
-                Příjemce: <span className="font-medium">{prospect.email}</span>
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p>Příjemce: <span className="font-medium">{prospect.email}</span></p>
+                {outreachSender && <p>Odesláno z: <span className="font-medium">{outreachSender}</span></p>}
               </div>
 
               <Button

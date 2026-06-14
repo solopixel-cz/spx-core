@@ -26,5 +26,8 @@
 | Fáze 21 — Nastavení rozcestník | ✅ Hotovo | [`../prompts/21-nastaveni-rozcestnik.md`](../prompts/21-nastaveni-rozcestnik.md) |
 | Fáze 22 — HTML šablona oslovení | ✅ Hotovo | [`../prompts/22-html-sablona-osloveni.md`](../prompts/22-html-sablona-osloveni.md) |
 | Fáze 23 — Sjednocení domény na .cz | ✅ Hotovo | [`../prompts/23-sjednoceni-domeny-cz.md`](../prompts/23-sjednoceni-domeny-cz.md) |
+| Fáze 24 — Odesílatel oslovení | ✅ Hotovo | [`../prompts/24-odesilatel-osloveni.md`](../prompts/24-odesilatel-osloveni.md) |
+| Fáze 25 — Mazání Oslovení | ✅ Hotovo | [`../prompts/25-mazani-osloveni.md`](../prompts/25-mazani-osloveni.md) |
+| Fáze 26 — Auto-refresh seznamů | ✅ Hotovo | [`../prompts/26-auto-refresh.md`](../prompts/26-auto-refresh.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

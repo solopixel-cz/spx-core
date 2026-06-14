@@ -41,6 +41,8 @@ interface UserRow {
   role: "admin" | "member" | "sales";
   active: boolean;
   commissionRate?: number;
+  senderEmail?: string;
+  senderName?: string;
 }
 
 const addUserSchema = z.object({
@@ -238,6 +240,7 @@ export default function UzivatelePage() {
               <TableHead>Jméno</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Odesílatel</TableHead>
               <TableHead>Stav</TableHead>
               <TableHead className="w-24">Akce</TableHead>
             </TableRow>
@@ -265,6 +268,55 @@ export default function UzivatelePage() {
                       <SelectItem value="admin">Administrátor</SelectItem>
                     </SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <Input
+                      className="h-7 text-xs w-40"
+                      placeholder={user.email}
+                      defaultValue={user.senderEmail ?? ""}
+                      onBlur={async (e) => {
+                        const val = e.target.value.trim();
+                        if (val === (user.senderEmail ?? "")) return;
+                        try {
+                          const res = await fetch(`/api/users/${user.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ senderEmail: val || null }),
+                          });
+                          if (!res.ok) {
+                            const data = await res.json();
+                            toast.error(data.error || "Chyba");
+                            return;
+                          }
+                          toast.success("Odesílatel uložen");
+                          fetchUsers();
+                        } catch {
+                          toast.error("Nepodařilo se uložit");
+                        }
+                      }}
+                    />
+                    <Input
+                      className="h-7 text-xs w-40"
+                      placeholder={user.displayName}
+                      defaultValue={user.senderName ?? ""}
+                      onBlur={async (e) => {
+                        const val = e.target.value.trim();
+                        if (val === (user.senderName ?? "")) return;
+                        try {
+                          await fetch(`/api/users/${user.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ senderName: val || null }),
+                          });
+                          toast.success("Jméno odesílatele uloženo");
+                          fetchUsers();
+                        } catch {
+                          toast.error("Nepodařilo se uložit");
+                        }
+                      }}
+                    />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={user.active ? "default" : "secondary"}>
@@ -299,7 +351,7 @@ export default function UzivatelePage() {
             ))}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Žádní uživatelé
                 </TableCell>
               </TableRow>

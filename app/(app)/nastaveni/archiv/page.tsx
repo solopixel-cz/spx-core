@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/empty-state";
 import { formatDate } from "@/lib/format";
 import { RotateCcw, Trash2, Archive } from "lucide-react";
@@ -44,6 +45,7 @@ const collectionLabels: Record<string, string> = {
   instances: "Instance",
   leads: "Lead",
   tickets: "Ticket",
+  prospects: "Oslovení",
 };
 
 export default function ArchivPage() {
@@ -54,6 +56,8 @@ export default function ArchivPage() {
   const [deleteTarget, setDeleteTarget] = useState<ArchivedItem | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [acting, setActing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -116,6 +120,41 @@ export default function ArchivPage() {
     }
   }
 
+  async function handleBatchDelete() {
+    if (selected.size === 0) return;
+    if (!confirm(`Trvale smazat ${selected.size} vybraných záznamů? Záznamy s vazbami budou přeskočeny.`)) return;
+    setBatchDeleting(true);
+    let deleted = 0;
+    let skipped = 0;
+    for (const key of selected) {
+      const item = items.find((i) => `${i.collection}-${i.id}` === key);
+      if (!item) continue;
+      try {
+        const res = await fetch("/api/archive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "delete", collection: item.collection, id: item.id }),
+        });
+        if (res.ok) deleted++;
+        else skipped++;
+      } catch {
+        skipped++;
+      }
+    }
+    toast.success(`Smazáno: ${deleted}, přeskočeno (vazby): ${skipped}`);
+    setSelected(new Set());
+    setBatchDeleting(false);
+    fetchItems();
+  }
+
+  function toggleSelect(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
   if (loading) return <p className="text-muted-foreground">Načítám...</p>;
 
   return (
@@ -123,6 +162,17 @@ export default function ArchivPage() {
       <h2 className="text-xl font-semibold">Archiv</h2>
 
       <div className="flex items-center gap-4">
+        {selected.size > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBatchDelete}
+            disabled={batchDeleting}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {batchDeleting ? "Mažu..." : `Smazat vybrané (${selected.size})`}
+          </Button>
+        )}
         <Select value={typeFilter} onValueChange={(val: string | null) => val && setTypeFilter(val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Typ" />
@@ -143,6 +193,7 @@ export default function ArchivPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"></TableHead>
                 <TableHead>Název</TableHead>
                 <TableHead>Typ</TableHead>
                 <TableHead>Archivoval</TableHead>
@@ -153,6 +204,12 @@ export default function ArchivPage() {
             <TableBody>
               {filtered.map((item) => (
                 <TableRow key={`${item.collection}-${item.id}`}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selected.has(`${item.collection}-${item.id}`)}
+                      onCheckedChange={() => toggleSelect(`${item.collection}-${item.id}`)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{collectionLabels[item.collection] ?? item.collection}</Badge>

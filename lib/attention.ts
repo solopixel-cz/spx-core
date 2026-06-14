@@ -167,6 +167,7 @@ export async function getAttentionItems(
       .then((snap) => {
         snap.docs.forEach((doc) => {
           const d = doc.data();
+          if (d.deletedAt) return;
           if (isSales && d.ownerUid !== uid) return;
           if (!d.ownerUid) return; // skip unowned
           const nextFollowUp = d.nextFollowUpAt?.toDate?.();
@@ -203,6 +204,8 @@ export async function getAttentionItems(
           if (!prospectDoc.exists) continue;
           const pData = prospectDoc.data()!;
 
+          // Skip archived prospects — nesmí probublat do feedu
+          if (pData.deletedAt) continue;
           // Only show for active prospects owned by this user (or all for admin)
           if (["converted", "not_interested", "unreachable"].includes(pData.status as string)) continue;
           if (isSales && pData.ownerUid !== uid) continue;

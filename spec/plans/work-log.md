@@ -2,6 +2,33 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-14 — ✅ Fáze 26 – Auto-refresh seznamů po akcích
+
+- **Prospect detail sheet:** po „Zapsat kontakt" a „Odeslat oslovení" se activity log v sheetu okamžitě refetchne (`refreshActivities()`) + `router.refresh()` obnoví podkladový seznam. Sheet zůstává otevřený — záznam se ukáže bez zavření/otevření.
+- **Úkoly:** optimistické toggle stavu (checkbox „hotovo") — okamžitá odezva přes `optimisticOverrides`, revert při chybě, `router.refresh()` po úspěchu.
+- **Audit existujícího stavu:** většina mutací už volá `router.refresh()` (přímo nebo přes parent `onUpdate`/`onSuccess`). Nastavení/uživatelé používají lokální `fetchUsers()` — konzistentní pro client-managed page. Nastavení/šablony řídí stav lokálně — refresh nepotřeba.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-14 — ✅ Fáze 25 – Archivace a mazání kontaktů v Oslovení
+
+- **Archivace:** `prospects` dostává `deletedAt`/`deletedBy`. Akce „Archivovat" v detailu kontaktu (admin/member).
+- **Filtrace:** všechny pohledy Oslovení filtrují `!deletedAt` — seznam, vyhledávání (Cmd+K), dashboard (prospect stats), attention feed (follow-upy).
+- **Archiv stránka:** typ „Oslovení" přidán, akce Obnovit + Trvale smazat. Hromadné smazání: checkbox výběr + batch delete (přeskočí záznamy s vazbami).
+- **Trvalé smazání:** constraint check — konvertovaný prospekt nelze smazat. Při smazání se odstraní i `outreachEmails` + `activity` záznamy.
+- **Archive API + helper:** `prospects` přidán do `validCollections` a `entityTypeMap`, constraint check, `permanentlyDelete` maže outreachEmails.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-14 — ✅ Fáze 24 – Override odesílatele oslovení
+
+- **Efektivní odesílatel:** `senderEmail = userDoc.senderEmail ?? user.email`, `senderName = userDoc.senderName ?? displayName`. Bez override beze změny chování.
+- **Validace:** `senderEmail` musí být na `@solopixel.cz` (`SENDER_DOMAIN` v `lib/email.ts`), jinak 400.
+- **Users API:** PATCH přijímá `senderEmail`/`senderName` (jen admin, whitelist).
+- **Správa uživatelů:** nový sloupec „Odesílatel" se dvěma inline inputy (e-mail + jméno), save on blur.
+- **Profil:** read-only zobrazení odesílatele s poznámkou „Odesílatele nastavuje administrátor".
+- **Dialog odeslání:** zobrazuje „Odesláno z: Jméno <email>" pod příjemcem.
+- **User schema:** rozšířen o `senderEmail`, `senderName`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-13 — ✅ Fáze 23 – Sjednocení domény na solopixel.cz
 
 - `lib/siteUrl.ts` — centrální konstanty `WEB_URL`, `DEMO_URL`.

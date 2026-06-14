@@ -17,11 +17,12 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-const validCollections = ["clients", "instances", "leads", "tickets"];
-const entityTypeMap: Record<string, "client" | "lead" | "ticket"> = {
+const validCollections = ["clients", "instances", "leads", "tickets", "prospects"];
+const entityTypeMap: Record<string, "client" | "lead" | "ticket" | "prospect"> = {
   clients: "client",
   leads: "lead",
   tickets: "ticket",
+  prospects: "prospect",
 };
 
 // GET /api/archive — list archived records

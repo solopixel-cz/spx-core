@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { SENDER_DOMAIN } from "@/lib/email";
 
 // PATCH /api/users/[id] — update role or deactivate (admin only)
 export async function PATCH(
@@ -16,6 +17,8 @@ export async function PATCH(
       role?: "admin" | "member" | "sales";
       active?: boolean;
       commissionRate?: number | null;
+      senderEmail?: string | null;
+      senderName?: string | null;
     };
 
     const auth = getAdminAuth();
@@ -36,6 +39,20 @@ export async function PATCH(
 
     if (body.commissionRate !== undefined) {
       updates.commissionRate = body.commissionRate;
+    }
+
+    if (body.senderEmail !== undefined) {
+      if (body.senderEmail && !body.senderEmail.endsWith(`@${SENDER_DOMAIN}`)) {
+        return NextResponse.json(
+          { error: `E-mail odesílatele musí být na doméně @${SENDER_DOMAIN}` },
+          { status: 400 }
+        );
+      }
+      updates.senderEmail = body.senderEmail || null;
+    }
+
+    if (body.senderName !== undefined) {
+      updates.senderName = body.senderName || null;
     }
 
     await db.collection("users").doc(id).update(updates);

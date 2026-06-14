@@ -2,7 +2,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
 
-type ArchivableEntity = "client" | "lead" | "ticket";
+type ArchivableEntity = "client" | "lead" | "ticket" | "prospect";
 
 export async function archiveDocument(
   collection: string,
@@ -155,6 +155,14 @@ export async function checkDeleteConstraints(
     if (!tasks.empty) return "Nelze trvale smazat — má navázané úkoly.";
   }
 
+  if (collection === "prospects") {
+    // Check if converted to lead
+    const doc = await db.collection("prospects").doc(id).get();
+    if (doc.exists && doc.data()?.leadId) {
+      return "Nelze trvale smazat — byl konvertován na lead.";
+    }
+  }
+
   return null;
 }
 
@@ -170,6 +178,7 @@ export async function permanentlyDelete(collection: string, id: string) {
     instances: "instance",
     leads: "lead",
     tickets: "ticket",
+    prospects: "prospect",
   };
   const entityType = entityTypeMap[collection];
 
@@ -180,6 +189,16 @@ export async function permanentlyDelete(collection: string, id: string) {
       .where("entityId", "==", id)
       .get();
     for (const doc of activitySnap.docs) {
+      await doc.ref.delete();
+    }
+  }
+
+  // For prospects, also delete outreach emails
+  if (collection === "prospects") {
+    const emailsSnap = await db.collection("outreachEmails")
+      .where("prospectId", "==", id)
+      .get();
+    for (const doc of emailsSnap.docs) {
       await doc.ref.delete();
     }
   }
