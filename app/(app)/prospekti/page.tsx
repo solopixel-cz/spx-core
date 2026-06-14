@@ -37,7 +37,7 @@ export default async function ProspektiPage() {
     }
   });
 
-  const prospects = prospectsSnap.docs.map((doc) => {
+  const prospects = prospectsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
     const d = doc.data();
     return {
       id: doc.id,

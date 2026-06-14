@@ -171,7 +171,7 @@ export default async function DashboardPage() {
   const prospectStats = { contactedThisWeek: 0, responding: 0, converted: 0 };
   const prospectsByOwner: Record<string, { claimed: number; contacted: number; responding: number; converted: number }> = {};
 
-  prospectsSnap.docs.forEach((doc) => {
+  prospectsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
     const d = doc.data();
     const ownerId = d.ownerUid as string | null;
 

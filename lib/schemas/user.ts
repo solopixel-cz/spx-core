@@ -10,6 +10,8 @@ export const userSchema = z.object({
   commissionRate: z.number().min(0).max(1).optional(),
   photoURL: z.string().optional(),
   phone: z.string().optional(),
+  senderEmail: z.string().email().optional(),
+  senderName: z.string().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;

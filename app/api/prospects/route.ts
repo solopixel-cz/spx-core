@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     const hasMore = snapshot.docs.length > limit;
     const nextCursor = hasMore ? docs[docs.length - 1]?.id : null;
 
-    let prospects = docs.map((doc) => {
+    let prospects = docs.filter((d) => !d.data().deletedAt).map((doc) => {
       const d = doc.data();
       return {
         id: doc.id,

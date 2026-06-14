@@ -60,6 +60,8 @@ interface UserProfile {
   photoURL: string | null;
   commissionRate: number | null;
   createdAt: string | null;
+  senderEmail: string | null;
+  senderName: string | null;
   lastSignIn: string | null;
 }
 
@@ -341,6 +343,13 @@ export default function ProfilPage() {
                       value={profile.commissionRate !== null ? `${Math.round(profile.commissionRate * 100)} %` : "Výchozí"}
                       disabled
                     />
+                  </div>
+                )}
+                {(profile.senderEmail || profile.senderName) && (
+                  <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+                    <p className="text-xs font-medium text-muted-foreground">Odesílatel e-mailů</p>
+                    <p className="text-sm">{profile.senderName || profile.displayName} &lt;{profile.senderEmail || profile.email}&gt;</p>
+                    <p className="text-xs text-muted-foreground">Odesílatele nastavuje administrátor</p>
                   </div>
                 )}
                 <Button type="submit" disabled={saving}>

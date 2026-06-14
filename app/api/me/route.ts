@@ -25,6 +25,8 @@ export async function GET() {
       phone: data.phone ?? null,
       photoURL: data.photoURL ?? null,
       commissionRate: data.commissionRate ?? null,
+      senderEmail: data.senderEmail ?? null,
+      senderName: data.senderName ?? null,
       createdAt: authUser.metadata.creationTime ?? null,
       lastSignIn: authUser.metadata.lastSignInTime ?? null,
     });

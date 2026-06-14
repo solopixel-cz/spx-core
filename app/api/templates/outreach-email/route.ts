@@ -56,7 +56,9 @@ export async function POST(request: Request) {
 
     const db = getAdminFirestore();
     const userDoc = await db.collection("users").doc(user.uid).get();
-    const displayName = (userDoc.data()?.displayName as string) || "Test";
+    const userData = userDoc.data();
+    const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+    const senderEmail = (userData?.senderEmail as string) || user.email;
 
     const testVars = { jmeno: "Jane", odkaz: "https://demo.solopixel.cz" };
     const renderedSubject = renderSubject(subject, testVars);
@@ -64,8 +66,8 @@ export async function POST(request: Request) {
 
     await sendOutreachEmail({
       to: user.email,
-      senderName: displayName,
-      senderEmail: user.email,
+      senderName,
+      senderEmail,
       subject: renderedSubject,
       html,
       text,
