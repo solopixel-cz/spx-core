@@ -80,6 +80,7 @@ export function ProspectDetailSheet({
   const [outreachDialogOpen, setOutreachDialogOpen] = useState(false);
   const [outreachGreeting, setOutreachGreeting] = useState("");
   const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string } | null>(null);
+  const [outreachSender, setOutreachSender] = useState("");
   const [outreachLoading, setOutreachLoading] = useState(false);
 
   // Contact form state
@@ -211,6 +212,14 @@ export function ProspectDetailSheet({
         return;
       }
       setOutreachTemplate(data);
+      // Fetch sender info
+      const meRes = await fetch("/api/me");
+      if (meRes.ok) {
+        const me = await meRes.json();
+        const name = me.senderName || me.displayName || "";
+        const email = me.senderEmail || me.email || "";
+        setOutreachSender(`${name} <${email}>`);
+      }
       setOutreachDialogOpen(true);
     } catch {
       toast.error("Nepodařilo se načíst šablonu");
@@ -550,8 +559,9 @@ export function ProspectDetailSheet({
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground">
-                Příjemce: <span className="font-medium">{prospect.email}</span>
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p>Příjemce: <span className="font-medium">{prospect.email}</span></p>
+                {outreachSender && <p>Odesláno z: <span className="font-medium">{outreachSender}</span></p>}
               </div>
 
               <Button

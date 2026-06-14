@@ -325,9 +325,11 @@ export async function POST(
       const templateDoc = await db.collection("templates").doc("outreach-email").get();
       const subjectTemplate = (templateDoc.data()?.subject as string) || DEFAULT_OUTREACH_SUBJECT;
 
-      // Get sender info
+      // Get sender info (with optional override)
       const userDoc = await db.collection("users").doc(user.uid).get();
-      const senderName = (userDoc.data()?.displayName as string) || "SoloPixel";
+      const userData = userDoc.data();
+      const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+      const senderEmail = (userData?.senderEmail as string) || user.email;
 
       // Render and send
       const jmeno = greeting || prospectData.name.split(" ")[0];
@@ -338,7 +340,7 @@ export async function POST(
       const result = await sendOutreachEmail({
         to: prospectData.email,
         senderName,
-        senderEmail: user.email,
+        senderEmail,
         subject: renderedSubject,
         html,
         text,

@@ -18,6 +18,8 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   commissionRate?: number    // osobní sazba provize (0–1); bez hodnoty platí default ze settings/commission
   photoURL?: string          // profilová fotka (Storage avatars/{uid}), zrcadlí se do Auth
   phone?: string
+  senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
+  senderName?: string        // override jména odesílatele; bez hodnoty = displayName. Mění jen admin.
 }
 ```
 
@@ -156,6 +158,8 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
   leadId?: string            // po konverzi na lead
   source: 'import' | 'manual'
   importBatchId?: string     // dávka CSV importu
+  deletedAt?: Timestamp      // archivace (fáze 25), filtruje se ze všech pohledů
+  deletedBy?: string
 }
 ```
 

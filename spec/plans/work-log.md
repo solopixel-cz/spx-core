@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-14 — ✅ Fáze 24 – Override odesílatele oslovení
+
+- **Efektivní odesílatel:** `senderEmail = userDoc.senderEmail ?? user.email`, `senderName = userDoc.senderName ?? displayName`. Bez override beze změny chování.
+- **Validace:** `senderEmail` musí být na `@solopixel.cz` (`SENDER_DOMAIN` v `lib/email.ts`), jinak 400.
+- **Users API:** PATCH přijímá `senderEmail`/`senderName` (jen admin, whitelist).
+- **Správa uživatelů:** nový sloupec „Odesílatel" se dvěma inline inputy (e-mail + jméno), save on blur.
+- **Profil:** read-only zobrazení odesílatele s poznámkou „Odesílatele nastavuje administrátor".
+- **Dialog odeslání:** zobrazuje „Odesláno z: Jméno <email>" pod příjemcem.
+- **User schema:** rozšířen o `senderEmail`, `senderName`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-13 — ✅ Fáze 23 – Sjednocení domény na solopixel.cz
 
 - `lib/siteUrl.ts` — centrální konstanty `WEB_URL`, `DEMO_URL`.

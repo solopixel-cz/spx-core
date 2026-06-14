@@ -13,6 +13,9 @@ function getResend(): Resend {
   return resendInstance;
 }
 
+/** Verified sending domain — only emails on this domain are accepted as senderEmail override. */
+export const SENDER_DOMAIN = "solopixel.cz";
+
 /**
  * Replace {{jmeno}} and {{odkaz}} in a subject string.
  */

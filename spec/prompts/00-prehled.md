@@ -27,6 +27,8 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 21 | [`21-nastaveni-rozcestnik.md`](21-nastaveni-rozcestnik.md) | Nastavení jako rozcestník — zpřístupnění šablon a archivu | ✅ |
 | 22 | [`22-html-sablona-osloveni.md`](22-html-sablona-osloveni.md) | HTML šablona oslovení v designu SoloPixel (pevný design, editovatelný předmět) | ✅ |
 | 23 | [`23-sjednoceni-domeny-cz.md`](23-sjednoceni-domeny-cz.md) | Sjednocení domény na solopixel.cz (CRM + e-mail; web zvlášť) | ✅ |
+| 24 | [`24-odesilatel-osloveni.md`](24-odesilatel-osloveni.md) | Odesílatel oslovení — override jen pro admina | ✅ |
+| 25 | [`25-mazani-osloveni.md`](25-mazani-osloveni.md) | Archivace a mazání kontaktů v Oslovení (vč. hromadného úklidu) | ⬜ |
 
 **Pořadí:** fáze 1–23 hotové, aplikace v produkci.
 
