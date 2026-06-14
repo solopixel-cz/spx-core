@@ -375,8 +375,8 @@ export function ProspectDetailSheet({
               {!isTerminal && canAct && (
                 <>
                   <Separator />
-                  {/* Outreach email button */}
-                  {prospect.email && prospect.demoUrl ? (
+                  {/* Outreach email button — demoUrl je volitelný, default je demo.solopixel.cz */}
+                  {prospect.email ? (
                     <Button
                       onClick={openOutreachDialog}
                       disabled={acting || outreachLoading}
@@ -388,8 +388,7 @@ export function ProspectDetailSheet({
                   ) : (
                     <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
                       <Mail className="mx-auto mb-1 h-4 w-4" />
-                      Oslovení nelze odeslat —{" "}
-                      {!prospect.email ? "chybí e-mail" : "chybí odkaz na demo vizitku"}
+                      Oslovení nelze odeslat — chybí e-mail
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
