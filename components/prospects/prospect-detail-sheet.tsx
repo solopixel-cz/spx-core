@@ -40,6 +40,7 @@ import {
   ExternalLink,
   Mail,
   Monitor,
+  Archive,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
@@ -433,6 +434,37 @@ export function ProspectDetailSheet({
                     </Button>
                   )}
                 </>
+              )}
+
+              {/* Archive action (admin/member only) */}
+              {isAdminOrMember && !isTerminal && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm("Archivovat tento kontakt?")) return;
+                    setActing(true);
+                    try {
+                      const res = await fetch("/api/archive", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "archive", collection: "prospects", id: prospect.id }),
+                      });
+                      if (!res.ok) throw new Error();
+                      toast.success("Kontakt archivován");
+                      onUpdate();
+                    } catch {
+                      toast.error("Nepodařilo se archivovat");
+                    } finally {
+                      setActing(false);
+                    }
+                  }}
+                  disabled={acting}
+                  className="w-full text-muted-foreground"
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archivovat
+                </Button>
               )}
 
               <Separator />

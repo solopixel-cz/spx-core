@@ -167,6 +167,7 @@ export async function getAttentionItems(
       .then((snap) => {
         snap.docs.forEach((doc) => {
           const d = doc.data();
+          if (d.deletedAt) return;
           if (isSales && d.ownerUid !== uid) return;
           if (!d.ownerUid) return; // skip unowned
           const nextFollowUp = d.nextFollowUpAt?.toDate?.();

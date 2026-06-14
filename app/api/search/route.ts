@@ -74,6 +74,7 @@ export async function GET(request: Request) {
 
     const prospects = prospectsSnap.docs
       .filter((doc) => {
+        if (doc.data().deletedAt) return false;
         const d = doc.data();
         return (
           (d.name as string).toLowerCase().includes(q) ||

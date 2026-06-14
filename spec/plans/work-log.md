@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-14 — ✅ Fáze 25 – Archivace a mazání kontaktů v Oslovení
+
+- **Archivace:** `prospects` dostává `deletedAt`/`deletedBy`. Akce „Archivovat" v detailu kontaktu (admin/member).
+- **Filtrace:** všechny pohledy Oslovení filtrují `!deletedAt` — seznam, vyhledávání (Cmd+K), dashboard (prospect stats), attention feed (follow-upy).
+- **Archiv stránka:** typ „Oslovení" přidán, akce Obnovit + Trvale smazat. Hromadné smazání: checkbox výběr + batch delete (přeskočí záznamy s vazbami).
+- **Trvalé smazání:** constraint check — konvertovaný prospekt nelze smazat. Při smazání se odstraní i `outreachEmails` + `activity` záznamy.
+- **Archive API + helper:** `prospects` přidán do `validCollections` a `entityTypeMap`, constraint check, `permanentlyDelete` maže outreachEmails.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-14 — ✅ Fáze 24 – Override odesílatele oslovení
 
 - **Efektivní odesílatel:** `senderEmail = userDoc.senderEmail ?? user.email`, `senderName = userDoc.senderName ?? displayName`. Bez override beze změny chování.
