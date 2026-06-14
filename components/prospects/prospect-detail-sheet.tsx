@@ -108,6 +108,14 @@ export function ProspectDetailSheet({
     return () => { cancelled = true; };
   }, [prospectId]);
 
+  function refreshActivities() {
+    if (!prospectId) return;
+    fetch(`/api/activity?entityType=prospect&entityId=${prospectId}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setActivities(data))
+      .catch(() => {});
+  }
+
   async function handleContact() {
     if (!prospect) return;
     setActing(true);
@@ -127,7 +135,8 @@ export function ProspectDetailSheet({
       toast.success("Kontakt zaznamenán");
       setContactDialogOpen(false);
       resetContactForm();
-      onUpdate();
+      refreshActivities();
+      router.refresh();
     } catch {
       toast.error("Nepodařilo se zapsat kontakt");
     } finally {
@@ -248,7 +257,8 @@ export function ProspectDetailSheet({
       }
       toast.success("Oslovení odesláno");
       setOutreachDialogOpen(false);
-      onUpdate();
+      refreshActivities();
+      router.refresh();
     } catch {
       toast.error("Nepodařilo se odeslat oslovení");
     } finally {

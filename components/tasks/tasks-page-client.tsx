@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,12 +52,17 @@ export function TasksPageClient({
   currentUid: string;
 }) {
   const router = useRouter();
+  const [optimisticOverrides, setOptimisticOverrides] = useState<Record<string, string>>({});
+  const localTasks = useMemo(() =>
+    tasks.map((t) => optimisticOverrides[t.id] ? { ...t, status: optimisticOverrides[t.id] } : t),
+    [tasks, optimisticOverrides]
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState<"mine" | "all">("mine");
 
   const filtered = filter === "mine"
-    ? tasks.filter((t) => t.assigneeUid === currentUid)
-    : tasks;
+    ? localTasks.filter((t) => t.assigneeUid === currentUid)
+    : localTasks;
 
   const now = new Date();
 
@@ -92,6 +97,8 @@ export function TasksPageClient({
 
   async function toggleStatus(taskId: string, current: string) {
     const newStatus = current === "open" ? "done" : "open";
+    // Optimistic update
+    setOptimisticOverrides((prev) => ({ ...prev, [taskId]: newStatus }));
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
@@ -99,8 +106,11 @@ export function TasksPageClient({
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error();
+      setOptimisticOverrides((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
       router.refresh();
     } catch {
+      // Revert optimistic update
+      setOptimisticOverrides((prev) => { const next = { ...prev }; delete next[taskId]; return next; });
       toast.error("Nepodařilo se změnit stav");
     }
   }

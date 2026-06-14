@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-14 — ✅ Fáze 26 – Auto-refresh seznamů po akcích
+
+- **Prospect detail sheet:** po „Zapsat kontakt" a „Odeslat oslovení" se activity log v sheetu okamžitě refetchne (`refreshActivities()`) + `router.refresh()` obnoví podkladový seznam. Sheet zůstává otevřený — záznam se ukáže bez zavření/otevření.
+- **Úkoly:** optimistické toggle stavu (checkbox „hotovo") — okamžitá odezva přes `optimisticOverrides`, revert při chybě, `router.refresh()` po úspěchu.
+- **Audit existujícího stavu:** většina mutací už volá `router.refresh()` (přímo nebo přes parent `onUpdate`/`onSuccess`). Nastavení/uživatelé používají lokální `fetchUsers()` — konzistentní pro client-managed page. Nastavení/šablony řídí stav lokálně — refresh nepotřeba.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-14 — ✅ Fáze 25 – Archivace a mazání kontaktů v Oslovení
 
 - **Archivace:** `prospects` dostává `deletedAt`/`deletedBy`. Akce „Archivovat" v detailu kontaktu (admin/member).
