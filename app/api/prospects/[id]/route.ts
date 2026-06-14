@@ -295,9 +295,7 @@ export async function POST(
       if (!prospectData.email) {
         return NextResponse.json({ error: "Prospekt nemá e-mail" }, { status: 400 });
       }
-      if (!prospectData.demoUrl) {
-        return NextResponse.json({ error: "Prospekt nemá odkaz na demo vizitku" }, { status: 400 });
-      }
+      // demoUrl je volitelný — bez něj se použije default demo.solopixel.cz (viz níže)
 
       // Check 7-day cooldown
       const recentEmail = await db
