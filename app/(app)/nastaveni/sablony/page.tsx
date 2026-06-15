@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailTemplateEditor } from "@/components/settings/email-template-editor";
 import { renderOutreachEmail } from "@/lib/email-templates/outreach";
+import { renderFollowupEmail } from "@/lib/email-templates/followup";
 import { renderDeliveryEmail } from "@/lib/email-templates/delivery";
 
 export default function SablonyPage() {
@@ -13,6 +14,7 @@ export default function SablonyPage() {
       <Tabs defaultValue="outreach">
         <TabsList>
           <TabsTrigger value="outreach">Oslovení</TabsTrigger>
+          <TabsTrigger value="followup">Follow-up</TabsTrigger>
           <TabsTrigger value="delivery">Předání vizitky</TabsTrigger>
         </TabsList>
 
@@ -24,6 +26,17 @@ export default function SablonyPage() {
             placeholderHint={`Editovatelný je jen předmět — tělo e-mailu je v jednotném designu SoloPixel. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (demo URL).`}
             sampleVars={{ jmeno: "Jan Nováku", odkaz: "https://demo.solopixel.cz" }}
             label="Šablona oslovení"
+          />
+        </TabsContent>
+
+        <TabsContent value="followup" className="mt-4">
+          <EmailTemplateEditor
+            apiPath="/api/templates/followup-email"
+            renderEmail={renderFollowupEmail}
+            defaultSubject="{{jmeno}}, ještě jednou — vaše vizitka na 30 sekund"
+            placeholderHint={`Druhý e-mail pro prospekty, kteří první oslovení otevřeli, ale neklikli. Editovatelný je jen předmět. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (demo URL).`}
+            sampleVars={{ jmeno: "Jan Nováku", odkaz: "https://demo.solopixel.cz" }}
+            label="Šablona follow-up"
           />
         </TabsContent>
 

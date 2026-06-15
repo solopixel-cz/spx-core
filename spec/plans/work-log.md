@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-15 — Follow-up e-mail (druhé oslovení prospektů)
+
+- **Šablona** (`lib/email-templates/followup.ts`): `renderFollowupEmail({jmeno, odkaz})` v jednotném SoloPixel designu + `DEFAULT_FOLLOWUP_SUBJECT`. Kratší než oslovení, jiný úhel pro kontakty, které první e-mail otevřely, ale neklikly — nižší bariéra, „vizitka ≠ web", jedno CTA (otevřít na mobilu).
+- **API akce** (`app/api/prospects/[id]/route.ts`): nová akce `send_followup_email`. Gate: prospekt má e-mail + existuje předchozí oslovení v `outreachEmails` + min. 3denní odstup od posledního e-mailu. Ukládá do `outreachEmails` s `template: 'followup'` (sdílený webhook tracking), loguje aktivitu, posouvá `nextFollowUpAt` o +3 prac. dny.
+- **Šablona v CRM** (`app/api/templates/followup-email/route.ts` + záložka „Follow-up" v `nastaveni/sablony/page.tsx`): předmět editovatelný adminem, GET/PUT/POST (test e-mail) jako u oslovení.
+- **UI** (`components/prospects/prospect-detail-sheet.tsx`): tlačítko „Odeslat follow-up" + dialog s náhledem předmětu a e-mailu.
+- **Schema** (`lib/schemas/outreach-email.ts`): přidáno optional `template: 'outreach' | 'followup'`.
+- **Data-model** (`spec/context/data-model.md`): zdokumentováno pole `template`, akce a `templates/followup-email`.
+- `npm run lint` čistý (jen 2 předexistující TanStack warnings), `tsc --noEmit` čistý. `next build` nešel dokončit kvůli omezení mountu (EPERM unlink v `.next` při finalizaci) — kompilace ale proběhla (BUILD_ID + manifesty vygenerovány). Doporučeno ověřit `npm run build` lokálně.
+
 ## 2026-06-15 — Podklady: doplnění nových polí formuláře
 
 - **Zod schéma** (`lib/schemas/card-submission.ts`): přidáno 9 optional polí — `companyName`, `whatsapp`, `motto`, `instagram`, `linkedin`, `facebook`, `website`, `referenceUrl`, `wantsCareerTab`.
