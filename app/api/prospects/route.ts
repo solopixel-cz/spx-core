@@ -25,17 +25,21 @@ export async function GET(request: Request) {
     const limit = 50;
 
     const db = getAdminFirestore();
-    let query = db.collection("prospects").orderBy("lastTouchAt", "desc").orderBy("createdAt", "desc");
+    let query = db.collection("prospects")
+      .where("deletedAt", "==", null)
+      .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
     // Tab-based filtering
     if (tab === "free") {
       query = db.collection("prospects")
+        .where("deletedAt", "==", null)
         .where("ownerUid", "==", null)
         .orderBy("createdAt", "desc");
     } else if (tab === "mine" && ownerUid) {
       query = db.collection("prospects")
+        .where("deletedAt", "==", null)
         .where("ownerUid", "==", ownerUid)
-        .orderBy("lastTouchAt", "desc");
+        .orderBy("createdAt", "desc");
     }
 
     if (cursor) {
@@ -52,7 +56,7 @@ export async function GET(request: Request) {
     const hasMore = snapshot.docs.length > limit;
     const nextCursor = hasMore ? docs[docs.length - 1]?.id : null;
 
-    let prospects = docs.filter((d) => !d.data().deletedAt).map((doc) => {
+    let prospects = docs.map((doc) => {
       const d = doc.data();
       return {
         id: doc.id,

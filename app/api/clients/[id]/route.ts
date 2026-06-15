@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
@@ -101,6 +102,8 @@ export async function PATCH(
       });
     }
 
+    revalidatePath("/klienti");
+    revalidatePath(`/klienti/${id}`);
     return NextResponse.json({ status: "ok" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

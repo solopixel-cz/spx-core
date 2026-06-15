@@ -14,10 +14,12 @@ export default async function ProspektiPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
 
+  const pageLimit = 50;
   const [prospectsSnap, usersSnap, emailsSnap] = await Promise.all([
     db.collection("prospects")
+      .where("deletedAt", "==", null)
       .orderBy("createdAt", "desc")
-      .limit(50)
+      .limit(pageLimit + 1)
       .get(),
     db.collection("users").get(),
     db.collection("outreachEmails").get(),
@@ -37,7 +39,10 @@ export default async function ProspektiPage() {
     }
   });
 
-  const prospects = prospectsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
+  const initialHasMore = prospectsSnap.docs.length > pageLimit;
+  const prospectDocs = prospectsSnap.docs.slice(0, pageLimit);
+
+  const prospects = prospectDocs.map((doc) => {
     const d = doc.data();
     return {
       id: doc.id,
@@ -71,6 +76,7 @@ export default async function ProspektiPage() {
   return (
     <ProspektiPageClient
       initialProspects={prospects}
+      initialHasMore={initialHasMore}
       users={users}
       currentUid={user.uid}
       userRole={user.role}

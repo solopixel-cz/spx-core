@@ -26,3 +26,17 @@ export function formatDate(dateOrStr: Date | string | null | undefined): string 
   const date = typeof dateOrStr === "string" ? new Date(dateOrStr) : dateOrStr;
   return dateFormatter.format(date);
 }
+
+const dateTimeFormatter = new Intl.DateTimeFormat("cs-CZ", {
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatDateTime(dateOrStr: Date | string | null | undefined): string {
+  if (!dateOrStr) return "—";
+  const date = typeof dateOrStr === "string" ? new Date(dateOrStr) : dateOrStr;
+  return dateTimeFormatter.format(date);
+}
