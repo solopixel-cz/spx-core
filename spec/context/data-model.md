@@ -248,7 +248,7 @@ Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `us
 `{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
 
 ### `outreachEmails`
-Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.
+Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky. Pokrývá první oslovení i druhý (follow-up) e-mail; odlišeno polem `template`.
 
 ```ts
 {
@@ -258,12 +258,17 @@ Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.
   resendId: string           // ID z Resend API — klíč pro webhook párování
   subject: string
   status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  template?: 'outreach' | 'followup'  // typ e-mailu; chybí = 'outreach' (historická data)
   sentAt: Timestamp
   lastEventAt?: Timestamp
 }
 ```
 
-Webhook `POST /api/webhooks/resend` (ověřeno signing secretem) aktualizuje `status` a zapisuje `activity` na prospekta (otevřel / kliknul / nedoručitelné).
+Webhook `POST /api/webhooks/resend` (ověřeno signing secretem) aktualizuje `status` a zapisuje `activity` na prospekta (otevřel / kliknul / nedoručitelné) — společně pro oslovení i follow-up.
+
+Akce na `POST /api/prospects/[id]`:
+- `send_email` — první oslovení (`template: 'outreach'` implicitně), cooldown 7 dní.
+- `send_followup_email` — druhý e-mail (`template: 'followup'`). Vyžaduje existující odeslané oslovení a min. 3denní odstup od posledního e-mailu.
 
 ### `deliveryEmails`
 Odeslané e-maily s předáním hotové vizitky klientovi — stav doručení přes webhooky (stejný Resend webhook jako outreachEmails).
@@ -286,6 +291,9 @@ Webhook `POST /api/webhooks/resend` hledá `resendId` v `outreachEmails` i `deli
 
 ### `templates/outreach-email`
 Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
+
+### `templates/followup-email`
+Šablona druhého (follow-up) e-mailu — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablony → Follow-up.
 
 ### `templates/delivery-email`
 Šablona e-mailu předání vizitky — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablona předání.

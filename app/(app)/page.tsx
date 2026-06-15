@@ -8,6 +8,9 @@ export default async function DashboardPage() {
   const db = getAdminFirestore();
   const isSales = user.role === "sales";
 
+  const startNow = new Date();
+  const engagementSince = new Date(startNow.getTime() - 8 * 86400000);
+
   const [
     attentionItems,
     leadsSnap,
@@ -19,6 +22,7 @@ export default async function DashboardPage() {
     usersSnap,
     prospectsSnap,
     outreachSnap,
+    engagementSnap,
   ] = await Promise.all([
     getAttentionItems(user.uid, user.role),
     db.collection("leads").get(),
@@ -30,6 +34,8 @@ export default async function DashboardPage() {
     db.collection("users").get(),
     db.collection("prospects").get(),
     db.collection("outreachEmails").get(),
+    // Engagement events (otevření / kliknutí) za posledních 8 dní pro denní rozpad
+    db.collection("activity").where("createdAt", ">=", engagementSince).get(),
   ]);
 
   // Lead funnel
@@ -222,6 +228,61 @@ export default async function DashboardPage() {
     if (status === "clicked") outreachWeekStats.clicked++;
   });
 
+  // Engagement: denní rozpad otevření a kliknutí za posledních 7 dní (v české zóně)
+  const PRAGUE_TZ = "Europe/Prague";
+  const dayKeyFmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: PRAGUE_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const dayLabelFmt = new Intl.DateTimeFormat("cs-CZ", {
+    timeZone: PRAGUE_TZ,
+    weekday: "short",
+    day: "numeric",
+    month: "numeric",
+  });
+
+  // Posledních 7 dní (nejstarší → nejnovější), ukotveno na pražské poledne kvůli DST
+  const todayKey = dayKeyFmt.format(startNow);
+  const anchor = new Date(`${todayKey}T12:00:00Z`);
+  const engagementDaily = [] as {
+    day: string;
+    label: string;
+    opened: number;
+    clicked: number;
+  }[];
+  const dayIndex: Record<string, number> = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(anchor.getTime() - i * 86400000);
+    const key = dayKeyFmt.format(d);
+    dayIndex[key] = engagementDaily.length;
+    engagementDaily.push({ day: key, label: dayLabelFmt.format(d), opened: 0, clicked: 0 });
+  }
+
+  engagementSnap.docs.forEach((doc) => {
+    const d = doc.data();
+    if (d.kind !== "system") return;
+    const text = d.text as string;
+    const isOpen = text === "Otevřel e-mail";
+    const isClick = text === "Kliknul na demo ✨";
+    if (!isOpen && !isClick) return;
+    // Sales vidí jen vlastní oslovení (actorUid = senderUid e-mailu)
+    if (isSales && d.actorUid !== user.uid) return;
+    const created = d.createdAt?.toDate?.();
+    if (!created) return;
+    const key = dayKeyFmt.format(created);
+    const idx = dayIndex[key];
+    if (idx === undefined) return;
+    if (isOpen) engagementDaily[idx].opened++;
+    else engagementDaily[idx].clicked++;
+  });
+
+  const engagementToday = engagementDaily[engagementDaily.length - 1] ?? {
+    opened: 0,
+    clicked: 0,
+  };
+
   const myOpenTasks = tasksSnap.docs.filter(
     (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
   ).length;
@@ -241,6 +302,8 @@ export default async function DashboardPage() {
       prospectStats={prospectStats}
       prospectOwnerStats={prospectOwnerStats}
       outreachWeekStats={outreachWeekStats}
+      engagementDaily={engagementDaily}
+      engagementToday={{ opened: engagementToday.opened, clicked: engagementToday.clicked }}
       userRole={user.role}
     />
   );

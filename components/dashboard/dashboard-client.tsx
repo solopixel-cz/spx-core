@@ -31,6 +31,7 @@ import {
 import { formatCurrency } from "@/lib/format";
 import type { AttentionItem } from "@/lib/attention";
 import { MiniBarChart } from "./mini-bar-chart";
+import { EngagementCard, type EngagementDay } from "./engagement-card";
 
 const stageLabels: Record<string, string> = {
   new: "Nový", contacted: "Osloven", demo: "Demo",
@@ -142,6 +143,8 @@ export function DashboardClient({
   prospectStats,
   prospectOwnerStats,
   outreachWeekStats,
+  engagementDaily,
+  engagementToday,
   userRole = "member",
 }: {
   attentionItems: AttentionItem[];
@@ -157,6 +160,8 @@ export function DashboardClient({
   prospectStats: ProspectStats;
   prospectOwnerStats: ProspectOwnerStats[];
   outreachWeekStats: OutreachWeekStats;
+  engagementDaily: EngagementDay[];
+  engagementToday: { opened: number; clicked: number };
   userRole?: string;
 }) {
   const isSales = userRole === "sales";
@@ -343,6 +348,9 @@ export function DashboardClient({
               )}
             </CardContent>
           </Card>
+
+          {/* Engagement — dnes + 7denní rozpad otevření a kliknutí */}
+          <EngagementCard today={engagementToday} daily={engagementDaily} />
 
           {/* Outreach this week */}
           <Card>

@@ -20,8 +20,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Copy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildSubmissionPrompt } from "@/lib/submission-prompt";
 
 interface Submission {
   id: string;
@@ -29,6 +30,7 @@ interface Submission {
   email: string;
   phone?: string;
   companyId?: string;
+  companyName?: string;
   officeAddress?: string;
   specialization?: string;
   city?: string;
@@ -42,6 +44,14 @@ interface Submission {
   clientCount?: number;
   focusAreas: string[];
   clientTypes: string[];
+  whatsapp?: string;
+  motto?: string;
+  instagram?: string;
+  linkedin?: string;
+  facebook?: string;
+  website?: string;
+  referenceUrl?: string;
+  wantsCareerTab?: boolean;
   profileImageUrl?: string;
   clientId?: string;
   clientName?: string;
@@ -173,6 +183,26 @@ export function SubmissionsPageClient() {
                 />
               )}
 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    if (!navigator.clipboard) {
+                      toast.error("Kopírování není dostupné (nezabezpečený kontext)");
+                      return;
+                    }
+                    await navigator.clipboard.writeText(buildSubmissionPrompt(selected));
+                    toast.success("Podklady zkopírovány pro AI");
+                  } catch {
+                    toast.error("Nepodařilo se zkopírovat");
+                  }
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Kopírovat pro AI
+              </Button>
+
               {selected.clientName && (
                 <div>
                   <span className="text-sm text-muted-foreground">Klient: </span>
@@ -186,6 +216,8 @@ export function SubmissionsPageClient() {
               <Section title="Kontakt">
                 <Field label="E-mail" value={selected.email} />
                 <Field label="Telefon" value={selected.phone} />
+                <Field label="WhatsApp" value={selected.whatsapp} />
+                <Field label="Společnost" value={selected.companyName} />
                 <Field label="IČO" value={selected.companyId} />
                 <Field label="Adresa" value={selected.officeAddress} />
                 <Field label="Město" value={selected.city} />
@@ -199,14 +231,25 @@ export function SubmissionsPageClient() {
                 <Field label="ČNB zkoušky" value={selected.cnbExams.join(", ")} />
                 <Field label="Zaměření" value={selected.focusAreas.join(", ")} />
                 <Field label="Typy klientů" value={selected.clientTypes.join(", ")} />
+                <Field label="Zájem o Spolupráci" value={selected.wantsCareerTab ? "Ano" : undefined} />
               </Section>
 
               <Separator />
               <Section title="Profil">
+                <Field label="Motto" value={selected.motto} />
                 <Field label="Bio" value={selected.bio} />
                 <Field label="Důvody" value={selected.reasons.join("; ")} />
                 <Field label="Jazyk" value={selected.primaryLanguage} />
                 <Field label="Další jazyky" value={selected.availableLanguages.join(", ")} />
+              </Section>
+
+              <Separator />
+              <Section title="Sociální sítě a reference">
+                <Field label="Instagram" value={selected.instagram} />
+                <Field label="LinkedIn" value={selected.linkedin} />
+                <Field label="Facebook" value={selected.facebook} />
+                <Field label="Web" value={selected.website} />
+                <Field label="Reference" value={selected.referenceUrl} />
               </Section>
 
               <Separator />

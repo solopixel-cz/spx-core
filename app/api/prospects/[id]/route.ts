@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { leadFormSchema } from "@/lib/schemas/lead";
 import { renderSubject, sendOutreachEmail } from "@/lib/email";
 import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
+import { renderFollowupEmail, DEFAULT_FOLLOWUP_SUBJECT } from "@/lib/email-templates/followup";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -189,6 +190,9 @@ export async function POST(
       }
       if (contactData.followUpAt) {
         updateData.nextFollowUpAt = new Date(contactData.followUpAt);
+      }
+      if (contactData.channel === "phone") {
+        updateData.wasCalled = true;
       }
 
       await prospectRef.update(updateData);
@@ -384,6 +388,111 @@ export async function POST(
         entityId: id,
         kind: "email",
         text: `Odesláno oslovení na ${prospectData.email}`,
+        actorUid: user.uid,
+      });
+
+      return NextResponse.json({ status: "ok" });
+    }
+
+    if (action === "send_followup_email") {
+      const greeting = body.greeting as string | undefined;
+      const doc = await prospectRef.get();
+      if (!doc.exists) {
+        return NextResponse.json({ error: "Prospekt nenalezen" }, { status: 404 });
+      }
+      const prospectData = doc.data()!;
+
+      if (!prospectData.email) {
+        return NextResponse.json({ error: "Prospekt nemá e-mail" }, { status: 400 });
+      }
+
+      // Follow-up navazuje na první oslovení — musí existovat alespoň jeden odeslaný e-mail.
+      const previousEmails = await db
+        .collection("outreachEmails")
+        .where("prospectId", "==", id)
+        .orderBy("sentAt", "desc")
+        .limit(1)
+        .get();
+
+      if (previousEmails.empty) {
+        return NextResponse.json(
+          { error: "Nejdřív odešlete první oslovení — follow-up na něj navazuje." },
+          { status: 409 }
+        );
+      }
+
+      // Min. 3denní odstup od posledního e-mailu, ať follow-up nechodí příliš brzy.
+      const lastSentAt = previousEmails.docs[0].data().sentAt?.toDate?.();
+      if (lastSentAt) {
+        const daysSince = (Date.now() - lastSentAt.getTime()) / 86400000;
+        if (daysSince < 3) {
+          const daysLeft = Math.ceil(3 - daysSince);
+          return NextResponse.json(
+            { error: `Poslední e-mail odešel nedávno. Follow-up je vhodný za ${daysLeft} dní.` },
+            { status: 429 }
+          );
+        }
+      }
+
+      // Load subject template
+      const templateDoc = await db.collection("templates").doc("followup-email").get();
+      const subjectTemplate = (templateDoc.data()?.subject as string) || DEFAULT_FOLLOWUP_SUBJECT;
+
+      // Get sender info (with optional override)
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const userData = userDoc.data();
+      const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+      const senderEmail = (userData?.senderEmail as string) || user.email;
+
+      // Render and send
+      const jmeno = greeting || prospectData.name.split(" ")[0];
+      const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
+      const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
+      const { html, text } = renderFollowupEmail({ jmeno, odkaz });
+
+      const result = await sendOutreachEmail({
+        to: prospectData.email,
+        senderName,
+        senderEmail,
+        subject: renderedSubject,
+        html,
+        text,
+      });
+
+      // Save email record (stejná kolekce jako oslovení — webhook tracking sdílený, odlišeno polem template)
+      await db.collection("outreachEmails").add({
+        prospectId: id,
+        toEmail: prospectData.email,
+        senderUid: user.uid,
+        resendId: result?.id || "",
+        subject: renderedSubject,
+        status: "sent",
+        template: "followup",
+        sentAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdBy: user.uid,
+      });
+
+      // Update prospect — posunout follow-up o +3 pracovní dny
+      const followUp = new Date();
+      let daysAdded = 0;
+      while (daysAdded < 3) {
+        followUp.setDate(followUp.getDate() + 1);
+        const day = followUp.getDay();
+        if (day !== 0 && day !== 6) daysAdded++;
+      }
+      await prospectRef.update({
+        lastTouchAt: FieldValue.serverTimestamp(),
+        nextFollowUpAt: followUp,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      await logActivity({
+        entityType: "prospect",
+        entityId: id,
+        kind: "email",
+        text: `Odeslán follow-up na ${prospectData.email}`,
         actorUid: user.uid,
       });
 

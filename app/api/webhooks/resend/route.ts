@@ -105,13 +105,35 @@ export async function POST(request: Request) {
   const emailData = emailDoc.data();
   const currentStatus = emailData.status as string;
 
-  // Only upgrade status (higher index replaces lower, except bounced/complained always apply)
+  // Only upgrade status (higher index replaces lower).
   const currentOrder = statusOrder[currentStatus] ?? 0;
   const newOrder = statusOrder[newStatus] ?? 0;
 
-  if (newOrder > currentOrder || newStatus === "bounced" || newStatus === "complained") {
+  // Recipient already opened/clicked → the message demonstrably arrived.
+  const wasEngaged = currentOrder >= statusOrder.opened;
+
+  // A bounce that arrives AFTER engagement is almost always a false /
+  // asynchronous bounce (e.g. a corporate mail-security scanner that opens
+  // and clicks every link, then the server returns an async rejection).
+  // Don't let it overwrite a real engagement.
+  const isFalseBounce = newStatus === "bounced" && wasEngaged;
+
+  let statusChanged = false;
+  if (
+    newOrder > currentOrder ||
+    newStatus === "complained" ||
+    (newStatus === "bounced" && !wasEngaged)
+  ) {
     await emailDoc.ref.update({
       status: newStatus,
+      lastEventAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    statusChanged = true;
+  } else if (isFalseBounce) {
+    // Record the suspicious event without clobbering the engaged status.
+    await emailDoc.ref.update({
+      suspectedFalseBounce: true,
       lastEventAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -124,7 +146,9 @@ export async function POST(request: Request) {
     // Log activity on prospect
     const prospectId = emailData.prospectId as string;
 
-    if (newStatus === "opened") {
+    // Only log opened/clicked on the first transition, so scanner multi-clicks
+    // don't spam the activity feed with duplicate entries.
+    if (newStatus === "opened" && statusChanged) {
       await logActivity({
         entityType: "prospect",
         entityId: prospectId,
@@ -132,12 +156,21 @@ export async function POST(request: Request) {
         text: "Otevřel e-mail",
         actorUid: senderUid,
       });
-    } else if (newStatus === "clicked") {
+    } else if (newStatus === "clicked" && statusChanged) {
       await logActivity({
         entityType: "prospect",
         entityId: prospectId,
         kind: "system",
         text: "Kliknul na demo ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced" && isFalseBounce) {
+      // Engaged then bounced — flag for review, but don't mark unreachable.
+      await logActivity({
+        entityType: "prospect",
+        entityId: prospectId,
+        kind: "system",
+        text: "⚠️ Nahlášen bounce po otevření – pravděpodobně falešný (bezpečnostní skener pošty), e-mail nejspíš dorazil",
         actorUid: senderUid,
       });
     } else if (newStatus === "bounced") {
@@ -165,7 +198,7 @@ export async function POST(request: Request) {
     // deliveryEmails — log activity on client
     const clientId = emailData.clientId as string;
 
-    if (newStatus === "opened") {
+    if (newStatus === "opened" && statusChanged) {
       await logActivity({
         entityType: "client",
         entityId: clientId,
@@ -173,12 +206,20 @@ export async function POST(request: Request) {
         text: "Klient otevřel vizitku",
         actorUid: senderUid,
       });
-    } else if (newStatus === "clicked") {
+    } else if (newStatus === "clicked" && statusChanged) {
       await logActivity({
         entityType: "client",
         entityId: clientId,
         kind: "system",
         text: "Klient kliknul na vizitku ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced" && isFalseBounce) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "⚠️ Nahlášen bounce po otevření – pravděpodobně falešný (bezpečnostní skener pošty), e-mail nejspíš dorazil",
         actorUid: senderUid,
       });
     } else if (newStatus === "bounced") {

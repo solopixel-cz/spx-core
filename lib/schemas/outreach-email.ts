@@ -13,6 +13,8 @@ export const outreachEmailSchema = z.object({
   resendId: z.string().min(1),
   subject: z.string().min(1),
   status: z.enum(emailStatusValues),
+  // Který e-mail v sekvenci: 'outreach' (první oslovení, default) nebo 'followup' (druhý e-mail).
+  template: z.enum(["outreach", "followup"]).optional(),
   sentAt: z.any(),
   lastEventAt: z.any().optional(),
 });
