@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-15 — Dashboard: otevření a kliknutí (denní rozpad)
+
+- **Server** (`app/(app)/page.tsx`): nový dotaz na `activity` (createdAt ≥ dnes−8 dní). Události „Otevřel e-mail" a „Kliknul na demo ✨" rozbucketovány po dnech v zóně Europe/Prague (Intl `en-CA` pro day-key, ukotveno na pražské poledne kvůli DST). Sales vidí jen vlastní (actorUid = senderUid). Předáno `engagementDaily` (7 dní, nejstarší→nejnovější) + `engagementToday`.
+- **UI** (`components/dashboard/engagement-card.tsx`): nová karta — velká čísla „dnes otevřelo / kliklo" + rozpad posledních 7 dní s mini bary (otevřelo modře, kliklo jantarově) a legendou. Zapojeno do pravého sloupce `dashboard-client.tsx` nad „Oslovení tento týden".
+- Zdroj je activity log (přesné časy, logováno 1× na e-mail při první události) — narozdíl od `outreachEmails.status`, který drží jen nejzazší stav.
+- Pozn.: React Compiler hlídá impure `new Date()` v argumentu `Promise.all` → cutoff hoistnut do constu `engagementSince` před voláním.
+- `npm run lint` čistý (jen 2 předexistující TanStack warnings), `tsc --noEmit` čistý.
+
 ## 2026-06-15 — Follow-up e-mail (druhé oslovení prospektů)
 
 - **Šablona** (`lib/email-templates/followup.ts`): `renderFollowupEmail({jmeno, odkaz})` v jednotném SoloPixel designu + `DEFAULT_FOLLOWUP_SUBJECT`. Kratší než oslovení, jiný úhel pro kontakty, které první e-mail otevřely, ale neklikly — nižší bariéra, „vizitka ≠ web", jedno CTA (otevřít na mobilu).
