@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-15 — Podklady: doplnění nových polí formuláře
+
+- **Zod schéma** (`lib/schemas/card-submission.ts`): přidáno 9 optional polí — `companyName`, `whatsapp`, `motto`, `instagram`, `linkedin`, `facebook`, `website`, `referenceUrl`, `wantsCareerTab`.
+- **API route** (`app/api/submissions/route.ts`): explicitní mapování všech nových polí v `submissionsSnap.docs.map`.
+- **Detail podkladu** (`submissions-page-client.tsx`): rozšířen `Submission` interface, Společnost + WhatsApp do Kontakt, Motto do Profil, Zájem o Spolupráci do Profese, nová sekce „Sociální sítě a reference" (Instagram, LinkedIn, Facebook, Web, Reference).
+- **AI prompt** (`lib/submission-prompt.ts`): rozšířen `SubmissionData` interface + `buildSubmissionPrompt` — Společnost + WhatsApp v Kontakt, Motto v Profil, nová sekce Sociální sítě a reference se zájmem o Spolupráci.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-15 — ✅ Fáze 29 – Kopírovat podklad pro AI
+
+- **Helper `buildSubmissionPrompt`** (`lib/submission-prompt.ts`): sestaví Markdown prompt s úvodní instrukcí + datovými sekcemi (Kontakt, Profese, Profil, Vizitka). Vynechává IČO (`companyId`) a prázdná pole. Pole (arrays) spojená čárkou, `reasons` středníkem, `bio` víceřádkové.
+- **Tlačítko „Kopírovat pro AI"** v detail Sheetu (`submissions-page-client.tsx`): umístěno pod hlavičku (jméno + badge), nad první Separator. `navigator.clipboard.writeText` + toast success/error. Ošetřen nezabezpečený kontext.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-15 — ✅ Fáze 28 – Nastavení: přestavba šablon (UI)
 
 - **E-mailové šablony (`/nastaveni/sablony`):** odstraněn onboarding i provize. Šablony oslovení a předání vizitky přepínané záložkami (shadcn `Tabs`). Náhled e-mailu se otevírá v modalu (`Dialog max-w-3xl`) místo stálého 600px iframe — stránka je krátká.
