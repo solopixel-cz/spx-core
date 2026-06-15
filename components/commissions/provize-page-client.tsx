@@ -32,7 +32,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { Copy, CreditCard } from "lucide-react";
+import { Copy, CreditCard, Save } from "lucide-react";
 
 interface CommissionRow {
   id: string;
@@ -72,9 +72,13 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 export function ProvizePageClient({
   commissions,
   salesUsers,
+  isAdmin,
+  defaultRate: initialDefaultRate,
 }: {
   commissions: CommissionRow[];
   salesUsers: SalesUser[];
+  isAdmin?: boolean;
+  defaultRate?: number;
 }) {
   const router = useRouter();
   const [salesFilter, setSalesFilter] = useState("all");
@@ -83,6 +87,12 @@ export function ProvizePageClient({
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [payoutNote, setPayoutNote] = useState("");
   const [paying, setPaying] = useState(false);
+
+  // Commission default rate (admin only)
+  const [commRate, setCommRate] = useState(
+    initialDefaultRate !== undefined ? Math.round(initialDefaultRate * 100) : 20
+  );
+  const [commSaving, setCommSaving] = useState(false);
 
   // Filter
   let filtered = commissions;
@@ -172,6 +182,55 @@ export function ProvizePageClient({
   return (
     <div className="space-y-6">
       <PageHeader title="Provize" />
+
+      {/* Default commission rate — admin only */}
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Nastavení provizí — výchozí sazba</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Výchozí sazba provize pro obchodníky. Individuální sazbu lze nastavit u každého uživatele v sekci Uživatelé.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 w-28">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={commRate}
+                  onChange={(e) => setCommRate(parseInt(e.target.value) || 0)}
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  setCommSaving(true);
+                  try {
+                    const res = await fetch("/api/settings/commission", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ defaultRate: commRate / 100 }),
+                    });
+                    if (!res.ok) throw new Error();
+                    toast.success("Sazba uložena");
+                  } catch {
+                    toast.error("Nepodařilo se uložit sazbu");
+                  } finally {
+                    setCommSaving(false);
+                  }
+                }}
+                disabled={commSaving}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {commSaving ? "Ukládám..." : "Uložit"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       {summaryMap.size > 0 && (

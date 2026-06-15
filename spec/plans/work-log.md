@@ -2,6 +2,29 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-15 — ✅ Fáze 28 – Nastavení: přestavba šablon (UI)
+
+- **E-mailové šablony (`/nastaveni/sablony`):** odstraněn onboarding i provize. Šablony oslovení a předání vizitky přepínané záložkami (shadcn `Tabs`). Náhled e-mailu se otevírá v modalu (`Dialog max-w-3xl`) místo stálého 600px iframe — stránka je krátká.
+- **Sdílená komponenta `EmailTemplateEditor`** (`components/settings/email-template-editor.tsx`): props `apiPath`, `renderEmail`, `defaultSubject`, `placeholderHint`, `sampleVars`, `label`. Obě záložky ji instancují — žádná duplicita.
+- **Onboarding šablona → `/nastaveni/onboarding`:** přesunuta celá sekce (editor kroků, add/remove/update, načítání+ukládání přes `/api/templates/onboarding`) na vlastní admin podstránku.
+- **Výchozí sazba provize → `/provize`:** přesunuta do admin-only karty nahoře na stránce provizí. Server component předává `isAdmin` + `defaultRate` klient komponentě; member/sales kartu nevidí.
+- **Rozcestník (`/nastaveni`):** dlaždice „Šablony" přejmenována na „E-mailové šablony" s novým popisem. Nová dlaždice „Onboarding" → `/nastaveni/onboarding` (admin). Popis provizí rozšířen o zmínku výchozí sazby.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-15 — ✅ Fáze 27 – Předání hotové vizitky klientovi z CRM
+
+- **Datový model:** nová kolekce `deliveryEmails` (zrcadlo `outreachEmails` pro předání vizitky). Sdílený enum `lib/schemas/email-status.ts` — `outreach-email.ts` re-exportuje pro zpětnou kompatibilitu.
+- **Sender:** `sendOutreachEmail` zobecněn na `sendTransactionalEmail` v `lib/email.ts`; starý název zachován jako alias.
+- **API endpoint:** `POST /api/clients/[id]` s `action: "send_card"` — vyřeší instanci (jedinou auto, víc → vyžaduje výběr), renderuje delivery šablonu, odešle přes Resend, zapíše `deliveryEmails`, loguje aktivitu. Volitelný checkbox přepne instanci na `live`.
+- **Webhook:** `app/api/webhooks/resend/route.ts` hledá `resendId` v `outreachEmails` i `deliveryEmails` přes `findEmailByResendId()`. Delivery eventy logují aktivitu na klienta (otevřel / kliknul / nedoručitelné).
+- **Template API:** `app/api/templates/delivery-email/route.ts` — GET/PUT subject, POST test e-mail (zrcadlo outreach).
+- **UI – DeliveryDialog:** komponenta s oslovením (5. pád), výběrem instance (pokud víc), checkboxem „live", náhledem e-mailu, potvrzením při opětovném odeslání.
+- **UI – Client detail:** tlačítko „Předat vizitku" v hlavičce; aktivní jen s e-mailem + instancí.
+- **UI – Nastavení → Šablony:** nová sekce „Šablona předání vizitky" — předmět, náhled, testovací e-mail.
+- **Firestore:** rules pro `deliveryEmails` (read auth, write false), composite index `clientId + sentAt desc`.
+- **Data model:** `spec/context/data-model.md` aktualizován o `deliveryEmails` a `templates/delivery-email`.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-14 — ✅ Fáze 26 – Auto-refresh seznamů po akcích
 
 - **Prospect detail sheet:** po „Zapsat kontakt" a „Odeslat oslovení" se activity log v sheetu okamžitě refetchne (`refreshActivities()`) + `router.refresh()` obnoví podkladový seznam. Sheet zůstává otevřený — záznam se ukáže bez zavření/otevření.
