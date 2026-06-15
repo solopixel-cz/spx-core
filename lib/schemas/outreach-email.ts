@@ -1,24 +1,9 @@
 import { z } from "zod";
 import { baseFields } from "./timestamp";
+import { emailStatusValues, statusOrder } from "./email-status";
 
-export const outreachEmailStatusValues = [
-  "sent",
-  "delivered",
-  "opened",
-  "clicked",
-  "bounced",
-  "complained",
-] as const;
-
-// Status progression order (higher index = higher status, only upgrade)
-export const statusOrder: Record<string, number> = {
-  sent: 0,
-  delivered: 1,
-  opened: 2,
-  clicked: 3,
-  bounced: 4,
-  complained: 5,
-};
+// Re-export for backwards compatibility
+export { emailStatusValues as outreachEmailStatusValues, statusOrder };
 
 export const outreachEmailSchema = z.object({
   ...baseFields,
@@ -27,7 +12,7 @@ export const outreachEmailSchema = z.object({
   senderUid: z.string().min(1),
   resendId: z.string().min(1),
   subject: z.string().min(1),
-  status: z.enum(outreachEmailStatusValues),
+  status: z.enum(emailStatusValues),
   sentAt: z.any(),
   lastEventAt: z.any().optional(),
 });
