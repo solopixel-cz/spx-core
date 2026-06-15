@@ -5,13 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Save, Send, Eye } from "lucide-react";
+import { Save, Send } from "lucide-react";
 
 interface EmailTemplateEditorProps {
   apiPath: string;
@@ -34,7 +28,6 @@ export function EmailTemplateEditor({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetch(apiPath)
@@ -104,10 +97,6 @@ export function EmailTemplateEditor({
       </div>
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-          <Eye className="mr-2 h-4 w-4" />
-          Náhled
-        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -123,26 +112,21 @@ export function EmailTemplateEditor({
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Tělo e-mailu je ve fixním brandingu SoloPixel — editovatelný je jen předmět.
-      </p>
-
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Náhled — {label}</DialogTitle>
-          </DialogHeader>
-          <div className="rounded-lg border overflow-hidden bg-[#F1F5F9]">
-            <iframe
-              srcDoc={renderEmail(sampleVars).html}
-              sandbox=""
-              className="w-full border-0"
-              style={{ height: "600px" }}
-              title={`Náhled — ${label}`}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="space-y-2">
+        <Label>Náhled e-mailu</Label>
+        <div className="rounded-lg border overflow-hidden bg-[#F1F5F9]">
+          <iframe
+            srcDoc={renderEmail(sampleVars).html}
+            sandbox=""
+            className="w-full border-0"
+            style={{ height: "600px" }}
+            title={`Náhled — ${label}`}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Tělo e-mailu je ve fixním brandingu SoloPixel — editovatelný je jen předmět.
+        </p>
+      </div>
     </div>
   );
 }
