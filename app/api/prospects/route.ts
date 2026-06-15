@@ -26,18 +26,15 @@ export async function GET(request: Request) {
 
     const db = getAdminFirestore();
     let query = db.collection("prospects")
-      .where("deletedAt", "==", null)
       .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
     // Tab-based filtering
     if (tab === "free") {
       query = db.collection("prospects")
-        .where("deletedAt", "==", null)
         .where("ownerUid", "==", null)
         .orderBy("createdAt", "desc");
     } else if (tab === "mine" && ownerUid) {
       query = db.collection("prospects")
-        .where("deletedAt", "==", null)
         .where("ownerUid", "==", ownerUid)
         .orderBy("createdAt", "desc");
     }
@@ -49,11 +46,12 @@ export async function GET(request: Request) {
       }
     }
 
-    query = query.limit(limit + 1);
+    query = query.limit(limit * 2);
 
     const snapshot = await query.get();
-    const docs = snapshot.docs.slice(0, limit);
-    const hasMore = snapshot.docs.length > limit;
+    const nonDeletedDocs = snapshot.docs.filter((d) => !d.data().deletedAt);
+    const docs = nonDeletedDocs.slice(0, limit);
+    const hasMore = nonDeletedDocs.length > limit;
     const nextCursor = hasMore ? docs[docs.length - 1]?.id : null;
 
     let prospects = docs.map((doc) => {
@@ -75,6 +73,7 @@ export async function GET(request: Request) {
         claimedAt: serializeTimestamp(d.claimedAt),
         lastTouchAt: serializeTimestamp(d.lastTouchAt),
         nextFollowUpAt: serializeTimestamp(d.nextFollowUpAt),
+        wasCalled: !!d.wasCalled,
         createdAt: serializeTimestamp(d.createdAt),
         updatedAt: serializeTimestamp(d.updatedAt),
       };

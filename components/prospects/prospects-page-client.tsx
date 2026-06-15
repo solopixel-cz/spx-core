@@ -25,7 +25,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { Plus, Upload, Hand, Monitor } from "lucide-react";
+import { Plus, Upload, Hand, Monitor, Phone } from "lucide-react";
 import { ProspectDetailSheet } from "./prospect-detail-sheet";
 import { ProspectFormDialog } from "./prospect-form-dialog";
 import { CsvImportDialog } from "./csv-import-dialog";
@@ -48,6 +48,7 @@ export interface ProspectRow {
   lastTouchAt: string | null;
   nextFollowUpAt: string | null;
   lastEmailStatus: string | null;
+  wasCalled: boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -272,6 +273,7 @@ export function ProspektiPageClient({
               <TableHead>Stav</TableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
+              <TableHead className="w-10"></TableHead>
               <TableHead>Vlastník</TableHead>
               <TableHead>Poslední kontakt</TableHead>
               <TableHead>Follow-up</TableHead>
@@ -281,7 +283,7 @@ export function ProspektiPageClient({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Žádné kontakty k oslovení
                 </TableCell>
               </TableRow>
@@ -327,6 +329,13 @@ export function ProspektiPageClient({
                           value={prospect.lastEmailStatus}
                           className={prospect.lastEmailStatus === "clicked" ? "ring-1 ring-emerald-400" : ""}
                         />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {prospect.wasCalled && (
+                        <span title="Voláno">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>{owner?.displayName ?? "—"}</TableCell>

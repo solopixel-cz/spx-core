@@ -63,7 +63,7 @@ export function renderFollowupEmail(vars: {
                             <h1 class="h1" style="margin:0 0 16px 0; font-size:26px; line-height:32px; font-weight:800; color:#0F172A; letter-spacing:-0.3px;"> Než to zapadne — 30 sekund. </h1>
                             <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> Dobrý den, ${jmeno}, </p>
                             <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> posílal jsem vám nedávno ukázku digitální vizitky pro finanční poradce. Vím, že den je nabitý a snadno to zapadne — tak jen krátce a k věci. </p>
-                            <p style="margin:0 0 28px 0; font-size:16px; line-height:26px; color:#334155;"> Nejde o náhradu vašeho webu. Je to odkaz, který <strong style="color:#0F172A;">pošlete klientovi po schůzce</strong> — on si vás jedním ťuknutím uloží do telefonu a vám se ozve, když řeší hypotéku nebo penzi. To, co papírová vizitka neumí. </p>
+                            <p style="margin:0 0 28px 0; font-size:16px; line-height:26px; color:#334155;"> Je to odkaz, který <strong style="color:#0F172A;">pošlete klientovi po schůzce</strong> — on si vás jedním ťuknutím uloží do telefonu a sám se ozve, když řeší hypotéku nebo penzi. Přesně to, co papírová vizitka neumí. </p>
                         </td>
                     </tr>
                     <tr>
@@ -120,7 +120,7 @@ export function renderFollowupEmail(vars: {
 
 posílal jsem vám nedávno ukázku digitální vizitky pro finanční poradce. Vím, že den je nabitý a snadno to zapadne — tak jen krátce a k věci.
 
-Nejde o náhradu vašeho webu. Je to odkaz, který pošlete klientovi po schůzce — on si vás jedním ťuknutím uloží do telefonu a vám se ozve, když řeší hypotéku nebo penzi. To, co papírová vizitka neumí.
+Je to odkaz, který pošlete klientovi po schůzce — on si vás jedním ťuknutím uloží do telefonu a sám se ozve, když řeší hypotéku nebo penzi. Přesně to, co papírová vizitka neumí.
 
 Otevřít demo na mobilu: ${vars.odkaz}
 

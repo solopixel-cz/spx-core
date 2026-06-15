@@ -191,6 +191,9 @@ export async function POST(
       if (contactData.followUpAt) {
         updateData.nextFollowUpAt = new Date(contactData.followUpAt);
       }
+      if (contactData.channel === "phone") {
+        updateData.wasCalled = true;
+      }
 
       await prospectRef.update(updateData);
 

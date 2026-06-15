@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import {
@@ -110,6 +111,8 @@ export async function POST(request: Request) {
         cascaded = await cascadeArchiveClient(id, user.uid);
       }
 
+      revalidatePath("/prospekti");
+      revalidatePath("/klienti");
       return NextResponse.json({ status: "ok", cascaded });
     }
 
@@ -126,6 +129,8 @@ export async function POST(request: Request) {
       } else {
         await restoreDocument(collection, id, user.uid, entityType);
       }
+      revalidatePath("/prospekti");
+      revalidatePath("/klienti");
       return NextResponse.json({ status: "ok" });
     }
 

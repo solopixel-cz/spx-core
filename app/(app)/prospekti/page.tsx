@@ -15,14 +15,17 @@ export default async function ProspektiPage() {
   const db = getAdminFirestore();
 
   const pageLimit = 50;
-  const [prospectsSnap, usersSnap, emailsSnap] = await Promise.all([
+  const [prospectsSnap, usersSnap, emailsSnap, callsSnap] = await Promise.all([
     db.collection("prospects")
-      .where("deletedAt", "==", null)
       .orderBy("createdAt", "desc")
-      .limit(pageLimit + 1)
+      .limit(pageLimit * 2)
       .get(),
     db.collection("users").get(),
     db.collection("outreachEmails").get(),
+    db.collection("activity")
+      .where("entityType", "==", "prospect")
+      .where("kind", "==", "call")
+      .get(),
   ]);
 
   // Build map: prospectId -> latest email status
@@ -39,8 +42,15 @@ export default async function ProspektiPage() {
     }
   });
 
-  const initialHasMore = prospectsSnap.docs.length > pageLimit;
-  const prospectDocs = prospectsSnap.docs.slice(0, pageLimit);
+  // Build set: prospect IDs that have been called
+  const calledProspectIds = new Set<string>();
+  callsSnap.docs.forEach((doc) => {
+    calledProspectIds.add(doc.data().entityId as string);
+  });
+
+  const nonDeletedDocs = prospectsSnap.docs.filter((d) => !d.data().deletedAt);
+  const prospectDocs = nonDeletedDocs.slice(0, pageLimit);
+  const initialHasMore = nonDeletedDocs.length > pageLimit;
 
   const prospects = prospectDocs.map((doc) => {
     const d = doc.data();
@@ -62,6 +72,7 @@ export default async function ProspektiPage() {
       lastTouchAt: serializeTimestamp(d.lastTouchAt),
       nextFollowUpAt: serializeTimestamp(d.nextFollowUpAt),
       lastEmailStatus: emailStatusMap.get(doc.id) ?? null,
+      wasCalled: !!d.wasCalled || calledProspectIds.has(doc.id),
       createdAt: serializeTimestamp(d.createdAt),
       updatedAt: serializeTimestamp(d.updatedAt),
     };

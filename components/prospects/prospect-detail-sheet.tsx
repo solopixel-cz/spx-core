@@ -523,7 +523,7 @@ export function ProspectDetailSheet({
               )}
 
               {/* Archive action (admin/member only) */}
-              {isAdminOrMember && !isTerminal && (
+              {isAdminOrMember && (
                 <Button
                   variant="ghost"
                   size="sm"
