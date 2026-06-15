@@ -139,6 +139,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "earnedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "deliveryEmails",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientId", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

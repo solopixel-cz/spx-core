@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, Archive, RotateCcw } from "lucide-react";
+import { Pencil, Archive, RotateCcw, Send } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { CardFormButton } from "./card-form-button";
+import { DeliveryDialog } from "./delivery-dialog";
 
 interface ClientData {
   id: string;
@@ -105,6 +106,7 @@ export function ClientDetailClient({
   tickets = [],
   salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
+  lastDelivery = null,
 }: {
   client: ClientData;
   instances: InstanceData[];
@@ -115,6 +117,7 @@ export function ClientDetailClient({
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
+  lastDelivery?: { id: string; sentAt: string | null; status: string } | null;
 }) {
   const isSales = userRole === "sales";
   const isAdminOrMember = !isSales;
@@ -223,6 +226,25 @@ export function ClientDetailClient({
           clientName={client.name}
           clientEmail={client.email}
         />
+        {client.email && instances.length > 0 && !isArchived && (
+          <DeliveryDialog
+            clientId={client.id}
+            clientName={client.name}
+            clientEmail={client.email}
+            instances={instances.map((i) => ({
+              id: i.id,
+              domain: i.domain,
+              status: i.status,
+            }))}
+            lastDelivery={lastDelivery}
+            trigger={
+              <Button variant="outline" size="sm">
+                <Send className="mr-2 h-4 w-4" />
+                Předat vizitku
+              </Button>
+            }
+          />
+        )}
         {isAdminOrMember && !isArchived && (
           <Button variant="ghost" size="sm" onClick={handleArchive} className="text-muted-foreground">
             <Archive className="mr-2 h-4 w-4" />

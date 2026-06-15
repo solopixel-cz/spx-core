@@ -11,14 +11,15 @@ function serializeTimestamp(val: unknown): string | null {
 }
 
 export default async function ProvizePage() {
-  await requireRole("admin", "member");
+  const user = await requireRole("admin", "member");
   const db = getAdminFirestore();
 
-  const [commissionsSnap, usersSnap, clientsSnap, invoicesSnap] = await Promise.all([
+  const [commissionsSnap, usersSnap, clientsSnap, invoicesSnap, settingsSnap] = await Promise.all([
     db.collection("commissions").get(),
     db.collection("users").get(),
     db.collection("clients").get(),
     db.collection("invoices").get(),
+    user.role === "admin" ? db.collection("settings").doc("commission").get() : Promise.resolve(null),
   ]);
 
   const userMap: Record<string, { displayName: string; role: string; commissionRate?: number }> = {};
@@ -69,10 +70,16 @@ export default async function ProvizePage() {
       commissionRate: u.commissionRate,
     }));
 
+  const defaultRate = settingsSnap && settingsSnap.exists
+    ? (settingsSnap.data()?.defaultRate as number | undefined) ?? 0.2
+    : undefined;
+
   return (
     <ProvizePageClient
       commissions={commissions}
       salesUsers={salesUsers}
+      isAdmin={user.role === "admin"}
+      defaultRate={defaultRate}
     />
   );
 }

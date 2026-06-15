@@ -106,6 +106,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Delivery emails — read for authenticated, write via admin SDK
+    match /deliveryEmails/{emailId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Counters — admin only
     match /counters/{counterId} {
       allow read, write: if isAdmin();

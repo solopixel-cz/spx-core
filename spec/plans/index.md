@@ -29,5 +29,7 @@
 | Fáze 24 — Odesílatel oslovení | ✅ Hotovo | [`../prompts/24-odesilatel-osloveni.md`](../prompts/24-odesilatel-osloveni.md) |
 | Fáze 25 — Mazání Oslovení | ✅ Hotovo | [`../prompts/25-mazani-osloveni.md`](../prompts/25-mazani-osloveni.md) |
 | Fáze 26 — Auto-refresh seznamů | ✅ Hotovo | [`../prompts/26-auto-refresh.md`](../prompts/26-auto-refresh.md) |
+| Fáze 27 — Předání hotové vizitky klientovi | ✅ Hotovo | [`../prompts/27-predani-vizitky.md`](../prompts/27-predani-vizitky.md) |
+| Fáze 28 — Nastavení: přestavba šablon (UI) | ✅ Hotovo | [`../prompts/28-nastaveni-sablony-ui.md`](../prompts/28-nastaveni-sablony-ui.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).
