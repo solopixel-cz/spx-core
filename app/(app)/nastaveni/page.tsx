@@ -7,6 +7,7 @@ import {
   Archive,
   Percent,
   User,
+  ClipboardList,
 } from "lucide-react";
 
 interface Tile {
@@ -26,10 +27,17 @@ const tiles: Tile[] = [
     roles: ["admin"],
   },
   {
-    label: "Šablony",
-    description: "Onboarding checklist, šablona oslovení, výchozí sazba provize",
+    label: "E-mailové šablony",
+    description: "E-maily pro oslovení a předání vizitky",
     href: "/nastaveni/sablony",
     icon: FileText,
+    roles: ["admin"],
+  },
+  {
+    label: "Onboarding",
+    description: "Checklist úkolů, který se vytvoří při výhře leadu",
+    href: "/nastaveni/onboarding",
+    icon: ClipboardList,
     roles: ["admin"],
   },
   {
@@ -40,7 +48,7 @@ const tiles: Tile[] = [
   },
   {
     label: "Provize",
-    description: "Přehled a vyplácení provizí obchodníkům",
+    description: "Přehled, vyplácení provizí a výchozí sazba",
     href: "/provize",
     icon: Percent,
   },

@@ -28,7 +28,7 @@ export function renderSubject(
     .replace(/\{\{odkaz\}\}/g, variables.odkaz);
 }
 
-export interface SendOutreachEmailParams {
+export interface SendTransactionalEmailParams {
   to: string;
   senderName: string;
   senderEmail: string;
@@ -37,7 +37,7 @@ export interface SendOutreachEmailParams {
   text?: string;
 }
 
-export async function sendOutreachEmail(params: SendOutreachEmailParams) {
+export async function sendTransactionalEmail(params: SendTransactionalEmailParams) {
   const resend = getResend();
 
   const result = await resend.emails.send({
@@ -55,3 +55,7 @@ export async function sendOutreachEmail(params: SendOutreachEmailParams) {
 
   return result.data;
 }
+
+/** @deprecated Use sendTransactionalEmail */
+export const sendOutreachEmail = sendTransactionalEmail;
+export type SendOutreachEmailParams = SendTransactionalEmailParams;

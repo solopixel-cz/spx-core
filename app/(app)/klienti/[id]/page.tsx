@@ -38,7 +38,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, activity, subscription, invoices in parallel
-  const [instancesSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap] =
+  const [instancesSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -61,6 +61,12 @@ export default async function ClientDetailPage({
       db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("users").get(),
+      db
+        .collection("deliveryEmails")
+        .where("clientId", "==", id)
+        .orderBy("sentAt", "desc")
+        .limit(1)
+        .get(),
     ]);
 
   const instances = instancesSnap.docs.filter((d) => !d.data().deletedAt).map((d) => ({
@@ -147,6 +153,15 @@ export default async function ClientDetailPage({
     .filter((d) => d.data().active)
     .map((d) => ({ id: d.id, displayName: d.data().displayName as string }));
 
+  const lastDeliveryDoc = deliverySnap.docs[0];
+  const lastDelivery = lastDeliveryDoc
+    ? {
+        id: lastDeliveryDoc.id,
+        sentAt: lastDeliveryDoc.data().sentAt?.toDate?.()?.toISOString() ?? null,
+        status: lastDeliveryDoc.data().status as string,
+      }
+    : null;
+
   return (
     <ClientDetailClient
       client={client}
@@ -158,6 +173,7 @@ export default async function ClientDetailPage({
       tickets={clientTickets}
       salesUsers={salesUsers}
       userRole={user.role}
+      lastDelivery={lastDelivery}
     />
   );
 }

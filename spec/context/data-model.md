@@ -265,8 +265,30 @@ Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky.
 
 Webhook `POST /api/webhooks/resend` (ověřeno signing secretem) aktualizuje `status` a zapisuje `activity` na prospekta (otevřel / kliknul / nedoručitelné).
 
+### `deliveryEmails`
+Odeslané e-maily s předáním hotové vizitky klientovi — stav doručení přes webhooky (stejný Resend webhook jako outreachEmails).
+
+```ts
+{
+  clientId: string
+  instanceId: string           // kterou vizitku jsme předali
+  toEmail: string
+  senderUid: string
+  resendId: string             // ID z Resend API — klíč pro webhook párování
+  subject: string
+  status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  sentAt: Timestamp
+  lastEventAt?: Timestamp
+}
+```
+
+Webhook `POST /api/webhooks/resend` hledá `resendId` v `outreachEmails` i `deliveryEmails`. U delivery loguje aktivitu na klienta (otevřel vizitku / kliknul / nedoručitelné).
+
 ### `templates/outreach-email`
 Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
+
+### `templates/delivery-email`
+Šablona e-mailu předání vizitky — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablona předání.
 
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.

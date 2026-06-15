@@ -3,7 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { Webhook } from "svix";
 import { logActivity } from "@/lib/activity";
-import { statusOrder } from "@/lib/schemas/outreach-email";
+import { statusOrder } from "@/lib/schemas/email-status";
 
 const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
 
@@ -13,6 +13,38 @@ interface ResendWebhookPayload {
     email_id: string;
     to?: string[];
   };
+}
+
+/**
+ * Find an email record by resendId across outreachEmails and deliveryEmails.
+ * Returns the doc snapshot + which collection it came from.
+ */
+async function findEmailByResendId(resendId: string) {
+  const db = getAdminFirestore();
+
+  // Try outreachEmails first
+  const outreachSnap = await db
+    .collection("outreachEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!outreachSnap.empty) {
+    return { doc: outreachSnap.docs[0], collection: "outreachEmails" as const };
+  }
+
+  // Try deliveryEmails
+  const deliverySnap = await db
+    .collection("deliveryEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!deliverySnap.empty) {
+    return { doc: deliverySnap.docs[0], collection: "deliveryEmails" as const };
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -61,25 +93,15 @@ export async function POST(request: Request) {
 
   const newStatus = eventToStatus[eventType];
   if (!newStatus) {
-    // Unknown event type, ignore
     return NextResponse.json({ status: "ok" });
   }
 
-  const db = getAdminFirestore();
-
-  // Find the outreach email by resendId
-  const emailSnap = await db
-    .collection("outreachEmails")
-    .where("resendId", "==", resendId)
-    .limit(1)
-    .get();
-
-  if (emailSnap.empty) {
-    // Not our email, ignore
+  const found = await findEmailByResendId(resendId);
+  if (!found) {
     return NextResponse.json({ status: "ok" });
   }
 
-  const emailDoc = emailSnap.docs[0];
+  const { doc: emailDoc, collection } = found;
   const emailData = emailDoc.data();
   const currentStatus = emailData.status as string;
 
@@ -95,45 +117,78 @@ export async function POST(request: Request) {
     });
   }
 
-  // Log activity on prospect for specific events
-  const prospectId = emailData.prospectId as string;
+  const db = getAdminFirestore();
   const senderUid = emailData.senderUid as string;
 
-  if (newStatus === "opened") {
-    await logActivity({
-      entityType: "prospect",
-      entityId: prospectId,
-      kind: "system",
-      text: "Otevřel e-mail",
-      actorUid: senderUid,
-    });
-  } else if (newStatus === "clicked") {
-    await logActivity({
-      entityType: "prospect",
-      entityId: prospectId,
-      kind: "system",
-      text: "Kliknul na demo ✨",
-      actorUid: senderUid,
-    });
-  } else if (newStatus === "bounced") {
-    await logActivity({
-      entityType: "prospect",
-      entityId: prospectId,
-      kind: "system",
-      text: "E-mail se nepodařilo doručit",
-      actorUid: senderUid,
-    });
+  if (collection === "outreachEmails") {
+    // Log activity on prospect
+    const prospectId = emailData.prospectId as string;
 
-    // Mark prospect as unreachable if no phone
-    const prospectDoc = await db.collection("prospects").doc(prospectId).get();
-    if (prospectDoc.exists) {
-      const pData = prospectDoc.data()!;
-      if (!pData.phone) {
-        await prospectDoc.ref.update({
-          status: "unreachable",
-          updatedAt: FieldValue.serverTimestamp(),
-        });
+    if (newStatus === "opened") {
+      await logActivity({
+        entityType: "prospect",
+        entityId: prospectId,
+        kind: "system",
+        text: "Otevřel e-mail",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "clicked") {
+      await logActivity({
+        entityType: "prospect",
+        entityId: prospectId,
+        kind: "system",
+        text: "Kliknul na demo ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced") {
+      await logActivity({
+        entityType: "prospect",
+        entityId: prospectId,
+        kind: "system",
+        text: "E-mail se nepodařilo doručit",
+        actorUid: senderUid,
+      });
+
+      // Mark prospect as unreachable if no phone
+      const prospectDoc = await db.collection("prospects").doc(prospectId).get();
+      if (prospectDoc.exists) {
+        const pData = prospectDoc.data()!;
+        if (!pData.phone) {
+          await prospectDoc.ref.update({
+            status: "unreachable",
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
       }
+    }
+  } else {
+    // deliveryEmails — log activity on client
+    const clientId = emailData.clientId as string;
+
+    if (newStatus === "opened") {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient otevřel vizitku",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "clicked") {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient kliknul na vizitku ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced") {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "E-mail s vizitkou se nepodařilo doručit",
+        actorUid: senderUid,
+      });
     }
   }
 
