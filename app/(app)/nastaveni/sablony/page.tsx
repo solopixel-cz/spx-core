@@ -5,6 +5,8 @@ import { EmailTemplateEditor } from "@/components/settings/email-template-editor
 import { renderOutreachEmail } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail } from "@/lib/email-templates/followup";
 import { renderDeliveryEmail } from "@/lib/email-templates/delivery";
+import { renderCardFormEmail } from "@/lib/email-templates/cardform";
+import { buildCardFormUrl } from "@/lib/card-form-url";
 
 export default function SablonyPage() {
   return (
@@ -15,6 +17,7 @@ export default function SablonyPage() {
         <TabsList>
           <TabsTrigger value="outreach">Oslovení</TabsTrigger>
           <TabsTrigger value="followup">Follow-up</TabsTrigger>
+          <TabsTrigger value="cardform">Formulář podkladů</TabsTrigger>
           <TabsTrigger value="delivery">Předání vizitky</TabsTrigger>
         </TabsList>
 
@@ -37,6 +40,17 @@ export default function SablonyPage() {
             placeholderHint={`Druhý e-mail pro prospekty, kteří první oslovení otevřeli, ale neklikli. Editovatelný je jen předmět. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (demo URL).`}
             sampleVars={{ jmeno: "Jan Nováku", odkaz: "https://demo.solopixel.cz" }}
             label="Šablona follow-up"
+          />
+        </TabsContent>
+
+        <TabsContent value="cardform" className="mt-4">
+          <EmailTemplateEditor
+            apiPath="/api/templates/cardform-email"
+            renderEmail={renderCardFormEmail}
+            defaultSubject="{{jmeno}}, pojďme vytvořit vaši vizitku — vyplňte krátký formulář"
+            placeholderHint={`E-mail s odkazem na formulář podkladů, odeslaný klientovi při vygenerování odkazu. Editovatelný je jen předmět. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (odkaz na formulář).`}
+            sampleVars={{ jmeno: "Jane", odkaz: buildCardFormUrl("ukazka") }}
+            label="Šablona formuláře podkladů"
           />
         </TabsContent>
 

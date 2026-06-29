@@ -4,6 +4,9 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { logActivity } from "@/lib/activity";
+import { renderSubject, sendTransactionalEmail } from "@/lib/email";
+import { renderCardFormEmail, DEFAULT_CARDFORM_SUBJECT } from "@/lib/email-templates/cardform";
+import { buildCardFormUrl } from "@/lib/card-form-url";
 
 // GET /api/card-tokens?clientId=xxx — get existing tokens for a client
 export async function GET(request: Request) {
@@ -63,15 +66,65 @@ export async function POST(request: Request) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    // Send the invitation e-mail with the form link (best-effort — a failed
+    // send must not lose the token; the link can always be copied manually).
+    const odkaz = buildCardFormUrl(token);
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    try {
+      const templateDoc = await db.collection("templates").doc("cardform-email").get();
+      const subjectTemplate = (templateDoc.data()?.subject as string) || DEFAULT_CARDFORM_SUBJECT;
+
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const userData = userDoc.data();
+      const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+      const senderEmail = (userData?.senderEmail as string) || user.email;
+
+      const jmeno = name.split(" ")[0];
+      const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
+      const { html, text } = renderCardFormEmail({ jmeno, odkaz });
+
+      const result = await sendTransactionalEmail({
+        to: email,
+        senderName,
+        senderEmail,
+        subject: renderedSubject,
+        html,
+        text,
+      });
+
+      await db.collection("cardFormEmails").add({
+        clientId,
+        token,
+        toEmail: email,
+        senderUid: user.uid,
+        resendId: result?.id || "",
+        subject: renderedSubject,
+        status: "sent",
+        sentAt: FieldValue.serverTimestamp(),
+        lastEventAt: null,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdBy: user.uid,
+      });
+
+      emailSent = true;
+    } catch (err) {
+      emailError = err instanceof Error ? err.message : "Nepodařilo se odeslat e-mail";
+    }
+
     await logActivity({
       entityType: "client",
       entityId: clientId,
-      kind: "system",
-      text: "Vygenerován formulář podkladů",
+      kind: emailSent ? "email" : "system",
+      text: emailSent
+        ? `Odeslán formulář podkladů na ${email}`
+        : "Vygenerován odkaz na formulář podkladů (e-mail se nepodařilo odeslat)",
       actorUid: user.uid,
     });
 
-    return NextResponse.json({ token });
+    return NextResponse.json({ token, emailSent, emailError });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });

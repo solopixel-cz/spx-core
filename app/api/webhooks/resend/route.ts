@@ -16,8 +16,8 @@ interface ResendWebhookPayload {
 }
 
 /**
- * Find an email record by resendId across outreachEmails and deliveryEmails.
- * Returns the doc snapshot + which collection it came from.
+ * Find an email record by resendId across outreachEmails, deliveryEmails and
+ * cardFormEmails. Returns the doc snapshot + which collection it came from.
  */
 async function findEmailByResendId(resendId: string) {
   const db = getAdminFirestore();
@@ -42,6 +42,17 @@ async function findEmailByResendId(resendId: string) {
 
   if (!deliverySnap.empty) {
     return { doc: deliverySnap.docs[0], collection: "deliveryEmails" as const };
+  }
+
+  // Try cardFormEmails
+  const cardFormSnap = await db
+    .collection("cardFormEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!cardFormSnap.empty) {
+    return { doc: cardFormSnap.docs[0], collection: "cardFormEmails" as const };
   }
 
   return null;
@@ -194,7 +205,7 @@ export async function POST(request: Request) {
         }
       }
     }
-  } else {
+  } else if (collection === "deliveryEmails") {
     // deliveryEmails — log activity on client
     const clientId = emailData.clientId as string;
 
@@ -228,6 +239,43 @@ export async function POST(request: Request) {
         entityId: clientId,
         kind: "system",
         text: "E-mail s vizitkou se nepodařilo doručit",
+        actorUid: senderUid,
+      });
+    }
+  } else {
+    // cardFormEmails — log activity on client
+    const clientId = emailData.clientId as string;
+
+    if (newStatus === "opened" && statusChanged) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient otevřel e-mail s formulářem podkladů",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "clicked" && statusChanged) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient otevřel formulář podkladů ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced" && isFalseBounce) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "⚠️ Nahlášen bounce po otevření – pravděpodobně falešný (bezpečnostní skener pošty), e-mail nejspíš dorazil",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced") {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "E-mail s formulářem podkladů se nepodařilo doručit",
         actorUid: senderUid,
       });
     }
