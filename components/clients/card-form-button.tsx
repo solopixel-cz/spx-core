@@ -11,10 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Copy, Send } from "lucide-react";
-
-const FORM_BASE_URL =
-  process.env.NEXT_PUBLIC_CARD_FORM_BASE_URL ??
-  "https://www.solopixel.cz/cs/vizitka-formular?token=";
+import { buildCardFormUrl } from "@/lib/card-form-url";
 
 export function CardFormButton({
   clientId,
@@ -53,10 +50,23 @@ export function CardFormButton({
         }),
       });
       if (!res.ok) throw new Error();
-      const { token } = await res.json();
-      setUrl(`${FORM_BASE_URL}${token}`);
+      const { token, emailSent, emailError } = (await res.json()) as {
+        token: string;
+        emailSent?: boolean;
+        emailError?: string;
+      };
+      setUrl(buildCardFormUrl(token));
       setExistingToken(token);
       setDialogOpen(true);
+      if (emailSent) {
+        toast.success(`Formulář odeslán na ${clientEmail}`);
+      } else {
+        toast.warning(
+          emailError
+            ? `Odkaz vytvořen, ale e-mail se nepodařilo odeslat: ${emailError}`
+            : "Odkaz vytvořen, e-mail se nepodařilo odeslat — pošlete ho ručně"
+        );
+      }
     } catch {
       toast.error("Nepodařilo se vygenerovat odkaz");
     } finally {
@@ -66,7 +76,7 @@ export function CardFormButton({
 
   function handleShowExisting() {
     if (existingToken) {
-      setUrl(`${FORM_BASE_URL}${existingToken}`);
+      setUrl(buildCardFormUrl(existingToken));
       setDialogOpen(true);
     }
   }
@@ -104,7 +114,7 @@ export function CardFormButton({
             onClick={handleGenerate}
             disabled={loading}
           >
-            {loading ? "..." : "Nový odkaz"}
+            {loading ? "..." : "Poslat znovu"}
           </Button>
         )}
       </div>
@@ -116,7 +126,8 @@ export function CardFormButton({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Pošlete tento odkaz klientovi {clientName}:
+              E-mail s formulářem byl odeslán klientovi {clientName}. Případně
+              můžete odkaz poslat i ručně:
             </p>
             <div className="flex gap-2">
               <Input value={url ?? ""} readOnly className="font-mono text-xs" />
