@@ -24,8 +24,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
-import { formatDate } from "@/lib/format";
-import { Plus, Upload, Hand, Monitor } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { Plus, Upload, Hand, Monitor, Phone } from "lucide-react";
 import { ProspectDetailSheet } from "./prospect-detail-sheet";
 import { ProspectFormDialog } from "./prospect-form-dialog";
 import { CsvImportDialog } from "./csv-import-dialog";
@@ -48,6 +48,7 @@ export interface ProspectRow {
   lastTouchAt: string | null;
   nextFollowUpAt: string | null;
   lastEmailStatus: string | null;
+  wasCalled: boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -69,11 +70,13 @@ const statusLabels: Record<string, string> = {
 
 export function ProspektiPageClient({
   initialProspects,
+  initialHasMore = false,
   users,
   currentUid,
   userRole,
 }: {
   initialProspects: ProspectRow[];
+  initialHasMore?: boolean;
   users: UserOption[];
   currentUid: string;
   userRole: string;
@@ -88,7 +91,7 @@ export function ProspektiPageClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialProspects.length >= 50);
+  const [hasMore, setHasMore] = useState(initialHasMore);
   const [claiming, setClaiming] = useState<string | null>(null);
 
   // Filter prospects client-side
@@ -270,6 +273,7 @@ export function ProspektiPageClient({
               <TableHead>Stav</TableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
+              <TableHead className="w-10"></TableHead>
               <TableHead>Vlastník</TableHead>
               <TableHead>Poslední kontakt</TableHead>
               <TableHead>Follow-up</TableHead>
@@ -279,7 +283,7 @@ export function ProspektiPageClient({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Žádné kontakty k oslovení
                 </TableCell>
               </TableRow>
@@ -327,8 +331,15 @@ export function ProspektiPageClient({
                         />
                       )}
                     </TableCell>
+                    <TableCell>
+                      {prospect.wasCalled && (
+                        <span title="Voláno">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{owner?.displayName ?? "—"}</TableCell>
-                    <TableCell>{formatDate(prospect.lastTouchAt)}</TableCell>
+                    <TableCell>{formatDateTime(prospect.lastTouchAt)}</TableCell>
                     <TableCell>
                       <span className={isFollowUpOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
                         {formatDate(prospect.nextFollowUpAt)}

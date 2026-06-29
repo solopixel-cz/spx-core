@@ -2,6 +2,38 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-06-15 — Dashboard: otevření a kliknutí (denní rozpad)
+
+- **Server** (`app/(app)/page.tsx`): nový dotaz na `activity` (createdAt ≥ dnes−8 dní). Události „Otevřel e-mail" a „Kliknul na demo ✨" rozbucketovány po dnech v zóně Europe/Prague (Intl `en-CA` pro day-key, ukotveno na pražské poledne kvůli DST). Sales vidí jen vlastní (actorUid = senderUid). Předáno `engagementDaily` (7 dní, nejstarší→nejnovější) + `engagementToday`.
+- **UI** (`components/dashboard/engagement-card.tsx`): nová karta — velká čísla „dnes otevřelo / kliklo" + rozpad posledních 7 dní s mini bary (otevřelo modře, kliklo jantarově) a legendou. Zapojeno do pravého sloupce `dashboard-client.tsx` nad „Oslovení tento týden".
+- Zdroj je activity log (přesné časy, logováno 1× na e-mail při první události) — narozdíl od `outreachEmails.status`, který drží jen nejzazší stav.
+- Pozn.: React Compiler hlídá impure `new Date()` v argumentu `Promise.all` → cutoff hoistnut do constu `engagementSince` před voláním.
+- `npm run lint` čistý (jen 2 předexistující TanStack warnings), `tsc --noEmit` čistý.
+
+## 2026-06-15 — Follow-up e-mail (druhé oslovení prospektů)
+
+- **Šablona** (`lib/email-templates/followup.ts`): `renderFollowupEmail({jmeno, odkaz})` v jednotném SoloPixel designu + `DEFAULT_FOLLOWUP_SUBJECT`. Kratší než oslovení, jiný úhel pro kontakty, které první e-mail otevřely, ale neklikly — nižší bariéra, „vizitka ≠ web", jedno CTA (otevřít na mobilu).
+- **API akce** (`app/api/prospects/[id]/route.ts`): nová akce `send_followup_email`. Gate: prospekt má e-mail + existuje předchozí oslovení v `outreachEmails` + min. 3denní odstup od posledního e-mailu. Ukládá do `outreachEmails` s `template: 'followup'` (sdílený webhook tracking), loguje aktivitu, posouvá `nextFollowUpAt` o +3 prac. dny.
+- **Šablona v CRM** (`app/api/templates/followup-email/route.ts` + záložka „Follow-up" v `nastaveni/sablony/page.tsx`): předmět editovatelný adminem, GET/PUT/POST (test e-mail) jako u oslovení.
+- **UI** (`components/prospects/prospect-detail-sheet.tsx`): tlačítko „Odeslat follow-up" + dialog s náhledem předmětu a e-mailu.
+- **Schema** (`lib/schemas/outreach-email.ts`): přidáno optional `template: 'outreach' | 'followup'`.
+- **Data-model** (`spec/context/data-model.md`): zdokumentováno pole `template`, akce a `templates/followup-email`.
+- `npm run lint` čistý (jen 2 předexistující TanStack warnings), `tsc --noEmit` čistý. `next build` nešel dokončit kvůli omezení mountu (EPERM unlink v `.next` při finalizaci) — kompilace ale proběhla (BUILD_ID + manifesty vygenerovány). Doporučeno ověřit `npm run build` lokálně.
+
+## 2026-06-15 — Podklady: doplnění nových polí formuláře
+
+- **Zod schéma** (`lib/schemas/card-submission.ts`): přidáno 9 optional polí — `companyName`, `whatsapp`, `motto`, `instagram`, `linkedin`, `facebook`, `website`, `referenceUrl`, `wantsCareerTab`.
+- **API route** (`app/api/submissions/route.ts`): explicitní mapování všech nových polí v `submissionsSnap.docs.map`.
+- **Detail podkladu** (`submissions-page-client.tsx`): rozšířen `Submission` interface, Společnost + WhatsApp do Kontakt, Motto do Profil, Zájem o Spolupráci do Profese, nová sekce „Sociální sítě a reference" (Instagram, LinkedIn, Facebook, Web, Reference).
+- **AI prompt** (`lib/submission-prompt.ts`): rozšířen `SubmissionData` interface + `buildSubmissionPrompt` — Společnost + WhatsApp v Kontakt, Motto v Profil, nová sekce Sociální sítě a reference se zájmem o Spolupráci.
+- `npm run lint` + `npm run build` čisté.
+
+## 2026-06-15 — ✅ Fáze 29 – Kopírovat podklad pro AI
+
+- **Helper `buildSubmissionPrompt`** (`lib/submission-prompt.ts`): sestaví Markdown prompt s úvodní instrukcí + datovými sekcemi (Kontakt, Profese, Profil, Vizitka). Vynechává IČO (`companyId`) a prázdná pole. Pole (arrays) spojená čárkou, `reasons` středníkem, `bio` víceřádkové.
+- **Tlačítko „Kopírovat pro AI"** v detail Sheetu (`submissions-page-client.tsx`): umístěno pod hlavičku (jméno + badge), nad první Separator. `navigator.clipboard.writeText` + toast success/error. Ošetřen nezabezpečený kontext.
+- `npm run lint` + `npm run build` čisté.
+
 ## 2026-06-15 — ✅ Fáze 28 – Nastavení: přestavba šablon (UI)
 
 - **E-mailové šablony (`/nastaveni/sablony`):** odstraněn onboarding i provize. Šablony oslovení a předání vizitky přepínané záložkami (shadcn `Tabs`). Náhled e-mailu se otevírá v modalu (`Dialog max-w-3xl`) místo stálého 600px iframe — stránka je krátká.

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { renderOutreachEmail } from "@/lib/email-templates/outreach";
+import { renderFollowupEmail } from "@/lib/email-templates/followup";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/status-badge";
 import { prospectStatus, prospectChannel, prospectResult } from "@/lib/status";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import {
   ArrowRightLeft,
   Phone,
@@ -83,6 +84,13 @@ export function ProspectDetailSheet({
   const [outreachTemplate, setOutreachTemplate] = useState<{ subject: string } | null>(null);
   const [outreachSender, setOutreachSender] = useState("");
   const [outreachLoading, setOutreachLoading] = useState(false);
+
+  // Follow-up email dialog state
+  const [followupDialogOpen, setFollowupDialogOpen] = useState(false);
+  const [followupGreeting, setFollowupGreeting] = useState("");
+  const [followupTemplate, setFollowupTemplate] = useState<{ subject: string } | null>(null);
+  const [followupSender, setFollowupSender] = useState("");
+  const [followupLoading, setFollowupLoading] = useState(false);
 
   // Contact form state
   const [channel, setChannel] = useState("phone");
@@ -266,6 +274,63 @@ export function ProspectDetailSheet({
     }
   }
 
+  async function openFollowupDialog() {
+    if (!prospect) return;
+    setFollowupLoading(true);
+    setFollowupGreeting(prospect.name.split(" ")[0]);
+    try {
+      const res = await fetch("/api/templates/followup-email");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!data.subject) {
+        toast.error("Předmět follow-upu není nastaven (Nastavení → Šablony)");
+        return;
+      }
+      setFollowupTemplate(data);
+      // Fetch sender info
+      const meRes = await fetch("/api/me");
+      if (meRes.ok) {
+        const me = await meRes.json();
+        const name = me.senderName || me.displayName || "";
+        const email = me.senderEmail || me.email || "";
+        setFollowupSender(`${name} <${email}>`);
+      }
+      setFollowupDialogOpen(true);
+    } catch {
+      toast.error("Nepodařilo se načíst šablonu");
+    } finally {
+      setFollowupLoading(false);
+    }
+  }
+
+  async function handleSendFollowup() {
+    if (!prospect) return;
+    setActing(true);
+    try {
+      const res = await fetch(`/api/prospects/${prospect.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send_followup_email",
+          greeting: followupGreeting.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Nepodařilo se odeslat");
+        return;
+      }
+      toast.success("Follow-up odeslán");
+      setFollowupDialogOpen(false);
+      refreshActivities();
+      router.refresh();
+    } catch {
+      toast.error("Nepodařilo se odeslat follow-up");
+    } finally {
+      setActing(false);
+    }
+  }
+
   function resetContactForm() {
     setChannel("phone");
     setResult("no_answer");
@@ -353,7 +418,7 @@ export function ProspectDetailSheet({
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Poslední kontakt</dt>
-                  <dd>{formatDate(prospect.lastTouchAt)}</dd>
+                  <dd>{formatDateTime(prospect.lastTouchAt)}</dd>
                 </div>
                 {prospect.nextFollowUpAt && (
                   <div className="flex justify-between">
@@ -390,6 +455,18 @@ export function ProspectDetailSheet({
                       <Mail className="mx-auto mb-1 h-4 w-4" />
                       Oslovení nelze odeslat — chybí e-mail
                     </div>
+                  )}
+                  {/* Follow-up email — druhý e-mail, navazuje na odeslané oslovení */}
+                  {prospect.email && (
+                    <Button
+                      variant="outline"
+                      onClick={openFollowupDialog}
+                      disabled={acting || followupLoading}
+                      className="w-full"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      {followupLoading ? "Načítám šablonu..." : "Odeslat follow-up"}
+                    </Button>
                   )}
                   <div className="grid grid-cols-2 gap-2">
                     <Button
@@ -446,7 +523,7 @@ export function ProspectDetailSheet({
               )}
 
               {/* Archive action (admin/member only) */}
-              {isAdminOrMember && !isTerminal && (
+              {isAdminOrMember && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -612,6 +689,80 @@ export function ProspectDetailSheet({
               >
                 <Mail className="mr-2 h-4 w-4" />
                 {acting ? "Odesílám..." : "Odeslat"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-up email dialog */}
+      <Dialog open={followupDialogOpen} onOpenChange={setFollowupDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Odeslat follow-up</DialogTitle>
+          </DialogHeader>
+          {followupTemplate && prospect && (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Druhý e-mail — navazuje na odeslané oslovení. Vhodný pro kontakty, které první e-mail otevřely, ale neklikly na demo.
+              </p>
+
+              <div className="space-y-2">
+                <Label>Oslovení (5. pád)</Label>
+                <Input
+                  value={followupGreeting}
+                  onChange={(e) => setFollowupGreeting(e.target.value)}
+                  placeholder="Např. Jane, Honzo..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upravte oslovení — v šabloně nahradí <code>{"{{jmeno}}"}</code>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Odkaz na demo</Label>
+                <Input value={prospect.demoUrl || ""} disabled className="text-muted-foreground" />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Náhled předmětu</p>
+                <p className="text-sm font-medium">
+                  {followupTemplate.subject
+                    .replace(/\{\{jmeno\}\}/g, followupGreeting || prospect.name.split(" ")[0])
+                    .replace(/\{\{odkaz\}\}/g, prospect.demoUrl || "https://demo.solopixel.cz")}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Náhled e-mailu</p>
+                <div className="rounded border overflow-hidden bg-[#F1F5F9]">
+                  <iframe
+                    srcDoc={renderFollowupEmail({
+                      jmeno: followupGreeting || prospect.name.split(" ")[0],
+                      odkaz: prospect.demoUrl || "https://demo.solopixel.cz",
+                    }).html}
+                    sandbox=""
+                    className="w-full border-0"
+                    style={{ height: "400px" }}
+                    title="Náhled follow-up e-mailu"
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p>Příjemce: <span className="font-medium">{prospect.email}</span></p>
+                {followupSender && <p>Odesláno z: <span className="font-medium">{followupSender}</span></p>}
+              </div>
+
+              <Button
+                onClick={handleSendFollowup}
+                disabled={acting || !followupGreeting.trim()}
+                className="w-full"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {acting ? "Odesílám..." : "Odeslat follow-up"}
               </Button>
             </div>
           )}
