@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, Loader2 } from "lucide-react";
 import { invoiceFormSchema, type InvoiceFormData } from "@/lib/schemas/invoice";
 
 interface InvoiceRow {
@@ -85,6 +85,7 @@ export function InvoicesPageClient({
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
 
@@ -125,6 +126,7 @@ export function InvoicesPageClient({
   }
 
   async function handleAction(invoiceId: string, action: "paid" | "cancelled") {
+    setActingId(invoiceId);
     try {
       const res = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PATCH",
@@ -136,6 +138,8 @@ export function InvoicesPageClient({
       router.refresh();
     } catch {
       toast.error("Akce se nezdařila");
+    } finally {
+      setActingId(null);
     }
   }
 
@@ -266,10 +270,10 @@ export function InvoicesPageClient({
                     <div className="flex gap-1">
                       {(inv.status === "sent" || inv.status === "overdue") && (
                         <>
-                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno">
-                            <Check className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno" disabled={actingId === inv.id}>
+                            {actingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "cancelled")} title="Stornovat">
+                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "cancelled")} title="Stornovat" disabled={actingId === inv.id}>
                             <X className="h-4 w-4" />
                           </Button>
                         </>

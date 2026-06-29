@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, Archive, RotateCcw, Send } from "lucide-react";
+import { Pencil, Archive, RotateCcw, Send, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -124,9 +124,12 @@ export function ClientDetailClient({
   const isArchived = !!client.deletedAt;
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [acting, setActing] = useState(false);
+  const [savingOwner, setSavingOwner] = useState(false);
 
   async function handleArchive() {
     if (!confirm("Opravdu archivovat tohoto klienta? Instance, tickety a předplatné budou archivovány/zrušeny.")) return;
+    setActing(true);
     try {
       const res = await fetch("/api/archive", {
         method: "POST",
@@ -138,10 +141,13 @@ export function ClientDetailClient({
       router.refresh();
     } catch {
       toast.error("Nepodařilo se archivovat");
+    } finally {
+      setActing(false);
     }
   }
 
   async function handleRestore() {
+    setActing(true);
     try {
       const res = await fetch("/api/archive", {
         method: "POST",
@@ -153,6 +159,8 @@ export function ClientDetailClient({
       router.refresh();
     } catch {
       toast.error("Nepodařilo se obnovit");
+    } finally {
+      setActing(false);
     }
   }
 
@@ -168,8 +176,8 @@ export function ClientDetailClient({
             </p>
           </div>
           {isAdminOrMember && (
-            <Button variant="outline" size="sm" onClick={handleRestore}>
-              <RotateCcw className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={handleRestore} disabled={acting}>
+              {acting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Obnovit
             </Button>
           )}
@@ -246,8 +254,8 @@ export function ClientDetailClient({
           />
         )}
         {isAdminOrMember && !isArchived && (
-          <Button variant="ghost" size="sm" onClick={handleArchive} className="text-muted-foreground">
-            <Archive className="mr-2 h-4 w-4" />
+          <Button variant="ghost" size="sm" onClick={handleArchive} disabled={acting} className="text-muted-foreground">
+            {acting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
             Archivovat
           </Button>
         )}
@@ -305,8 +313,10 @@ export function ClientDetailClient({
                 <p className="mt-1 text-xs text-muted-foreground">Obchodník s nárokem na provize z faktur tohoto klienta.</p>
                 <Select
                   value={client.salesOwnerUid ?? "none"}
+                  disabled={savingOwner}
                   onValueChange={async (val) => {
                     const newUid = val === "none" ? null : val;
+                    setSavingOwner(true);
                     try {
                       const res = await fetch(`/api/clients/${client.id}`, {
                         method: "PATCH",
@@ -318,10 +328,13 @@ export function ClientDetailClient({
                       router.refresh();
                     } catch {
                       toast.error("Nepodařilo se změnit vlastníka");
+                    } finally {
+                      setSavingOwner(false);
                     }
                   }}
                 >
                   <SelectTrigger className="mt-2">
+                    {savingOwner && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <SelectValue placeholder="Vyberte obchodníka" />
                   </SelectTrigger>
                   <SelectContent>

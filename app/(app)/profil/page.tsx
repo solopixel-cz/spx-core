@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { Camera, Trash2, Save } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -249,7 +250,15 @@ export default function ProfilPage() {
     toast.success("Výchozí stránka uložena");
   }
 
-  if (loading) return <p className="text-muted-foreground">Načítám...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-9 w-72" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
   if (!profile) return <p className="text-muted-foreground">Nepodařilo se načíst profil</p>;
 
   return (

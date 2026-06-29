@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Menu, Search, LogOut, User } from "lucide-react";
+import { Menu, Search, LogOut, User, Loader2 } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -36,6 +36,7 @@ export function AppTopbar({
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -49,6 +50,7 @@ export function AppTopbar({
   }, []);
 
   async function handleLogout() {
+    setLoggingOut(true);
     try {
       const auth = getClientAuth();
       await signOut(auth);
@@ -115,9 +117,20 @@ export function AppTopbar({
               <User className="mr-2 h-4 w-4" />
               Můj profil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Odhlásit se
+            <DropdownMenuItem
+              onClick={(e) => {
+                // Zabraň zavření menu, ať je spinner vidět během odhlašování
+                e.preventDefault();
+                if (!loggingOut) handleLogout();
+              }}
+              disabled={loggingOut}
+            >
+              {loggingOut ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 h-4 w-4" />
+              )}
+              {loggingOut ? "Odhlašuji..." : "Odhlásit se"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

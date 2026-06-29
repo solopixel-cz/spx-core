@@ -49,6 +49,7 @@ export function LeadDetailSheet({
 }) {
   const router = useRouter();
   const [activities, setActivities] = useState<ActivityData[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
   const [lostReason, setLostReason] = useState("");
   const [acting, setActing] = useState(false);
@@ -58,6 +59,7 @@ export function LeadDetailSheet({
   if (leadId !== prevLeadId) {
     setPrevLeadId(leadId);
     setActivities([]);
+    setLoadingActivity(leadId !== null);
   }
 
   useEffect(() => {
@@ -68,7 +70,10 @@ export function LeadDetailSheet({
       .then((data) => {
         if (!cancelled) setActivities(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingActivity(false);
+      });
     return () => { cancelled = true; };
   }, [leadId]);
 
@@ -220,6 +225,7 @@ export function LeadDetailSheet({
                 entityType="lead"
                 entityId={lead.id}
                 activities={activities}
+                loading={loadingActivity}
               />
             </div>
           )}
