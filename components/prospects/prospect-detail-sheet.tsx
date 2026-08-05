@@ -71,6 +71,7 @@ export function ProspectDetailSheet({
 }) {
   const router = useRouter();
   const [activities, setActivities] = useState<ActivityData[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [acting, setActing] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -102,6 +103,7 @@ export function ProspectDetailSheet({
   if (prospectId !== prevProspectId) {
     setPrevProspectId(prospectId);
     setActivities([]);
+    setLoadingActivity(prospectId !== null);
   }
 
   useEffect(() => {
@@ -112,7 +114,10 @@ export function ProspectDetailSheet({
       .then((data) => {
         if (!cancelled) setActivities(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingActivity(false);
+      });
     return () => { cancelled = true; };
   }, [prospectId]);
 
@@ -558,6 +563,7 @@ export function ProspectDetailSheet({
                 entityType="prospect"
                 entityId={prospect.id}
                 activities={activities}
+                loading={loadingActivity}
               />
             </div>
           )}

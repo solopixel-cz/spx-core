@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, MessageSquare, ArrowRightLeft, Phone, Mail, Bot } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ActivityData {
   id: string;
@@ -36,10 +37,12 @@ export function ActivityTab({
   entityType,
   entityId,
   activities,
+  loading = false,
 }: {
   entityType: string;
   entityId: string;
   activities: ActivityData[];
+  loading?: boolean;
 }) {
   const router = useRouter();
   const [noteText, setNoteText] = useState("");
@@ -94,7 +97,13 @@ export function ActivityTab({
       </div>
 
       {/* Timeline */}
-      {activities.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-lg" />
+          ))}
+        </div>
+      ) : activities.length === 0 ? (
         <p className="text-muted-foreground">Žádná aktivita</p>
       ) : (
         <div className="space-y-3">

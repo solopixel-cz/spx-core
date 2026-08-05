@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, UserX, UserCheck, KeyRound } from "lucide-react";
+import { Plus, UserX, UserCheck, KeyRound, Loader2 } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -57,6 +57,8 @@ export default function UzivatelePage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Klíč právě probíhající řádkové akce, např. "uid-toggle" / "uid-reset" / "uid-role"
+  const [actingKey, setActingKey] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -111,6 +113,7 @@ export default function UzivatelePage() {
   }
 
   async function handleToggleActive(user: UserRow) {
+    setActingKey(`${user.id}-toggle`);
     try {
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
@@ -125,10 +128,13 @@ export default function UzivatelePage() {
       fetchUsers();
     } catch {
       toast.error("Nepodařilo se změnit stav uživatele");
+    } finally {
+      setActingKey(null);
     }
   }
 
   async function handleResetPassword(userId: string) {
+    setActingKey(`${userId}-reset`);
     try {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
@@ -140,6 +146,8 @@ export default function UzivatelePage() {
       toast.success(`Dočasné heslo: ${tempPassword}`, { duration: 15000 });
     } catch {
       toast.error("Nepodařilo se resetovat heslo");
+    } finally {
+      setActingKey(null);
     }
   }
 
@@ -147,6 +155,7 @@ export default function UzivatelePage() {
     userId: string,
     newRole: "admin" | "member" | "sales"
   ) {
+    setActingKey(`${userId}-role`);
     try {
       const res = await fetch(`/api/users/${userId}`, {
         method: "PATCH",
@@ -159,6 +168,8 @@ export default function UzivatelePage() {
       fetchUsers();
     } catch {
       toast.error("Nepodařilo se změnit roli");
+    } finally {
+      setActingKey(null);
     }
   }
 
@@ -255,11 +266,13 @@ export default function UzivatelePage() {
                 <TableCell>
                   <Select
                     value={user.role}
+                    disabled={actingKey === `${user.id}-role`}
                     onValueChange={(val) =>
                       handleChangeRole(user.id, val as "admin" | "member" | "sales")
                     }
                   >
                     <SelectTrigger className="h-8 w-36">
+                      {actingKey === `${user.id}-role` && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -330,16 +343,24 @@ export default function UzivatelePage() {
                       size="icon"
                       onClick={() => handleResetPassword(user.id)}
                       title="Resetovat heslo"
+                      disabled={actingKey === `${user.id}-reset` || actingKey === `${user.id}-toggle`}
                     >
-                      <KeyRound className="h-4 w-4" />
+                      {actingKey === `${user.id}-reset` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleToggleActive(user)}
                       title={user.active ? "Deaktivovat" : "Aktivovat"}
+                      disabled={actingKey === `${user.id}-toggle` || actingKey === `${user.id}-reset`}
                     >
-                      {user.active ? (
+                      {actingKey === `${user.id}-toggle` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : user.active ? (
                         <UserX className="h-4 w-4" />
                       ) : (
                         <UserCheck className="h-4 w-4" />
