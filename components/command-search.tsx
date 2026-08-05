@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Users, Briefcase, TicketCheck, BookUser } from "lucide-react";
+import { Users, Briefcase, TicketCheck, BookUser, Loader2 } from "lucide-react";
 
 interface SearchResults {
   clients: Array<{ id: string; name: string; company?: string }>;
@@ -22,6 +22,7 @@ export function CommandSearch({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<SearchResults>({
     clients: [],
     leads: [],
@@ -32,12 +33,16 @@ export function CommandSearch({
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
       setResults({ clients: [], leads: [], tickets: [], prospects: [] });
+      setSearching(false);
       return;
     }
+    setSearching(true);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       if (res.ok) setResults(await res.json());
-    } catch { /* ignore */ }
+    } catch { /* ignore */ } finally {
+      setSearching(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -68,6 +73,9 @@ export function CommandSearch({
               placeholder="Hledat klienty, leady, oslovení, tickety..."
               className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
             />
+            {searching && (
+              <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            )}
           </div>
           <Command.List className="max-h-[300px] overflow-y-auto p-2">
             {query.length >= 2 && !hasResults && (

@@ -1,0 +1,23 @@
+services:
+  web:
+    build: .
+    ports:
+      # host:container — na hostu port 80, ať je URL čistě http://spx.core
+      # (uvnitř kontejneru běží next dev dál na 3000)
+      - '80:3000'
+    env_file:
+      - .env.local
+    volumes:
+      # Bind-mount zdrojáků → hot-reload bez rebuildu
+      - .:/app
+      # Anonymní volume drží node_modules a .next uvnitř kontejneru
+      # (jinak by je prázdný host adresář přepsal)
+      - /app/node_modules
+      - /app/.next
+    environment:
+      # Spolehlivý file-watching v Dockeru (fallback na polling)
+      - WATCHPACK_POLLING=true
+      # Stejná TZ jako browser → bez ní server renderuje časy v UTC
+      # a vzniká hydration mismatch (server 20:02 vs. klient 22:02)
+      - TZ=Europe/Prague
+    restart: unless-stopped

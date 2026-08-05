@@ -191,7 +191,8 @@ export function TasksPageClient({
                   type="checkbox"
                   checked={task.status === "done"}
                   onChange={() => toggleStatus(task.id, task.status)}
-                  className="h-4 w-4 rounded border-input"
+                  disabled={optimisticOverrides[task.id] !== undefined}
+                  className="h-4 w-4 rounded border-input disabled:opacity-50"
                 />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-muted-foreground" : ""}`}>

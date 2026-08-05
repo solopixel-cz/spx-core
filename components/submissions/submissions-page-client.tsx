@@ -20,7 +20,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Copy } from "lucide-react";
+import { CheckCircle, Copy, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildSubmissionPrompt } from "@/lib/submission-prompt";
 
@@ -65,6 +65,7 @@ export function SubmissionsPageClient() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Submission | null>(null);
+  const [processing, setProcessing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -80,6 +81,7 @@ export function SubmissionsPageClient() {
   }, [fetchData]);
 
   async function handleProcess(id: string) {
+    setProcessing(true);
     try {
       const res = await fetch(`/api/submissions/${id}`, { method: "PATCH" });
       if (!res.ok) throw new Error();
@@ -89,6 +91,8 @@ export function SubmissionsPageClient() {
       router.refresh();
     } catch {
       toast.error("Nepodařilo se označit jako zpracované");
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -263,9 +267,14 @@ export function SubmissionsPageClient() {
                   <Button
                     onClick={() => handleProcess(selected.id)}
                     className="w-full"
+                    disabled={processing}
                   >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Označit zpracované
+                    {processing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                    )}
+                    {processing ? "Označuji..." : "Označit zpracované"}
                   </Button>
                 </>
               )}

@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 
 interface TicketRow {
@@ -84,6 +84,7 @@ export function TicketsPageClient({
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [now] = useState(() => Date.now());
+  const [changingStatus, setChangingStatus] = useState<string | null>(null);
 
   const filtered = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
@@ -123,6 +124,7 @@ export function TicketsPageClient({
   }
 
   async function handleStatusChange(ticketId: string, newStatus: string) {
+    setChangingStatus(newStatus);
     try {
       const res = await fetch(`/api/tickets/${ticketId}`, {
         method: "PATCH",
@@ -135,6 +137,8 @@ export function TicketsPageClient({
       router.refresh();
     } catch {
       toast.error("Nepodařilo se změnit stav");
+    } finally {
+      setChangingStatus(null);
     }
   }
 
@@ -298,8 +302,9 @@ export function TicketsPageClient({
                       size="sm"
                       variant={s === selectedTicket.status ? "default" : "outline"}
                       onClick={() => handleStatusChange(selectedTicket.id, s)}
-                      disabled={s === selectedTicket.status}
+                      disabled={s === selectedTicket.status || changingStatus !== null}
                     >
+                      {changingStatus === s && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {statusLabels[s]}
                     </Button>
                   ))}
