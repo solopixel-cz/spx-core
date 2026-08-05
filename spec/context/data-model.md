@@ -197,6 +197,53 @@ Tokeny pro onboarding formulář na webu. Dokument ID = nanoid token.
 ### `card-submissions`
 Vyplněné podklady z webového formuláře. Dokument ID = token.
 
+Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je kontrakt ve web zadání `spx-web/spec/assign/zadani-formular-prestavba.md`. Starší záznamy jsou ploché (bez `schemaVersion`) — CRM je čte zpětně kompatibilně přes `normalizeSubmission` (`lib/submission-view-model.ts`).
+
+```ts
+// v2 (aktuální)
+{
+  schemaVersion: 2
+  token: string
+  basic: {
+    fullName: string
+    ico?: string           // IČO — v CRM/AI se nikdy nevypisuje
+    phone?: string
+    email: string
+    companyBrand?: string
+    customDomain?: string
+    hasDomain?: 'ano' | 'ne'  // 'ano' = adresa vlastní domény, 'ne' = přání jaká by měla být
+    region?: string
+  }
+  social?: {
+    youtube?: string
+    instagram?: string
+    tiktok?: string
+    facebook?: string
+    custom?: { nazev: string; odkaz: string }[]
+  }
+  services?: {
+    whatIDo?: string
+    topServices?: string
+    mainAction?: 'zavolat' | 'poptavka' | 'termin' | 'jine'
+    mainActionNote?: string
+  }
+  about?: { text?: string }
+  pixela?: {
+    tone?: 'profesionalni' | 'pratelska' | 'energicka' | 'humor'
+    address?: 'vykani' | 'tykani'
+    ownWords?: string
+  }
+  profileImageUrl?: string
+  createdAt: Timestamp
+  processedAt?: Timestamp
+  processedBy?: string     // uid kdo zpracoval
+}
+```
+
+Zod: `cardSubmissionSchema` (v2) + `legacyCardSubmissionSchema` (staré ploché záznamy) v `lib/schemas/card-submission.ts`.
+
+<details><summary>Legacy tvar (bez <code>schemaVersion</code>)</summary>
+
 ```ts
 {
   fullName: string
@@ -220,9 +267,10 @@ Vyplněné podklady z webového formuláře. Dokument ID = token.
   token: string
   createdAt: Timestamp
   processedAt?: Timestamp
-  processedBy?: string     // uid kdo zpracoval
+  processedBy?: string
 }
 ```
+</details>
 
 ### `commissions`
 Provizní záznamy — vznikají automaticky při označení faktury jako zaplacené, pokud má klient `salesOwnerUid` s rolí sales. **Document ID = invoiceId** (idempotence — jedna faktura, jedna provize). Storno vyplacené faktury vytvoří záporný záznam s ID `{invoiceId}-reversal`.
