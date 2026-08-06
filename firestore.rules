@@ -117,23 +117,33 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Card tokens — public get (token is secret in URL), no list, write via admin SDK
+    // Card tokens — public get (token is secret in URL), no public list.
+    // Public update ONLY to mark the token used after form submit: just the
+    // key 'usedAt' may change (identity fields name/email/clientId stay locked),
+    // the token must not be used yet (no double submit), and usedAt must be the
+    // server timestamp. Create/delete via admin SDK only.
     match /card-tokens/{token} {
       allow get: if true;
       allow list: if isAuth();
-      allow create, update, delete: if false;
+      allow update: if resource.data.get('usedAt', null) == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedAt'])
+        && request.resource.data.usedAt == request.time;
+      allow create, delete: if false;
     }
 
-    // Card submissions — public create (from web form), read via admin SDK
+    // Card submissions — public create from web form (schemaVersion 2, vnořený
+    // tvar: identita je v `basic`), read via admin SDK. Starší ploché záznamy
+    // už nevznikají (nový formulář zapisuje jen v2).
     match /card-submissions/{token} {
-      allow create: if true
-        && request.resource.data.keys().hasAll(['fullName', 'email', 'token', 'createdAt'])
-        && request.resource.data.fullName is string
-        && request.resource.data.fullName.size() > 0
-        && request.resource.data.fullName.size() < 200
-        && request.resource.data.email is string
-        && request.resource.data.email.size() > 0
-        && request.resource.data.token is string;
+      allow create: if request.resource.data.schemaVersion == 2
+        && request.resource.data.keys().hasAll(['token', 'basic', 'createdAt'])
+        && request.resource.data.token is string
+        && request.resource.data.basic is map
+        && request.resource.data.basic.fullName is string
+        && request.resource.data.basic.fullName.size() > 0
+        && request.resource.data.basic.fullName.size() < 200
+        && request.resource.data.basic.email is string
+        && request.resource.data.basic.email.size() > 0;
       allow read: if isAuth();
       allow update, delete: if false;
     }

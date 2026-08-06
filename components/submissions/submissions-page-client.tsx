@@ -23,36 +23,17 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Copy, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildSubmissionPrompt } from "@/lib/submission-prompt";
+import {
+  type SubmissionView,
+  MAIN_ACTION_LABELS,
+  TONE_LABELS,
+  ADDRESS_LABELS,
+  label,
+  domainLabel,
+} from "@/lib/submission-view-model";
 
-interface Submission {
+interface Submission extends SubmissionView {
   id: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  companyId?: string;
-  companyName?: string;
-  officeAddress?: string;
-  specialization?: string;
-  city?: string;
-  primaryLanguage?: string;
-  availableLanguages: string[];
-  customDomain?: string;
-  reasons: string[];
-  cnbExams: string[];
-  bio?: string;
-  yearsOfExperience?: number;
-  clientCount?: number;
-  focusAreas: string[];
-  clientTypes: string[];
-  whatsapp?: string;
-  motto?: string;
-  instagram?: string;
-  linkedin?: string;
-  facebook?: string;
-  website?: string;
-  referenceUrl?: string;
-  wantsCareerTab?: boolean;
-  profileImageUrl?: string;
   clientId?: string;
   clientName?: string;
   createdAt: string | null;
@@ -216,49 +197,81 @@ export function SubmissionsPageClient() {
                 </div>
               )}
 
-              <Separator />
-              <Section title="Kontakt">
-                <Field label="E-mail" value={selected.email} />
+              <Section
+                title="Kontakt"
+                show={has(
+                  selected.phone,
+                  selected.email,
+                  selected.companyBrand,
+                  selected.region,
+                  selected.customDomain,
+                  selected.ico
+                )}
+              >
                 <Field label="Telefon" value={selected.phone} />
-                <Field label="WhatsApp" value={selected.whatsapp} />
-                <Field label="Společnost" value={selected.companyName} />
-                <Field label="IČO" value={selected.companyId} />
-                <Field label="Adresa" value={selected.officeAddress} />
-                <Field label="Město" value={selected.city} />
+                <Field label="E-mail" value={selected.email} />
+                <Field label="Firma / značka" value={selected.companyBrand} />
+                <Field label="Region" value={selected.region} />
+                <Field label={domainLabel(selected.hasDomain)} value={selected.customDomain} />
+                <Field label="IČO" value={selected.ico} />
               </Section>
 
-              <Separator />
-              <Section title="Profese">
-                <Field label="Specializace" value={selected.specialization} />
-                <Field label="Praxe (roky)" value={selected.yearsOfExperience?.toString()} />
-                <Field label="Počet klientů" value={selected.clientCount?.toString()} />
-                <Field label="ČNB zkoušky" value={selected.cnbExams.join(", ")} />
-                <Field label="Zaměření" value={selected.focusAreas.join(", ")} />
-                <Field label="Typy klientů" value={selected.clientTypes.join(", ")} />
-                <Field label="Zájem o Spolupráci" value={selected.wantsCareerTab ? "Ano" : undefined} />
-              </Section>
-
-              <Separator />
-              <Section title="Profil">
-                <Field label="Motto" value={selected.motto} />
-                <Field label="Bio" value={selected.bio} />
-                <Field label="Důvody" value={selected.reasons.join("; ")} />
-                <Field label="Jazyk" value={selected.primaryLanguage} />
-                <Field label="Další jazyky" value={selected.availableLanguages.join(", ")} />
-              </Section>
-
-              <Separator />
-              <Section title="Sociální sítě a reference">
+              <Section
+                title="Sociální sítě"
+                show={has(
+                  selected.youtube,
+                  selected.instagram,
+                  selected.tiktok,
+                  selected.facebook,
+                  selected.customSocial.some((c) => c.nazev || c.odkaz)
+                )}
+              >
+                <Field label="YouTube" value={selected.youtube} />
                 <Field label="Instagram" value={selected.instagram} />
-                <Field label="LinkedIn" value={selected.linkedin} />
+                <Field label="TikTok" value={selected.tiktok} />
                 <Field label="Facebook" value={selected.facebook} />
-                <Field label="Web" value={selected.website} />
-                <Field label="Reference" value={selected.referenceUrl} />
+                {selected.customSocial
+                  .filter((c) => c.nazev || c.odkaz)
+                  .map((c, i) => (
+                    <Field key={i} label={c.nazev || "Odkaz"} value={c.odkaz} />
+                  ))}
               </Section>
 
-              <Separator />
-              <Section title="Vizitka">
-                <Field label="Vlastní doména" value={selected.customDomain} />
+              <Section
+                title="Co dělá"
+                show={has(
+                  selected.whatIDo,
+                  selected.topServices,
+                  selected.mainAction
+                )}
+              >
+                <TextBlock label="Čím se živí" value={selected.whatIDo} />
+                <TextBlock label="Hlavní 3 služby" value={selected.topServices} />
+                <Field
+                  label="Hlavní akce"
+                  value={joinHint(
+                    label(MAIN_ACTION_LABELS, selected.mainAction),
+                    selected.mainActionNote
+                  )}
+                />
+              </Section>
+
+              <Section title="O mně" show={has(selected.aboutText)}>
+                <TextBlock value={selected.aboutText} />
+              </Section>
+
+              <Section
+                title="Pixela"
+                show={has(selected.tone, selected.address, selected.ownWords)}
+              >
+                <Field label="Tón" value={label(TONE_LABELS, selected.tone)} />
+                <Field label="Oslovení" value={label(ADDRESS_LABELS, selected.address)} />
+                <TextBlock label="Vlastními slovy" value={selected.ownWords} />
+              </Section>
+
+              {/* Poznámky — jen legacy záznamy (v2 sekci nemá) */}
+              <Section title="Poznámky" show={has(selected.notes)}>
+                <TextBlock value={selected.notes} />
               </Section>
 
               {!selected.processedAt && (
@@ -286,21 +299,55 @@ export function SubmissionsPageClient() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** True, pokud má sekce aspoň jednu vyplněnou hodnotu. */
+function has(...values: (string | boolean | undefined)[]): boolean {
+  return values.some(Boolean);
+}
+
+/** Spojí čitelný text s volitelnou poznámkou v závorce. */
+function joinHint(value?: string, note?: string): string | undefined {
+  if (!value) return undefined;
+  return note ? `${value} (${note})` : value;
+}
+
+function Section({
+  title,
+  show = true,
+  children,
+}: {
+  title: string;
+  show?: boolean;
+  children: React.ReactNode;
+}) {
+  if (!show) return null;
   return (
-    <div>
-      <h3 className="text-sm font-semibold mb-2">{title}</h3>
-      <dl className="space-y-1 text-sm">{children}</dl>
-    </div>
+    <>
+      <Separator />
+      <div>
+        <h3 className="text-sm font-semibold mb-2">{title}</h3>
+        <dl className="space-y-1 text-sm">{children}</dl>
+      </div>
+    </>
   );
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right max-w-[60%]">{value}</dd>
+    <div className="flex justify-between gap-4">
+      <dt className="text-muted-foreground shrink-0">{label}</dt>
+      <dd className="text-right break-words">{value}</dd>
+    </div>
+  );
+}
+
+/** Víceřádkové / dlouhé pole — popisek nad hodnotou, zachovává odřádkování. */
+function TextBlock({ label, value }: { label?: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="space-y-0.5">
+      {label && <dt className="text-muted-foreground">{label}</dt>}
+      <dd className="whitespace-pre-wrap">{value}</dd>
     </div>
   );
 }
