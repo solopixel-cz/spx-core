@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-05 — ✅ Fáze 30 – Podklady v2 (nová struktura formuláře)
+
+Companion k přestavbě webového formuláře (`spx-web`), který nově zapisuje vnořený payload `schemaVersion: 2`. Implementováno §1–§4 (§5 admin detail/copy-MD odloženo na potvrzení zadavatele).
+
+- **View model** (`lib/submission-view-model.ts`, nový): `normalizeSubmission(raw)` sjednotí nový (v2, vnořené sekce) i starý plochý (legacy) tvar do jednoho `SubmissionView`, který konzumuje detail i AI prompt. Legacy pole bez v2 domova (LinkedIn/web/WhatsApp/reference → custom sítě, ostatní → `notes`), ať se nic neztratí. Popisky kódů (`MAIN_ACTION_LABELS`/`TONE_LABELS`/`ADDRESS_LABELS`, `label()`) + `domainLabel(hasDomain)`.
+- **Čtení** (`app/api/submissions/route.ts`): místo ručního plochého mapování volá `normalizeSubmission`; e-mailový fallback token→klient čte z view modelu (funguje i pro v2, kde je e-mail v `basic.email`).
+- **Schéma** (`lib/schemas/card-submission.ts`): `cardSubmissionSchema` přepsáno na v2 (vnořené sekce, enums); přidáno `legacyCardSubmissionSchema`. Data-model zdokumentován.
+- **Detail** (`components/submissions/submissions-page-client.tsx`): nové sekce Kontakt / Sociální sítě / Co dělá / O mně / Pixela; kódy lidsky; custom sítě název→odkaz; `TextBlock` pro víceřádkové texty; prázdné sekce se skryjí.
+- **AI Markdown** (`lib/submission-prompt.ts`): nové sekce, **bez IČO**, kódy čitelné, víceřádkové zachovány.
+- **Změny formuláře v průběhu** (dle zadavatele): odebrán **Ceník** a celá sekce **Vzhled a poznámky**; **doména** je ano/ne otázka → web ukládá `basic.hasDomain: 'ano'|'ne'` (vlastní vs přání), CRM to odlišuje v detailu i AI MD. `legacy notes` zůstávají jen jako nosič doplňků starých záznamů (sekce „Poznámky").
+- **Firestore rules** (`firestore.rules`): `card-submissions` create validuje v2 tvar (`schemaVersion==2`, identita v `basic`); `card-tokens` update povoluje jen `usedAt` (dřív `submitted/submittedAt`, což neodpovídalo webu). Nasadit `firebase deploy --only firestore`.
+- **Ověření v prohlížeči**: oba write flow (create v2 + `usedAt` update) potvrzeny přímo proti live Firestore (200 OK). „Missing or insufficient permissions" při testu byl spotřebovaný token (submission dokument už existoval → `setDoc` jako `update` → správně blokováno), ne bug. Zbývá zelený end-to-end na čerstvém tokenu.
+- `npm run lint` čistý (jen 2 předexistující TanStack warnings), `npm run build` čistý. Logika `normalize`/`buildSubmissionPrompt` ověřena na v2 i legacy vzorku (`tsx`).
+
 ## 2026-06-15 — Dashboard: otevření a kliknutí (denní rozpad)
 
 - **Server** (`app/(app)/page.tsx`): nový dotaz na `activity` (createdAt ≥ dnes−8 dní). Události „Otevřel e-mail" a „Kliknul na demo ✨" rozbucketovány po dnech v zóně Europe/Prague (Intl `en-CA` pro day-key, ukotveno na pražské poledne kvůli DST). Sales vidí jen vlastní (actorUid = senderUid). Předáno `engagementDaily` (7 dní, nejstarší→nejnovější) + `engagementToday`.

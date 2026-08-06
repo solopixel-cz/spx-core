@@ -8,4 +8,9 @@ export { taskSchema, type Task } from "./task";
 export { ticketSchema, type Ticket } from "./ticket";
 export { activitySchema, type Activity } from "./activity";
 export { cardTokenSchema, type CardToken } from "./card-token";
-export { cardSubmissionSchema, type CardSubmission } from "./card-submission";
+export {
+  cardSubmissionSchema,
+  type CardSubmission,
+  legacyCardSubmissionSchema,
+  type LegacyCardSubmission,
+} from "./card-submission";

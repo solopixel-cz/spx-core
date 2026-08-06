@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { getSalesClientIds } from "@/lib/sales-clients";
+import { normalizeSubmission } from "@/lib/submission-view-model";
 
 export async function GET() {
   try {
@@ -35,13 +36,14 @@ export async function GET() {
 
     const submissions = submissionsSnap.docs.map((doc) => {
       const data = doc.data();
+      const view = normalizeSubmission(data);
       const tokenData = tokenMap[doc.id];
       let clientId = tokenData?.clientId;
       let clientName = clientId ? clientMap[clientId] : undefined;
 
       // Fallback: match by email
-      if (!clientId && data.email) {
-        const match = clientByEmail[(data.email as string).toLowerCase()];
+      if (!clientId && view.email) {
+        const match = clientByEmail[view.email.toLowerCase()];
         if (match) {
           clientId = match.id;
           clientName = match.name;
@@ -49,34 +51,8 @@ export async function GET() {
       }
 
       return {
+        ...view,
         id: doc.id,
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone,
-        companyId: data.companyId,
-        companyName: data.companyName,
-        officeAddress: data.officeAddress,
-        specialization: data.specialization,
-        city: data.city,
-        primaryLanguage: data.primaryLanguage,
-        availableLanguages: data.availableLanguages ?? [],
-        customDomain: data.customDomain,
-        reasons: data.reasons ?? [],
-        cnbExams: data.cnbExams ?? [],
-        bio: data.bio,
-        yearsOfExperience: data.yearsOfExperience,
-        clientCount: data.clientCount,
-        focusAreas: data.focusAreas ?? [],
-        clientTypes: data.clientTypes ?? [],
-        whatsapp: data.whatsapp,
-        motto: data.motto,
-        instagram: data.instagram,
-        linkedin: data.linkedin,
-        facebook: data.facebook,
-        website: data.website,
-        referenceUrl: data.referenceUrl,
-        wantsCareerTab: data.wantsCareerTab,
-        profileImageUrl: data.profileImageUrl,
         clientId,
         clientName,
         createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,

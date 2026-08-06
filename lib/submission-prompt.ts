@@ -1,114 +1,104 @@
-const SUBMISSION_PROMPT_INTRO = `Na základě následujících podkladů od finančního poradce vytvoř obsah jeho digitální vizitky SoloPixel (profil, bio, sekce služeb a zaměření). Vycházej výhradně z uvedených údajů, nic si nedomýšlej. Co není vyplněné, vynech.`;
+import {
+  type SubmissionView,
+  MAIN_ACTION_LABELS,
+  TONE_LABELS,
+  ADDRESS_LABELS,
+  label,
+  domainLabel,
+} from "./submission-view-model";
 
-interface SubmissionData {
-  fullName: string;
-  email: string;
-  phone?: string;
-  companyId?: string;
-  companyName?: string;
-  officeAddress?: string;
-  city?: string;
-  whatsapp?: string;
-  motto?: string;
-  instagram?: string;
-  linkedin?: string;
-  facebook?: string;
-  website?: string;
-  referenceUrl?: string;
-  wantsCareerTab?: boolean;
-  specialization?: string;
-  yearsOfExperience?: number;
-  clientCount?: number;
-  cnbExams: string[];
-  focusAreas: string[];
-  clientTypes: string[];
-  bio?: string;
-  reasons: string[];
-  primaryLanguage?: string;
-  availableLanguages: string[];
-  customDomain?: string;
-  profileImageUrl?: string;
-}
+const SUBMISSION_PROMPT_INTRO = `Na základě následujících podkladů od klienta vytvoř obsah jeho digitální vizitky SoloPixel (profil, text „O mně", sekce služeb a hlavní akce). Vycházej výhradně z uvedených údajů, nic si nedomýšlej. Klíčový je text „O mně" a požadovaný tón, jakým má vizitka (Pixela) působit — drž se ho v celém obsahu. Co není vyplněné, vynech.`;
 
-export function buildSubmissionPrompt(submission: SubmissionData): string {
+export function buildSubmissionPrompt(submission: SubmissionView): string {
   const lines: string[] = [SUBMISSION_PROMPT_INTRO, ""];
 
-  function addField(label: string, value: string | undefined) {
-    if (value) lines.push(`**${label}:** ${value}`);
+  function addField(labelText: string, value: string | undefined) {
+    if (value) lines.push(`**${labelText}:** ${value}`);
   }
 
-  // Kontakt (bez IČO)
+  function addBlock(labelText: string, value: string | undefined) {
+    if (value) {
+      lines.push(`**${labelText}:**`);
+      lines.push(value);
+    }
+  }
+
+  // ## Kontakt — bez IČO!
   const contactFields: [string, string | undefined][] = [
     ["Jméno", submission.fullName],
-    ["E-mail", submission.email],
     ["Telefon", submission.phone],
-    ["WhatsApp", submission.whatsapp],
-    ["Společnost", submission.companyName],
-    ["Adresa", submission.officeAddress],
-    ["Město", submission.city],
+    ["E-mail", submission.email],
+    ["Firma / značka", submission.companyBrand],
+    ["Region", submission.region],
+    [domainLabel(submission.hasDomain, { long: true }), submission.customDomain],
   ];
   if (contactFields.some(([, v]) => v)) {
     lines.push("## Kontakt");
-    for (const [label, value] of contactFields) addField(label, value);
+    for (const [labelText, value] of contactFields) addField(labelText, value);
     lines.push("");
   }
 
-  // Profese
-  const profeseFields: [string, string | undefined][] = [
-    ["Specializace", submission.specialization],
-    ["Praxe (roky)", submission.yearsOfExperience?.toString()],
-    ["Počet klientů", submission.clientCount?.toString()],
-    ["ČNB zkoušky", submission.cnbExams.join(", ") || undefined],
-    ["Zaměření", submission.focusAreas.join(", ") || undefined],
-    ["Typy klientů", submission.clientTypes.join(", ") || undefined],
-  ];
-  if (profeseFields.some(([, v]) => v)) {
-    lines.push("## Profese");
-    for (const [label, value] of profeseFields) addField(label, value);
-    lines.push("");
-  }
-
-  // Profil
-  const hasBio = !!submission.bio;
-  const profileFields: [string, string | undefined][] = [
-    ["Motto", submission.motto],
-    ["Důvody", submission.reasons.join("; ") || undefined],
-    ["Hlavní jazyk", submission.primaryLanguage],
-    ["Další jazyky", submission.availableLanguages.join(", ") || undefined],
-  ];
-  if (hasBio || profileFields.some(([, v]) => v)) {
-    lines.push("## Profil");
-    if (hasBio) {
-      lines.push(`**Bio:**`);
-      lines.push(submission.bio!);
-    }
-    for (const [label, value] of profileFields) addField(label, value);
-    lines.push("");
-  }
-
-  // Sociální sítě a reference
+  // ## Sociální sítě
   const socialFields: [string, string | undefined][] = [
+    ["YouTube", submission.youtube],
     ["Instagram", submission.instagram],
-    ["LinkedIn", submission.linkedin],
+    ["TikTok", submission.tiktok],
     ["Facebook", submission.facebook],
-    ["Web", submission.website],
-    ["Reference", submission.referenceUrl],
-    ["Zájem o sekci Spolupráce", submission.wantsCareerTab ? "Ano" : undefined],
   ];
-  if (socialFields.some(([, v]) => v)) {
-    lines.push("## Sociální sítě a reference");
-    for (const [label, value] of socialFields) addField(label, value);
+  const customSocial = submission.customSocial.filter((c) => c.nazev || c.odkaz);
+  if (socialFields.some(([, v]) => v) || customSocial.length > 0) {
+    lines.push("## Sociální sítě");
+    for (const [labelText, value] of socialFields) addField(labelText, value);
+    for (const c of customSocial) {
+      addField(c.nazev || "Odkaz", c.odkaz);
+    }
     lines.push("");
   }
 
-  // Vizitka
-  const vizitkaFields: [string, string | undefined][] = [
-    ["Vlastní doména", submission.customDomain],
-    ["Profilová fotka", submission.profileImageUrl],
-  ];
-  if (vizitkaFields.some(([, v]) => v)) {
+  // ## Co dělá
+  const hasServices =
+    submission.whatIDo || submission.topServices || submission.mainAction;
+  if (hasServices) {
+    lines.push("## Co dělá");
+    addBlock("Čím se živí", submission.whatIDo);
+    addBlock("Hlavní 3 služby", submission.topServices);
+    const mainAction = label(MAIN_ACTION_LABELS, submission.mainAction);
+    if (mainAction) {
+      const note = submission.mainActionNote ? ` (${submission.mainActionNote})` : "";
+      lines.push(`**Hlavní akce:** ${mainAction}${note}`);
+    }
+    lines.push("");
+  }
+
+  // ## O mně
+  if (submission.aboutText) {
+    lines.push("## O mně");
+    lines.push(submission.aboutText);
+    lines.push("");
+  }
+
+  // ## Jak má působit Pixela
+  const tone = label(TONE_LABELS, submission.tone);
+  const address = label(ADDRESS_LABELS, submission.address);
+  if (tone || address || submission.ownWords) {
+    lines.push("## Jak má působit Pixela");
+    addField("Tón", tone);
+    addField("Oslovení", address);
+    addBlock("Vlastními slovy", submission.ownWords);
+    lines.push("");
+  }
+
+  // ## Poznámky — jen legacy záznamy (v2 sekci nemá)
+  if (submission.notes) {
+    lines.push("## Poznámky");
+    lines.push(submission.notes);
+    lines.push("");
+  }
+
+  // ## Vizitka
+  if (submission.profileImageUrl) {
     lines.push("## Vizitka");
-    for (const [label, value] of vizitkaFields) addField(label, value);
+    addField("Profilová fotka", submission.profileImageUrl);
     lines.push("");
   }
 

@@ -32,5 +32,6 @@
 | Fáze 27 — Předání hotové vizitky klientovi | ✅ Hotovo | [`../prompts/27-predani-vizitky.md`](../prompts/27-predani-vizitky.md) |
 | Fáze 28 — Nastavení: přestavba šablon (UI) | ✅ Hotovo | [`../prompts/28-nastaveni-sablony-ui.md`](../prompts/28-nastaveni-sablony-ui.md) |
 | Fáze 29 — Kopírovat podklad pro AI | ✅ Hotovo | [`../prompts/29-podklad-pro-ai.md`](../prompts/29-podklad-pro-ai.md) |
+| Fáze 30 — Podklady: nová struktura formuláře | ✅ Hotovo (§1–§4; §5 admin odloženo) | [`../prompts/30-podklady-nova-struktura.md`](../prompts/30-podklady-nova-struktura.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).
