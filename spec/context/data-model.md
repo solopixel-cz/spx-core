@@ -237,10 +237,13 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
   createdAt: Timestamp
   processedAt?: Timestamp
   processedBy?: string     // uid kdo zpracoval
+  notifiedAt?: Timestamp   // interní e-mail upozornění odesláno (idempotence)
 }
 ```
 
 Zod: `cardSubmissionSchema` (v2) + `legacyCardSubmissionSchema` (staré ploché záznamy) v `lib/schemas/card-submission.ts`.
+
+Upozornění na nový podklad: web po odeslání volá `POST /api/submissions/notify` (přes proxy `spx-web/pages/api/notify-submission.ts`, sdílené tajemství `SUBMISSION_NOTIFY_SECRET`) → CRM pošle e-mail na `hello@solopixel.cz` a nastaví `notifiedAt`.
 
 <details><summary>Legacy tvar (bez <code>schemaVersion</code>)</summary>
 
