@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Menu, Search, LogOut, User, Loader2 } from "lucide-react";
+import { Menu, Search, LogOut, User, Loader2, RefreshCw } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useRefreshControls } from "@/components/refresh-context";
 import { UserAvatar } from "@/components/user-avatar";
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ export function AppTopbar({
   photoURL: string | null;
 }) {
   const router = useRouter();
+  const { refresh, isRefreshing } = useRefreshControls();
   const [searchOpen, setSearchOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -93,6 +95,16 @@ export function AppTopbar({
         </Button>
 
         <div className="flex-1" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={refresh}
+          title="Obnovit data"
+          aria-label="Obnovit data"
+        >
+          <RefreshCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
+        </Button>
 
         <ThemeToggle />
 

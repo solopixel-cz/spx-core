@@ -75,6 +75,14 @@ export function LeadsPageClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadRow | null>(null);
 
+  // Resync ze serveru po globálním Obnovit — úprava stavu během renderu
+  // (router.refresh přinese nové `initialLeads`).
+  const [prevInitialLeads, setPrevInitialLeads] = useState(initialLeads);
+  if (prevInitialLeads !== initialLeads) {
+    setPrevInitialLeads(initialLeads);
+    setLeads(initialLeads);
+  }
+
   async function handleStageChange(leadId: string, newStage: string) {
     // Optimistic update
     setLeads((prev) =>

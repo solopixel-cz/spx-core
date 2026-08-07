@@ -19,10 +19,12 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Copy, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildSubmissionPrompt } from "@/lib/submission-prompt";
+import { useRefresh } from "@/components/refresh-context";
 import {
   type SubmissionView,
   MAIN_ACTION_LABELS,
@@ -47,6 +49,7 @@ export function SubmissionsPageClient() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Submission | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [tab, setTab] = useState<"new" | "processed">("new");
 
   const fetchData = useCallback(async () => {
     try {
@@ -60,6 +63,8 @@ export function SubmissionsPageClient() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useRefresh(fetchData);
 
   async function handleProcess(id: string) {
     setProcessing(true);
@@ -86,9 +91,34 @@ export function SubmissionsPageClient() {
     );
   }
 
+  const newSubmissions = submissions.filter((s) => !s.processedAt);
+  const processedSubmissions = submissions.filter((s) => s.processedAt);
+  const rows = tab === "new" ? newSubmissions : processedSubmissions;
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Podklady</h1>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "new" | "processed")}>
+        <TabsList>
+          <TabsTrigger value="new">
+            Nové
+            {newSubmissions.length > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                {newSubmissions.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="processed">
+            Zpracované
+            {processedSubmissions.length > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                {processedSubmissions.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="rounded-md border">
         <Table>
@@ -98,18 +128,17 @@ export function SubmissionsPageClient() {
               <TableHead>E-mail</TableHead>
               <TableHead>Klient</TableHead>
               <TableHead>Odesláno</TableHead>
-              <TableHead>Stav</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {submissions.length === 0 ? (
+            {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  Žádné podklady
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  {tab === "new" ? "Žádné nové podklady" : "Žádné zpracované podklady"}
                 </TableCell>
               </TableRow>
             ) : (
-              submissions.map((s) => (
+              rows.map((s) => (
                 <TableRow
                   key={s.id}
                   className="cursor-pointer"
@@ -134,11 +163,6 @@ export function SubmissionsPageClient() {
                     {s.createdAt
                       ? new Date(s.createdAt).toLocaleDateString("cs-CZ")
                       : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={s.processedAt ? "secondary" : "default"}>
-                      {s.processedAt ? "Zpracováno" : "Nové"}
-                    </Badge>
                   </TableCell>
                 </TableRow>
               ))
