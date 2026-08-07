@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useRefresh } from "@/components/refresh-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +72,8 @@ export default function ArchivPage() {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  useRefresh(fetchItems);
 
   const filtered = typeFilter === "all"
     ? items

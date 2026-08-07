@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useRefresh } from "@/components/refresh-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +76,8 @@ export default function UzivatelePage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  useRefresh(fetchUsers);
 
   const {
     register,

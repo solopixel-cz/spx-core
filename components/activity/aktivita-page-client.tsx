@@ -98,6 +98,15 @@ export function AktivitaPageClient({
   const [activities, setActivities] = useState(initialActivities);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialActivities.length >= 50);
+
+  // Resync ze serveru po globálním Obnovit — úprava stavu během renderu
+  // (router.refresh přinese nové `initialActivities`).
+  const [prevInitialActivities, setPrevInitialActivities] = useState(initialActivities);
+  if (prevInitialActivities !== initialActivities) {
+    setPrevInitialActivities(initialActivities);
+    setActivities(initialActivities);
+    setHasMore(initialActivities.length >= 50);
+  }
   const [userFilter, setUserFilter] = useState("all");
   const [entityFilter, setEntityFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");

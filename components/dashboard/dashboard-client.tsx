@@ -338,7 +338,10 @@ export function DashboardClient({
                           <span className="font-medium">{a.actor}</span>{" "}
                           <span className="text-muted-foreground">{a.text}</span>
                         </p>
-                        <span className="flex-shrink-0 text-[10px] text-muted-foreground tabular-nums">
+                        <span
+                          className="flex-shrink-0 text-[10px] text-muted-foreground tabular-nums"
+                          suppressHydrationWarning
+                        >
                           {timeAgo(a.createdAt)}
                         </span>
                       </div>
