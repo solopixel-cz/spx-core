@@ -94,6 +94,15 @@ export function ProspektiPageClient({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [claiming, setClaiming] = useState<string | null>(null);
 
+  // Resync ze serveru po globálním Obnovit — úprava stavu během renderu
+  // (router.refresh přinese nové `initialProspects`).
+  const [prevInitialProspects, setPrevInitialProspects] = useState(initialProspects);
+  if (prevInitialProspects !== initialProspects) {
+    setPrevInitialProspects(initialProspects);
+    setProspects(initialProspects);
+    setHasMore(initialHasMore);
+  }
+
   // Filter prospects client-side
   let filtered = prospects;
 
