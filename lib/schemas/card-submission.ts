@@ -49,6 +49,7 @@ export const cardSubmissionSchema = z.object({
   createdAt: timestampSchema,
   processedAt: timestampSchema.optional(),
   processedBy: z.string().optional(),
+  notifiedAt: timestampSchema.optional(), // interní e-mail upozornění odesláno
 });
 
 export type CardSubmission = z.infer<typeof cardSubmissionSchema>;
@@ -89,6 +90,7 @@ export const legacyCardSubmissionSchema = z.object({
   createdAt: timestampSchema,
   processedAt: timestampSchema.optional(),
   processedBy: z.string().optional(),
+  notifiedAt: timestampSchema.optional(), // interní e-mail upozornění odesláno
 });
 
 export type LegacyCardSubmission = z.infer<typeof legacyCardSubmissionSchema>;
