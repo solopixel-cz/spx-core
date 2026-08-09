@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { invoiceFormSchema } from "@/lib/schemas/invoice";
+import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { logActivity } from "@/lib/activity";
 
 export async function GET(request: Request) {
@@ -55,35 +56,25 @@ export async function POST(request: Request) {
 
     const db = getAdminFirestore();
 
-    // Generate invoice number via transaction on counters/invoices
-    const counterRef = db.collection("counters").doc("invoices");
-    const year = new Date().getFullYear();
-
-    const number = await db.runTransaction(async (tx) => {
-      const counterDoc = await tx.get(counterRef);
-      let seq = 1;
-
-      if (counterDoc.exists) {
-        const counterData = counterDoc.data()!;
-        if (counterData.year === year) {
-          seq = (counterData.seq || 0) + 1;
-        }
-      }
-
-      tx.set(counterRef, { year, seq });
-      return `${year}-${String(seq).padStart(3, "0")}`;
-    });
+    const number = await generateInvoiceNumber(db);
 
     const issuedAt = new Date();
     const dueAt = new Date(data.dueAt);
+    const amount = invoiceItemsTotal(data.items);
+    const variableSymbol =
+      data.variableSymbol?.trim() || number.replace(/\D/g, "");
+    const status = data.asDraft ? "draft" : "sent";
 
     const docRef = await db.collection("invoices").add({
       clientId: data.clientId,
       number,
-      amount: data.amount,
+      amount,
+      items: data.items,
+      variableSymbol,
+      note: data.note?.trim() || null,
       issuedAt,
       dueAt,
-      status: "sent",
+      status,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,
@@ -93,7 +84,7 @@ export async function POST(request: Request) {
       entityType: "invoice",
       entityId: docRef.id,
       kind: "system",
-      text: `Faktura ${number} vystavena na ${data.amount.toLocaleString("cs-CZ")} Kč`,
+      text: `Faktura ${number} ${status === "draft" ? "uložena jako koncept" : "vystavena"} na ${amount.toLocaleString("cs-CZ")} Kč`,
       actorUid: user.uid,
     });
 
