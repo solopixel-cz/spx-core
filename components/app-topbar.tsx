@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { MobileSidebar } from "@/components/app-sidebar";
+import { PixelLogo } from "@/components/pixel-logo";
 import { CommandSearch } from "@/components/command-search";
 import type { SessionUser } from "@/lib/auth";
 
@@ -77,7 +78,8 @@ export function AppTopbar({
             <span className="sr-only">Menu</span>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
-            <SheetTitle className="flex h-14 items-center border-b px-4 text-lg font-bold">
+            <SheetTitle className="flex h-14 items-center gap-2.5 border-b px-4 font-heading text-lg font-bold">
+              <PixelLogo className="size-6 shrink-0" />
               SPX Core
             </SheetTitle>
             <MobileSidebar role={user.role} />
