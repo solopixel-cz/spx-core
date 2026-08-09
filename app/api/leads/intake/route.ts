@@ -3,6 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { leadIntakeSchema } from "@/lib/schemas/lead";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notifications";
 
 /**
  * Veřejný příjem poptávek z marketingového webu (spx-web, /kontakt).
@@ -67,6 +68,15 @@ export async function POST(request: NextRequest) {
       kind: "system",
       text: `Lead „${data.name}" přišel z webu`,
       actorUid: ownerUid,
+    });
+
+    await notify({
+      type: "lead.web",
+      title: "Nová poptávka z webu",
+      body: data.email ? `${data.name} · ${data.email}` : data.name,
+      href: "/leady",
+      entityType: "lead",
+      entityId: docRef.id,
     });
 
     return NextResponse.json({ id: docRef.id });

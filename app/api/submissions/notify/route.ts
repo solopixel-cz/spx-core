@@ -3,6 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { normalizeSubmission } from "@/lib/submission-view-model";
 import { sendTransactionalEmail } from "@/lib/email";
+import { notify } from "@/lib/notifications";
 
 /**
  * Interní upozornění na nový vyplněný podklad.
@@ -81,6 +82,13 @@ export async function POST(request: NextRequest) {
     });
 
     await ref.update({ notifiedAt: FieldValue.serverTimestamp() });
+
+    await notify({
+      type: "submission.filled",
+      title: "Nové podklady",
+      body: `${name} vyplnil formulář podkladů`,
+      href: "/podklady",
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
