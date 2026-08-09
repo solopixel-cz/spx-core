@@ -21,7 +21,6 @@ export default async function DashboardPage() {
     clientsSnap,
     usersSnap,
     prospectsSnap,
-    outreachSnap,
     engagementSnap,
   ] = await Promise.all([
     getAttentionItems(user.uid, user.role),
@@ -33,7 +32,6 @@ export default async function DashboardPage() {
     db.collection("clients").get(),
     db.collection("users").get(),
     db.collection("prospects").get(),
-    db.collection("outreachEmails").get(),
     // Engagement events (otevření / kliknutí) za posledních 8 dní pro denní rozpad
     db.collection("activity").where("createdAt", ">=", engagementSince).get(),
   ]);
@@ -55,6 +53,7 @@ export default async function DashboardPage() {
   let mrr = 0;
   let paidThisMonth = 0;
   let invoicedThisMonth = 0;
+  const overdueInvoices = { count: 0, sum: 0 };
   const monthlyPaidData: { month: string; amount: number }[] = [];
 
   if (!isSales && invoicesSnap && subsSnap) {
@@ -87,6 +86,10 @@ export default async function DashboardPage() {
 
       if (issuedAt && issuedAt.getMonth() === thisMonth && issuedAt.getFullYear() === thisYear) {
         invoicedThisMonth += amount;
+      }
+      if (d.status === "overdue") {
+        overdueInvoices.count++;
+        overdueInvoices.sum += amount;
       }
       if (paidAt) {
         if (paidAt.getMonth() === thisMonth && paidAt.getFullYear() === thisYear) {
@@ -171,62 +174,34 @@ export default async function DashboardPage() {
       };
     });
 
-  // Prospect outreach stats
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 86400000);
-  const prospectStats = { contactedThisWeek: 0, responding: 0, converted: 0 };
-  const prospectsByOwner: Record<string, { claimed: number; contacted: number; responding: number; converted: number }> = {};
-
-  prospectsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
-    const d = doc.data();
-    const ownerId = d.ownerUid as string | null;
-
-    if (ownerId) {
-      if (!prospectsByOwner[ownerId]) {
-        prospectsByOwner[ownerId] = { claimed: 0, contacted: 0, responding: 0, converted: 0 };
-      }
-      prospectsByOwner[ownerId].claimed++;
-    }
-
-    const lastTouch = d.lastTouchAt?.toDate?.();
-    if (lastTouch && lastTouch >= weekAgo) {
-      prospectStats.contactedThisWeek++;
-      if (ownerId && prospectsByOwner[ownerId]) {
-        prospectsByOwner[ownerId].contacted++;
-      }
-    }
-    if (d.status === "responding") {
-      prospectStats.responding++;
-      if (ownerId && prospectsByOwner[ownerId]) {
-        prospectsByOwner[ownerId].responding++;
-      }
-    }
-    if (d.status === "converted") {
-      prospectStats.converted++;
-      if (ownerId && prospectsByOwner[ownerId]) {
-        prospectsByOwner[ownerId].converted++;
-      }
-    }
-  });
-
-  const prospectOwnerStats = Object.entries(prospectsByOwner).map(([uid, stats]) => ({
-    uid,
-    name: userMap[uid] ?? uid,
-    ...stats,
-  }));
-
-  // Outreach email stats this week
-  const outreachWeekStats = { sent: 0, opened: 0, clicked: 0 };
-  outreachSnap.docs.forEach((doc) => {
-    const d = doc.data();
-    if (isSales && d.senderUid !== user.uid) return;
-    const sentAt = d.sentAt?.toDate?.();
-    if (!sentAt || sentAt < weekAgo) return;
-    outreachWeekStats.sent++;
-    const status = d.status as string;
-    if (status === "opened" || status === "clicked") outreachWeekStats.opened++;
-    if (status === "clicked") outreachWeekStats.clicked++;
-  });
+  // Dnešní follow-upy — prospekti s termínem follow-upu ≤ dnes (a po termínu).
+  // Sales vidí jen vlastní. Terminální stavy se ignorují.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const terminalProspectStatuses = ["converted", "not_interested", "unreachable"];
+  const followUps = prospectsSnap.docs
+    .filter((doc) => {
+      const d = doc.data();
+      if (d.deletedAt) return false;
+      if (terminalProspectStatuses.includes(d.status as string)) return false;
+      if (isSales && d.ownerUid !== user.uid) return false;
+      const due = d.nextFollowUpAt?.toDate?.();
+      return due && due <= endOfToday;
+    })
+    .map((doc) => {
+      const d = doc.data();
+      const due = d.nextFollowUpAt.toDate() as Date;
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      return {
+        id: doc.id,
+        name: d.name as string,
+        company: (d.company as string) ?? null,
+        nextFollowUpAt: due.toISOString(),
+        overdue: due < startOfToday,
+      };
+    })
+    .sort((a, b) => a.nextFollowUpAt.localeCompare(b.nextFollowUpAt));
 
   // Engagement: denní rozpad otevření a kliknutí za posledních 7 dní (v české zóně)
   const PRAGUE_TZ = "Europe/Prague";
@@ -299,9 +274,8 @@ export default async function DashboardPage() {
       onboardingClients={onboardingClients}
       recentActivity={recentActivity}
       myOpenTasks={myOpenTasks}
-      prospectStats={prospectStats}
-      prospectOwnerStats={prospectOwnerStats}
-      outreachWeekStats={outreachWeekStats}
+      overdueInvoices={overdueInvoices}
+      followUps={followUps}
       engagementDaily={engagementDaily}
       engagementToday={{ opened: engagementToday.opened, clicked: engagementToday.clicked }}
       userRole={user.role}

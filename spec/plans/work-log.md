@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Responzivní dashboard + revize widgetů
+
+Dashboard nebyl použitelný na mobilu (hlavně karta „Pipeline" = 6 holých čísel bez popisků, spoléhala na hover tooltip). Předěláno mobile-first po domluvě se zadavatelem.
+
+- **Nové pořadí (mobile-first)**: Rychlé akce → Vyžaduje akci (feed, priorita) → akční upozornění → finanční KPI → detail. Feed je teď první, čísla až pak.
+- **Rychlé akce** (nové): řádek tlačítek +Lead / +Klient / +Ticket / +Úkol v `PageHeader` action slotu (odkazy na sekce).
+- **Faktury po splatnosti** (nové, admin/member): zvýrazněná destruktivní karta s částkou + počtem, odkaz na /fakturace. Data z `invoicesSnap` (status `overdue`) v `app/(app)/page.tsx`.
+- **Dnešní follow-upy** (nové): prospekti s `nextFollowUpAt ≤ dnes` (follow-up má jen prospect schema, ne lead), po termínu zvýrazněné. Sales vidí jen vlastní.
+- **Pipeline** oprava: místo 6 nepopsaných čísel funnel s popisky fází + bary + počty (`PIPELINE_STAGES`, škálováno na max).
+- **Finanční KPI**: `grid-cols-2 md:grid-cols-4`, mini graf 12 měs. přes celou šířku (`col-span-2/4`) — už není osamocený a zmáčklý.
+- **Oslovování zjednodušeno** (dle zadavatele): odebrány widgety „Oslovení tento týden", „Oslovování celkem" a tabulka „Oslovování po obchodnících" (je i na stránce Oslovení). Ponechán jen EngagementCard (otevření + kliknutí na demo). V `page.tsx` odstraněn `outreachEmails` dotaz + výpočty `prospectStats`/`prospectOwnerStats`/`outreachWeekStats`.
+- Ověřeno: lint (0 errors) + build čisté (51/51); vizuálně 390px/1280px light+dark přes agent-browser (feed, upozornění, KPI, pipeline funnel, onboarding, aktivita, engagement).
+
 ## 2026-08-09 — ✅ Mobile-first administrace + brand theme solopixel.cz
 
 Cíl: CRM plnohodnotně použitelné na mobilu (50/50 s desktopem) + vizuální sladění s webem solopixel.cz.
