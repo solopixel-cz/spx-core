@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Notifikační systém (in-app zvonek + Web Push na iPhone)
+
+Zadavatel chtěl v CRM notifikace na události (poptávka z webu, otevřený/vyplněný podklad) — a pokud možno i popup na iPhone přes PWA. Postaveno obojí naráz; příjemci = admini (malý tým, centrální dohled).
+
+- **In-app notifikace**: nová kolekce `notifications/{id}` (`recipientUid, type, title, body, href, entityType, entityId, readAt, createdAt`). Zvonek v topbaru (`components/notifications/notification-bell.tsx`) — **první nasazení `onSnapshot`** v appce přes existující nepoužitý `lib/hooks/use-collection.ts`. Badge s počtem nepřečtených, dropdown seznam, klik = `readAt` + navigace, sonner toast při příchodu nové.
+- **Web Push (VAPID, bez FCM)**: `lib/push.ts` `sendPushToUsers()` (zaniklé odběry 404/410 maže), přidán `push` + `notificationclick` handler do `public/sw.js`. Odběry v `users/{uid}/pushSubscriptions/{hash(endpoint)}`. Přepínač `/nastaveni/notifikace` (`push-toggle.tsx`) — sám si zaregistruje SW, iOS nápověda (nutná PWA na ploše).
+- **Server fan-out**: `lib/notifications.ts` `notify()` — najde aktivní adminy, batch zapíše in-app záznam + pošle push. Nikdy neshodí hlavní operaci (chyby jen loguje).
+- **Zapojené event body**: web lead intake (`leads/intake`), vyplněné podklady (`submissions/notify`), otevřený e-mail s formulářem podkladů (`webhooks/resend`).
+- **API**: `POST /api/push/subscribe|unsubscribe` (admin SDK, `requireAuth`).
+- **Firestore**: rules pro `notifications` (čtu jen svoje, update jen `readAt`) + `pushSubscriptions` (jen admin SDK); composite index `recipientUid + createdAt`.
+- **Závislost**: přidán `web-push` (+ `@types/web-push`). VAPID klíče v env (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
+- Lint + build + typecheck čisté. Commit `af73585` na `devel`. Ověřeno v provozu zadavatelem (intake → notifikace fungují).
+- **Deploy pozn.**: nutné nasadit `firebase deploy --only firestore` (rules + index) a nastavit VAPID env na Vercelu (Production). iOS push jen z PWA přidané na plochu, iOS 16.4+.
+
 ## 2026-08-09 — ✅ Fix: dashboard přetékal na mobilu (recharts)
 
 Uživatel hlásil, že dashboard je širší než displej. Příčina: `MiniBarChart` (recharts `ResponsiveContainer`) — na reálném mobilu při prvotním renderu (viewport se ustaluje) zafixuje širší SVG a roztáhne grid buňku KPI přes šířku viewportu. `main` má `overflow-y-auto`, což dle CSS spec dopočítá `overflow-x: auto` → vodorovný scroll. V headless Chromiu s pevným viewportem se neprojevilo (proto těžká reprodukce).
