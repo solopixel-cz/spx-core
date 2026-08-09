@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import {
   Receipt,
@@ -23,12 +16,13 @@ import {
   Info,
   BookUser,
   ArrowRight,
-  Mail,
-  MousePointerClick,
-  Eye,
   History,
+  Plus,
+  UserPlus,
+  Phone,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { AttentionItem } from "@/lib/attention";
 import { MiniBarChart } from "./mini-bar-chart";
 import { EngagementCard, type EngagementDay } from "./engagement-card";
@@ -37,6 +31,7 @@ const stageLabels: Record<string, string> = {
   new: "Nový", contacted: "Osloven", demo: "Demo",
   offer: "Nabídka", contract: "Smlouva", onboarding: "Onboarding",
 };
+const PIPELINE_STAGES = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
 
 const typeIcons: Record<string, React.ReactNode> = {
   invoice: <Receipt className="h-4 w-4" />,
@@ -99,27 +94,6 @@ interface OnboardingClient {
   stale: boolean;
 }
 
-interface ProspectStats {
-  contactedThisWeek: number;
-  responding: number;
-  converted: number;
-}
-
-interface ProspectOwnerStats {
-  uid: string;
-  name: string;
-  claimed: number;
-  contacted: number;
-  responding: number;
-  converted: number;
-}
-
-interface OutreachWeekStats {
-  sent: number;
-  opened: number;
-  clicked: number;
-}
-
 interface ActivityItem {
   id: string;
   actorUid: string;
@@ -127,6 +101,39 @@ interface ActivityItem {
   text: string;
   href: string;
   createdAt: string | null;
+}
+
+interface FollowUp {
+  id: string;
+  name: string;
+  company: string | null;
+  nextFollowUpAt: string;
+  overdue: boolean;
+}
+
+/** Malé statistické okénko (KPI). */
+function StatCard({
+  label,
+  value,
+  accent,
+  href,
+}: {
+  label: string;
+  value: React.ReactNode;
+  accent?: string;
+  href?: string;
+}) {
+  const inner = (
+    <Card className={href ? "h-full transition-colors hover:bg-muted/50" : "h-full"}>
+      <CardContent className="pt-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={cn("mt-1 font-heading text-xl font-bold tabular-nums", accent)}>
+          {value}
+        </p>
+      </CardContent>
+    </Card>
+  );
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
 export function DashboardClient({
@@ -140,9 +147,8 @@ export function DashboardClient({
   onboardingClients,
   recentActivity,
   myOpenTasks,
-  prospectStats,
-  prospectOwnerStats,
-  outreachWeekStats,
+  overdueInvoices,
+  followUps,
   engagementDaily,
   engagementToday,
   userRole = "member",
@@ -157,9 +163,8 @@ export function DashboardClient({
   onboardingClients: OnboardingClient[];
   recentActivity: ActivityItem[];
   myOpenTasks: number;
-  prospectStats: ProspectStats;
-  prospectOwnerStats: ProspectOwnerStats[];
-  outreachWeekStats: OutreachWeekStats;
+  overdueInvoices: { count: number; sum: number };
+  followUps: FollowUp[];
   engagementDaily: EngagementDay[];
   engagementToday: { opened: number; clicked: number };
   userRole?: string;
@@ -168,124 +173,236 @@ export function DashboardClient({
   const MAX_FEED = 8;
   const visibleFeed = attentionItems.slice(0, MAX_FEED);
   const hiddenCount = attentionItems.length - MAX_FEED;
+  const maxStage = Math.max(1, ...PIPELINE_STAGES.map((s) => leadsByStage[s] || 0));
+
+  const quickActions = [
+    { label: "Lead", href: "/leady", icon: Briefcase },
+    { label: "Klient", href: "/klienti", icon: UserPlus },
+    { label: "Ticket", href: "/tickety", icon: TicketCheck },
+    { label: "Úkol", href: "/ukoly", icon: CheckSquare },
+  ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" />
+      {/* Header + rychlé akce */}
+      <PageHeader
+        title="Dashboard"
+        action={
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                <a.icon className="mr-1.5 h-3.5 w-3.5" />
+                {a.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
 
-      {/* Financial row — admin/member only */}
+      {/* 1. Vyžaduje akci — priorita na mobilu */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Vyžaduje akci</h2>
+        {attentionItems.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-dashed p-6 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle className="h-5 w-5" />
+            <span className="text-sm font-medium">Vše vyřízeno</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {visibleFeed.map((item, i) => (
+              <Link key={i} href={item.href}>
+                <div className="flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-all hover:bg-muted/50 active:scale-[0.99]">
+                  <div className={severityColors[item.severity]}>
+                    {severityIcons[item.severity]}
+                  </div>
+                  <div className="text-muted-foreground">{typeIcons[item.type]}</div>
+                  <span className="min-w-0 flex-1 truncate text-sm">{item.title}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+              </Link>
+            ))}
+            {hiddenCount > 0 && (
+              <p className="px-1 pt-1 text-xs text-muted-foreground">
+                … a dalších {hiddenCount} položek
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Akční upozornění: faktury po splatnosti + dnešní follow-upy */}
+      {(!isSales && overdueInvoices.count > 0) || followUps.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
+          {!isSales && overdueInvoices.count > 0 && (
+            <Link href="/fakturace">
+              <Card className="h-full border-destructive/40 transition-colors hover:bg-destructive/5">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <p className="text-sm font-medium">Faktury po splatnosti</p>
+                  </div>
+                  <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-destructive">
+                    {formatCurrency(overdueInvoices.sum)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {overdueInvoices.count}{" "}
+                    {overdueInvoices.count === 1 ? "faktura" : "faktur"} k řešení
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {followUps.length > 0 && (
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Phone className="h-4 w-4 text-primary" />
+                    Dnešní follow-upy
+                  </CardTitle>
+                  <Link
+                    href="/prospekti"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Vše <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {followUps.slice(0, 5).map((f) => (
+                    <Link key={f.id} href="/prospekti">
+                      <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {f.name}
+                          {f.company && (
+                            <span className="text-muted-foreground"> · {f.company}</span>
+                          )}
+                        </span>
+                        {f.overdue && (
+                          <span className="shrink-0 text-xs font-medium text-red-600 dark:text-red-400">
+                            po termínu
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                  {followUps.length > 5 && (
+                    <p className="px-1 pt-0.5 text-xs text-muted-foreground">
+                      … a dalších {followUps.length - 5}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : null}
+
+      {/* 3. Finanční KPI — admin/member */}
       {!isSales && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">MRR</p>
-              <p className="text-xl font-bold tabular-nums">{formatCurrency(mrr)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">Zaplaceno tento měsíc</p>
-              <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(paidThisMonth)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">Vyfakturováno tento měsíc</p>
-              <p className="text-xl font-bold tabular-nums">{formatCurrency(invoicedThisMonth)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">Pipeline hodnota</p>
-              <p className="text-xl font-bold tabular-nums">{formatCurrency(pipelineValue)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground mb-1">Zaplaceno (12 měs.)</p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <StatCard label="MRR" value={formatCurrency(mrr)} />
+          <StatCard
+            label="Zaplaceno tento měsíc"
+            value={formatCurrency(paidThisMonth)}
+            accent="text-emerald-600 dark:text-emerald-400"
+          />
+          <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
+          <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
+          <Card className="col-span-2 min-w-0 md:col-span-4">
+            <CardContent className="min-w-0 pt-4">
+              <p className="mb-2 text-xs text-muted-foreground">Zaplaceno (12 měsíců)</p>
               <MiniBarChart data={monthlyPaidData} />
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Main grid: Left (feed + onboarding) | Right (activity + outreach) */}
+      {/* 4. Detail: vlevo pipeline + onboarding, vpravo aktivita + engagement */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Feed "Vyžaduje akci" */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Vyžaduje akci</h2>
-            {attentionItems.length === 0 ? (
-              <div className="flex items-center gap-3 rounded-lg border border-dashed p-6 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle className="h-5 w-5" />
-                <span className="text-sm font-medium">Vše vyřízeno</span>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {visibleFeed.map((item, i) => (
-                  <Link key={i} href={item.href}>
-                    <div className="flex items-center gap-3 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:bg-muted/50">
-                      <div className={severityColors[item.severity]}>
-                        {severityIcons[item.severity]}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {typeIcons[item.type]}
-                      </div>
-                      <span className="flex-1 text-sm truncate">{item.title}</span>
-                    </div>
-                  </Link>
-                ))}
-                {hiddenCount > 0 && (
-                  <p className="text-xs text-muted-foreground px-3 pt-1">
-                    … a dalších {hiddenCount} položek
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Quick stats row */}
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-            <Link href="/leady">
-              <Card className="hover:bg-muted/50 transition-colors">
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-xs text-muted-foreground">Pipeline</p>
-                  <div className="flex gap-2 mt-1">
-                    {["new", "contacted", "demo", "offer", "contract", "onboarding"].map((s) => (
-                      <span key={s} className="text-xs" title={stageLabels[s]}>
-                        {leadsByStage[s] || 0}
-                      </span>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/ukoly">
-              <Card className="hover:bg-muted/50 transition-colors">
-                <CardContent className="pt-4 pb-3">
+        <div className="space-y-6 lg:col-span-2">
+          {/* Pipeline funnel + moje úkoly */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Link href="/ukoly" className="sm:col-span-1">
+              <Card className="h-full transition-colors hover:bg-muted/50">
+                <CardContent className="pt-4">
                   <p className="text-xs text-muted-foreground">Moje úkoly</p>
-                  <p className="text-xl font-bold">{myOpenTasks}</p>
+                  <p className="mt-1 font-heading text-3xl font-bold tabular-nums">
+                    {myOpenTasks}
+                  </p>
+                  <p className="text-xs text-muted-foreground">otevřené</p>
                 </CardContent>
               </Card>
             </Link>
+            <Card className="sm:col-span-2">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium">Pipeline</CardTitle>
+                  <Link
+                    href="/leady"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Leady <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {PIPELINE_STAGES.map((s) => {
+                    const count = leadsByStage[s] || 0;
+                    return (
+                      <div key={s} className="flex items-center gap-2 text-sm">
+                        <span className="w-20 shrink-0 text-xs text-muted-foreground">
+                          {stageLabels[s]}
+                        </span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${(count / maxStage) * 100}%` }}
+                          />
+                        </div>
+                        <span className="w-5 shrink-0 text-right text-xs font-medium tabular-nums">
+                          {count}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Onboarding overview — moved here from bottom */}
+          {/* Onboarding */}
           {onboardingClients.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Onboarding</h2>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {onboardingClients.map((c) => (
                   <Link key={c.id} href={`/klienti/${c.id}`}>
-                    <Card className={`hover:bg-muted/50 transition-colors ${c.stale ? "border-amber-300 dark:border-amber-700" : ""}`}>
+                    <Card
+                      className={cn(
+                        "h-full transition-colors hover:bg-muted/50",
+                        c.stale && "border-amber-300 dark:border-amber-700"
+                      )}
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium">{c.name}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">{c.daysIn} dní</span>
-                          <span className={`font-medium ${c.stale ? "text-amber-600 dark:text-amber-400" : ""}`}>
+                          <span
+                            className={cn(
+                              "font-medium",
+                              c.stale && "text-amber-600 dark:text-amber-400"
+                            )}
+                          >
                             {c.done}/{c.total} úkolů
                           </span>
                         </div>
@@ -306,21 +423,25 @@ export function DashboardClient({
           )}
         </div>
 
-        {/* Right column */}
+        {/* Pravý sloupec: aktivita + engagement */}
         <div className="space-y-6">
-          {/* Compact activity */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Aktivita</CardTitle>
-                <Link href="/aktivita" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Aktivita
+                </CardTitle>
+                <Link
+                  href="/aktivita"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
                   Vše <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
               {recentActivity.length === 0 ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                   <History className="h-4 w-4" />
                   <span>Žádná aktivita</span>
                 </div>
@@ -328,18 +449,21 @@ export function DashboardClient({
                 <div className="space-y-1">
                   {recentActivity.map((a) => (
                     <Link key={a.id} href={a.href}>
-                      <div className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2 rounded-md px-1 py-1.5 transition-colors hover:bg-muted/50">
                         <div
-                          className={`flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full text-[9px] font-medium text-white ${getAvatarColor(a.actorUid)}`}
+                          className={cn(
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium text-white",
+                            getAvatarColor(a.actorUid)
+                          )}
                         >
                           {getInitials(a.actor)}
                         </div>
-                        <p className="flex-1 text-xs truncate min-w-0">
+                        <p className="min-w-0 flex-1 truncate text-xs">
                           <span className="font-medium">{a.actor}</span>{" "}
                           <span className="text-muted-foreground">{a.text}</span>
                         </p>
                         <span
-                          className="flex-shrink-0 text-[10px] text-muted-foreground tabular-nums"
+                          className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                           suppressHydrationWarning
                         >
                           {timeAgo(a.createdAt)}
@@ -352,96 +476,10 @@ export function DashboardClient({
             </CardContent>
           </Card>
 
-          {/* Engagement — dnes + 7denní rozpad otevření a kliknutí */}
+          {/* Engagement — otevření + kliknutí na demo */}
           <EngagementCard today={engagementToday} daily={engagementDaily} />
-
-          {/* Outreach this week */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Oslovení tento týden</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5" />
-                    <span>Odesláno</span>
-                  </div>
-                  <span className="text-sm font-semibold tabular-nums">{outreachWeekStats.sent}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>Otevřelo</span>
-                  </div>
-                  <span className="text-sm font-semibold tabular-nums">{outreachWeekStats.opened}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                    <MousePointerClick className="h-3.5 w-3.5" />
-                    <span className="font-medium">Kliklo na demo</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">{outreachWeekStats.clicked}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Prospect summary card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Oslovování celkem</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-lg font-bold">{prospectStats.contactedThisWeek}</p>
-                  <p className="text-[10px] text-muted-foreground">Osloveno</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{prospectStats.responding}</p>
-                  <p className="text-[10px] text-muted-foreground">Reaguje</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold">{prospectStats.converted}</p>
-                  <p className="text-[10px] text-muted-foreground">Konverze</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
-
-      {/* Bottom: Owner breakdown for admins */}
-      {!isSales && prospectOwnerStats.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Oslovování po obchodnících</h2>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Obchodník</TableHead>
-                  <TableHead className="text-right">Zabráno</TableHead>
-                  <TableHead className="text-right">Osloveno</TableHead>
-                  <TableHead className="text-right">Reaguje</TableHead>
-                  <TableHead className="text-right">Konverze</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {prospectOwnerStats.map((s) => (
-                  <TableRow key={s.uid}>
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-right">{s.claimed}</TableCell>
-                    <TableCell className="text-right">{s.contacted}</TableCell>
-                    <TableCell className="text-right">{s.responding}</TableCell>
-                    <TableCell className="text-right">{s.converted}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

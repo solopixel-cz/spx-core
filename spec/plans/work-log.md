@@ -2,6 +2,29 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Fix: dashboard přetékal na mobilu (recharts)
+
+Uživatel hlásil, že dashboard je širší než displej. Příčina: `MiniBarChart` (recharts `ResponsiveContainer`) — na reálném mobilu při prvotním renderu (viewport se ustaluje) zafixuje širší SVG a roztáhne grid buňku KPI přes šířku viewportu. `main` má `overflow-y-auto`, což dle CSS spec dopočítá `overflow-x: auto` → vodorovný scroll. V headless Chromiu s pevným viewportem se neprojevilo (proto těžká reprodukce).
+
+- `MiniBarChart`: ResponsiveContainer obalen `div.w-full.min-w-0`, `width="99%"` (recharts doporučený trik proti overflow), aby nikdy neroztáhl rodiče.
+- `dashboard-client.tsx`: karta s grafem `min-w-0` (grid buňka se smrskne pod obsah).
+- `app/(app)/layout.tsx`: `main` → `overflow-x-hidden overflow-y-auto` jako pojistka — stránka nikdy nescrolluje vodorovně (tabulky mají vlastní `overflow-x-auto` wrappery, takže nic přístupného se neoře).
+- Jediný recharts v celé appce je tento graf (ověřeno grepem).
+- Ověřeno: scénář „načíst na 980px → zúžit na 390px" (přesně to, co recharts na mobilu láme) — `main.scrollWidth == clientWidth`, graf se vejde do karty (není oříznutý). Lint + build čisté (51/51).
+
+## 2026-08-09 — ✅ Responzivní dashboard + revize widgetů
+
+Dashboard nebyl použitelný na mobilu (hlavně karta „Pipeline" = 6 holých čísel bez popisků, spoléhala na hover tooltip). Předěláno mobile-first po domluvě se zadavatelem.
+
+- **Nové pořadí (mobile-first)**: Rychlé akce → Vyžaduje akci (feed, priorita) → akční upozornění → finanční KPI → detail. Feed je teď první, čísla až pak.
+- **Rychlé akce** (nové): řádek tlačítek +Lead / +Klient / +Ticket / +Úkol v `PageHeader` action slotu (odkazy na sekce).
+- **Faktury po splatnosti** (nové, admin/member): zvýrazněná destruktivní karta s částkou + počtem, odkaz na /fakturace. Data z `invoicesSnap` (status `overdue`) v `app/(app)/page.tsx`.
+- **Dnešní follow-upy** (nové): prospekti s `nextFollowUpAt ≤ dnes` (follow-up má jen prospect schema, ne lead), po termínu zvýrazněné. Sales vidí jen vlastní.
+- **Pipeline** oprava: místo 6 nepopsaných čísel funnel s popisky fází + bary + počty (`PIPELINE_STAGES`, škálováno na max).
+- **Finanční KPI**: `grid-cols-2 md:grid-cols-4`, mini graf 12 měs. přes celou šířku (`col-span-2/4`) — už není osamocený a zmáčklý.
+- **Oslovování zjednodušeno** (dle zadavatele): odebrány widgety „Oslovení tento týden", „Oslovování celkem" a tabulka „Oslovování po obchodnících" (je i na stránce Oslovení). Ponechán jen EngagementCard (otevření + kliknutí na demo). V `page.tsx` odstraněn `outreachEmails` dotaz + výpočty `prospectStats`/`prospectOwnerStats`/`outreachWeekStats`.
+- Ověřeno: lint (0 errors) + build čisté (51/51); vizuálně 390px/1280px light+dark přes agent-browser (feed, upozornění, KPI, pipeline funnel, onboarding, aktivita, engagement).
+
 ## 2026-08-09 — ✅ Mobile-first administrace + brand theme solopixel.cz
 
 Cíl: CRM plnohodnotně použitelné na mobilu (50/50 s desktopem) + vizuální sladění s webem solopixel.cz.

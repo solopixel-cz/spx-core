@@ -42,3 +42,22 @@ export const leadFormSchema = z.object({
 });
 
 export type LeadFormData = z.infer<typeof leadFormSchema>;
+
+/**
+ * Veřejná poptávka z marketingového webu (spx-web, /kontakt).
+ * Přijímá jen to, co může vyplnit návštěvník — vlastníka, zdroj a fázi
+ * doplňuje server v ingest endpointu. Nikdy nedůvěřuj klientovi u ownerUid.
+ */
+export const leadIntakeSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email().or(z.literal("")).optional(),
+  phone: z.string().optional(),
+  industry: z.string().optional(),
+  product: z.string().optional(),
+  plan: z.string().optional(),
+  teamType: z.string().optional(),
+  teamSize: z.union([z.string(), z.number()]).optional(),
+  message: z.string().optional(),
+});
+
+export type LeadIntake = z.infer<typeof leadIntakeSchema>;
