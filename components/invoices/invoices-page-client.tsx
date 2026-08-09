@@ -33,6 +33,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Check, X, Loader2 } from "lucide-react";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
 import { invoiceFormSchema, type InvoiceFormData } from "@/lib/schemas/invoice";
 
 interface InvoiceRow {
@@ -145,8 +151,8 @@ export function InvoicesPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Fakturace</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nová faktura</Button>} />
           <DialogContent>
@@ -187,7 +193,7 @@ export function InvoicesPageClient({
       </div>
 
       {/* Stats cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Po splatnosti</CardTitle>
@@ -224,18 +230,92 @@ export function InvoicesPageClient({
       </div>
 
       {/* Filter */}
-      <Select value={filter} onValueChange={(val) => setFilter(val ?? "all")}>
-        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Všechny</SelectItem>
-          {Object.entries(statusLabels).map(([k, v]) => (
-            <SelectItem key={k} value={k}>{v}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <FilterBar>
+        <Select
+          items={{ all: "Všechny", ...statusLabels }}
+          value={filter}
+          onValueChange={(val) => setFilter(val ?? "all")}
+        >
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny</SelectItem>
+            {Object.entries(statusLabels).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterBar>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {filtered.length === 0 ? (
+          <EntityCardEmpty>Žádné faktury</EntityCardEmpty>
+        ) : (
+          filtered.map((inv) => (
+            <EntityCard
+              key={inv.id}
+              title={
+                <span className="font-mono text-sm font-medium">{inv.number}</span>
+              }
+              badge={
+                <Badge variant={statusVariants[inv.status] ?? "secondary"}>
+                  {statusLabels[inv.status] ?? inv.status}
+                </Badge>
+              }
+              subtitle={inv.clientName}
+              meta={
+                <>
+                  <span className="font-medium text-foreground">
+                    {inv.amount.toLocaleString("cs-CZ")} Kč
+                  </span>
+                  {inv.issuedAt && (
+                    <span>
+                      Vystaveno {new Date(inv.issuedAt).toLocaleDateString("cs-CZ")}
+                    </span>
+                  )}
+                  {inv.dueAt && (
+                    <span>
+                      Splatnost {new Date(inv.dueAt).toLocaleDateString("cs-CZ")}
+                    </span>
+                  )}
+                </>
+              }
+            >
+              {(inv.status === "sent" || inv.status === "overdue") && (
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="relative"
+                    onClick={() => handleAction(inv.id, "paid")}
+                    disabled={actingId === inv.id}
+                  >
+                    {actingId === inv.id ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Check className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    Zaplaceno
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="relative"
+                    onClick={() => handleAction(inv.id, "cancelled")}
+                    disabled={actingId === inv.id}
+                  >
+                    <X className="mr-1 h-3.5 w-3.5" />
+                    Stornovat
+                  </Button>
+                </div>
+              )}
+            </EntityCard>
+          ))
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>

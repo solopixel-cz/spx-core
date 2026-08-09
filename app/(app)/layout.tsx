@@ -31,7 +31,9 @@ export default async function AppLayout({
       <RefreshProvider>
         <div className="flex flex-1 flex-col overflow-hidden">
           <AppTopbar user={user} displayName={displayName} photoURL={photoURL} />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto px-4 py-5 md:p-6">
+            {children}
+          </main>
         </div>
       </RefreshProvider>
     </div>

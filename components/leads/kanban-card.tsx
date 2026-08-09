@@ -44,7 +44,7 @@ export function KanbanCard({
       {...attributes}
       onClick={onClick}
       className={cn(
-        "cursor-grab rounded-md border bg-card p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing",
+        "cursor-grab rounded-xl border bg-card p-3 shadow-xs transition-shadow hover:shadow-md active:cursor-grabbing",
         isDragging && "opacity-50"
       )}
     >

@@ -108,8 +108,8 @@ export function LeadsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Leady</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Leady</h1>
         <LeadFormDialog
           open={createOpen}
           onOpenChange={setCreateOpen}

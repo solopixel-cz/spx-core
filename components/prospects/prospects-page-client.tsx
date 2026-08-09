@@ -23,6 +23,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Plus, Upload, Hand, Monitor, Phone } from "lucide-react";
@@ -224,14 +230,14 @@ export function ProspektiPageClient({
       </Tabs>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
+      <FilterBar>
         <Input
           placeholder="Hledat..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
+          className="min-w-40 flex-1 sm:max-w-sm"
         />
-        <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
+        <Select items={{ all: "Všechny stavy", ...statusLabels }} value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Stav" />
           </SelectTrigger>
@@ -242,7 +248,14 @@ export function ProspektiPageClient({
             ))}
           </SelectContent>
         </Select>
-        <Select value={ownerFilter} onValueChange={(val) => val && setOwnerFilter(val)}>
+        <Select
+          items={{
+            all: "Všichni vlastníci",
+            ...Object.fromEntries(users.map((u) => [u.id, u.displayName])),
+          }}
+          value={ownerFilter}
+          onValueChange={(val) => val && setOwnerFilter(val)}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Vlastník" />
           </SelectTrigger>
@@ -255,6 +268,10 @@ export function ProspektiPageClient({
         </Select>
         {cities.length > 0 && (
           <Select
+            items={{
+              all: "Všechna města",
+              ...Object.fromEntries(cities.map((c) => [c, c])),
+            }}
             value={(globalFilter && cities.includes(globalFilter)) ? globalFilter : "all"}
             onValueChange={(val) => val && setGlobalFilter(val === "all" ? "" : val)}
           >
@@ -269,10 +286,93 @@ export function ProspektiPageClient({
             </SelectContent>
           </Select>
         )}
-      </div>
+      </FilterBar>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {filtered.length === 0 ? (
+          <EntityCardEmpty>Žádné kontakty k oslovení</EntityCardEmpty>
+        ) : (
+          filtered.map((prospect) => {
+            const owner = users.find((u) => u.id === prospect.ownerUid);
+            const isFollowUpOverdue =
+              prospect.nextFollowUpAt &&
+              new Date(prospect.nextFollowUpAt) < new Date();
+            const canClaim =
+              !prospect.ownerUid &&
+              !["converted", "not_interested", "unreachable"].includes(
+                prospect.status
+              );
+
+            return (
+              <EntityCard
+                key={prospect.id}
+                onClick={() => setSelectedProspect(prospect)}
+                title={prospect.name}
+                badge={<StatusBadge map={prospectStatus} value={prospect.status} />}
+                subtitle={[prospect.company, prospect.city]
+                  .filter(Boolean)
+                  .join(" · ")}
+                meta={
+                  <>
+                    <span>{owner?.displayName ?? "Volný"}</span>
+                    {prospect.lastTouchAt && (
+                      <span>{formatDateTime(prospect.lastTouchAt)}</span>
+                    )}
+                    {prospect.nextFollowUpAt && (
+                      <span
+                        className={
+                          isFollowUpOverdue
+                            ? "font-medium text-red-600 dark:text-red-400"
+                            : ""
+                        }
+                      >
+                        Follow-up: {formatDate(prospect.nextFollowUpAt)}
+                      </span>
+                    )}
+                  </>
+                }
+              >
+                {(prospect.lastEmailStatus || prospect.wasCalled || canClaim) && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {prospect.lastEmailStatus && (
+                      <StatusBadge
+                        map={outreachEmailStatus}
+                        value={prospect.lastEmailStatus}
+                        className={
+                          prospect.lastEmailStatus === "clicked"
+                            ? "ring-1 ring-emerald-400"
+                            : ""
+                        }
+                      />
+                    )}
+                    {prospect.wasCalled && (
+                      <span title="Voláno">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                    )}
+                    {canClaim && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="relative ml-auto"
+                        onClick={() => handleClaim(prospect.id)}
+                        disabled={claiming === prospect.id}
+                      >
+                        <Hand className="mr-1 h-3 w-3" />
+                        Zabrat
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </EntityCard>
+            );
+          })
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>

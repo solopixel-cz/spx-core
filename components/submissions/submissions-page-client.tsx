@@ -23,6 +23,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Copy, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
 import { buildSubmissionPrompt } from "@/lib/submission-prompt";
 import { useRefresh } from "@/components/refresh-context";
 import {
@@ -85,7 +90,7 @@ export function SubmissionsPageClient() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Podklady</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Podklady</h1>
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
@@ -97,7 +102,7 @@ export function SubmissionsPageClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Podklady</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Podklady</h1>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "new" | "processed")}>
         <TabsList>
@@ -120,7 +125,36 @@ export function SubmissionsPageClient() {
         </TabsList>
       </Tabs>
 
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {rows.length === 0 ? (
+          <EntityCardEmpty>
+            {tab === "new" ? "Žádné nové podklady" : "Žádné zpracované podklady"}
+          </EntityCardEmpty>
+        ) : (
+          rows.map((s) => (
+            <EntityCard
+              key={s.id}
+              onClick={() => setSelected(s)}
+              title={s.fullName}
+              subtitle={s.email}
+              meta={
+                <>
+                  {s.clientName && <span>{s.clientName}</span>}
+                  {s.createdAt && (
+                    <span>
+                      {new Date(s.createdAt).toLocaleDateString("cs-CZ")}
+                    </span>
+                  )}
+                </>
+              }
+            />
+          ))
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>

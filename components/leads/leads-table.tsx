@@ -27,6 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
+import {
   stageLabels,
   sourceLabels,
   type LeadRow,
@@ -128,14 +134,15 @@ export function LeadsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
+      <FilterBar>
         <Input
           placeholder="Hledat..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
+          className="min-w-40 flex-1 sm:max-w-sm"
         />
         <Select
+          items={{ all: "Všechny fáze", ...stageLabels }}
           value={(columnFilters.find((f) => f.id === "stage")?.value as string) ?? "all"}
           onValueChange={(val) =>
             setColumnFilters((prev) => {
@@ -155,6 +162,7 @@ export function LeadsTable({
           </SelectContent>
         </Select>
         <Select
+          items={{ all: "Všechny zdroje", ...sourceLabels }}
           value={(columnFilters.find((f) => f.id === "source")?.value as string) ?? "all"}
           onValueChange={(val) =>
             setColumnFilters((prev) => {
@@ -173,9 +181,51 @@ export function LeadsTable({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FilterBar>
 
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {table.getRowModel().rows.length === 0 ? (
+          <EntityCardEmpty>Žádné leady</EntityCardEmpty>
+        ) : (
+          table.getRowModel().rows.map((row) => {
+            const lead = row.original;
+            const owner = users.find((u) => u.id === lead.ownerUid);
+            return (
+              <EntityCard
+                key={lead.id}
+                onClick={() => onLeadClick(lead)}
+                title={lead.name}
+                badge={
+                  <Badge variant={stageVariants[lead.stage] ?? "secondary"}>
+                    {stageLabels[lead.stage] ?? lead.stage}
+                  </Badge>
+                }
+                subtitle={lead.company || undefined}
+                meta={
+                  <>
+                    <span>{sourceLabels[lead.source] ?? lead.source}</span>
+                    {lead.value ? (
+                      <span className="font-medium text-foreground">
+                        {lead.value.toLocaleString("cs-CZ")} Kč
+                      </span>
+                    ) : null}
+                    {owner && <span>{owner.displayName}</span>}
+                    {lead.updatedAt && (
+                      <span>
+                        {new Date(lead.updatedAt).toLocaleDateString("cs-CZ")}
+                      </span>
+                    )}
+                  </>
+                }
+              />
+            );
+          })
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
