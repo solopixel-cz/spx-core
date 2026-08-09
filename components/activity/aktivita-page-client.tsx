@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import {
   MessageSquare,
   ArrowRightLeft,
@@ -158,8 +159,15 @@ export function AktivitaPageClient({
       <PageHeader title="Aktivita" />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Select value={userFilter} onValueChange={(val) => val && setUserFilter(val)}>
+      <FilterBar>
+        <Select
+          items={{
+            all: "Všichni uživatelé",
+            ...Object.fromEntries(users.map((u) => [u.id, u.displayName])),
+          }}
+          value={userFilter}
+          onValueChange={(val) => val && setUserFilter(val)}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Uživatel" />
           </SelectTrigger>
@@ -170,7 +178,14 @@ export function AktivitaPageClient({
             ))}
           </SelectContent>
         </Select>
-        <Select value={entityFilter} onValueChange={(val) => val && setEntityFilter(val)}>
+        <Select
+          items={{
+            all: "Všechny typy",
+            ...Object.fromEntries(entityTypes),
+          }}
+          value={entityFilter}
+          onValueChange={(val) => val && setEntityFilter(val)}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Typ entity" />
           </SelectTrigger>
@@ -199,7 +214,7 @@ export function AktivitaPageClient({
             className="w-36"
           />
         </div>
-      </div>
+      </FilterBar>
 
       {/* Activity list */}
       {filtered.length === 0 ? (
@@ -212,7 +227,7 @@ export function AktivitaPageClient({
         <div className="space-y-1">
           {filtered.map((a) => (
             <Link key={a.id} href={a.href}>
-              <div className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:bg-muted/50">
                 <div
                   className={`flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-full text-[10px] font-medium text-white ${getAvatarColor(a.actorUid)}`}
                 >
@@ -227,7 +242,10 @@ export function AktivitaPageClient({
                     <span className="text-muted-foreground">{a.text}</span>
                   </p>
                 </div>
-                <Badge variant="outline" className="flex-shrink-0 text-[10px]">
+                <Badge
+                  variant="outline"
+                  className="hidden flex-shrink-0 text-[10px] sm:inline-flex"
+                >
                   {entityTypeLabels[a.entityType] ?? a.entityType}
                 </Badge>
                 <span className="flex-shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap">

@@ -31,6 +31,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Copy, CreditCard, Save } from "lucide-react";
 
@@ -234,7 +240,7 @@ export function ProvizePageClient({
 
       {/* Summary cards */}
       {summaryMap.size > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
           {[...summaryMap.entries()].map(([uid, s]) => (
             <Card key={uid}>
               <CardHeader className="pb-2">
@@ -262,8 +268,15 @@ export function ProvizePageClient({
       )}
 
       {/* Filters + actions */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Select value={salesFilter} onValueChange={(val) => val && setSalesFilter(val)}>
+      <FilterBar>
+        <Select
+          items={{
+            all: "Všichni",
+            ...Object.fromEntries(salesUsers.map((u) => [u.id, u.displayName])),
+          }}
+          value={salesFilter}
+          onValueChange={(val) => val && setSalesFilter(val)}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Obchodník" />
           </SelectTrigger>
@@ -274,7 +287,11 @@ export function ProvizePageClient({
             ))}
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
+        <Select
+          items={{ all: "Všechny stavy", ...statusLabels }}
+          value={statusFilter}
+          onValueChange={(val) => val && setStatusFilter(val)}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Stav" />
           </SelectTrigger>
@@ -297,10 +314,53 @@ export function ProvizePageClient({
             </Button>
           </>
         )}
-      </div>
+      </FilterBar>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {filtered.length === 0 ? (
+          <EntityCardEmpty>Žádné provize</EntityCardEmpty>
+        ) : (
+          filtered.map((c) => (
+            <EntityCard
+              key={c.id}
+              className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}
+              title={
+                <span className="flex items-center gap-2">
+                  {c.status === "pending" && (
+                    <Checkbox
+                      checked={selected.has(c.id)}
+                      onCheckedChange={() => toggleSelect(c.id)}
+                    />
+                  )}
+                  {c.salesName}
+                </span>
+              }
+              badge={
+                <Badge variant={statusVariants[c.status] ?? "outline"}>
+                  {statusLabels[c.status] ?? c.status}
+                </Badge>
+              }
+              subtitle={`${c.clientName} · ${c.invoiceNumber}`}
+              meta={
+                <>
+                  <span>
+                    Základ {formatCurrency(c.baseAmount)} ·{" "}
+                    {Math.round(c.rate * 100)} %
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(c.amount)}
+                  </span>
+                  {c.earnedAt && <span>{formatDate(c.earnedAt)}</span>}
+                </>
+              }
+            />
+          ))
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>

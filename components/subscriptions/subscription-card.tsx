@@ -111,7 +111,7 @@ export function SubscriptionCard({
   }
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-2xl border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Předplatné</h3>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

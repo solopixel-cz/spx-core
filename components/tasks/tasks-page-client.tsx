@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { taskFormSchema, type TaskFormData } from "@/lib/schemas/task";
 
 interface TaskRow {
@@ -117,8 +118,8 @@ export function TasksPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Úkoly</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Úkoly</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nový úkol</Button>} />
           <DialogContent>
@@ -165,14 +166,12 @@ export function TasksPageClient({
         </Dialog>
       </div>
 
-      <div className="flex gap-2">
-        <Button variant={filter === "mine" ? "default" : "outline"} size="sm" onClick={() => setFilter("mine")}>
-          Moje
-        </Button>
-        <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")}>
-          Všechny
-        </Button>
-      </div>
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as "mine" | "all")}>
+        <TabsList className="sm:min-w-56">
+          <TabsTrigger value="mine">Moje</TabsTrigger>
+          <TabsTrigger value="all">Všechny</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
@@ -185,7 +184,7 @@ export function TasksPageClient({
             return (
               <div
                 key={task.id}
-                className={`flex items-center gap-3 rounded-lg border p-3 ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""}`}
+                className={`flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""}`}
               >
                 <input
                   type="checkbox"

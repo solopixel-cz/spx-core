@@ -30,6 +30,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus } from "lucide-react";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
 import { ClientFormDialog } from "./client-form-dialog";
 
 interface ClientRow {
@@ -125,8 +131,8 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Klienti</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Klienti</h1>
         <ClientFormDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
@@ -143,14 +149,15 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
         />
       </div>
 
-      <div className="flex items-center gap-4">
+      <FilterBar>
         <Input
           placeholder="Hledat..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
+          className="min-w-40 flex-1 sm:max-w-sm"
         />
         <Select
+          items={{ all: "Všechny stavy", ...statusLabels }}
           value={
             (columnFilters.find((f) => f.id === "status")?.value as string) ??
             "all"
@@ -172,9 +179,48 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
             <SelectItem value="churned">Odešlý</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FilterBar>
 
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {table.getRowModel().rows.length === 0 ? (
+          <EntityCardEmpty>Žádní klienti</EntityCardEmpty>
+        ) : (
+          table.getRowModel().rows.map((row) => {
+            const c = row.original;
+            return (
+              <EntityCard
+                key={c.id}
+                href={`/klienti/${c.id}`}
+                title={c.name}
+                badge={
+                  <Badge variant={statusVariants[c.status] ?? "secondary"}>
+                    {statusLabels[c.status] ?? c.status}
+                  </Badge>
+                }
+                subtitle={[c.company, c.email].filter(Boolean).join(" · ")}
+                meta={
+                  <>
+                    <span>
+                      {c.instanceCount}{" "}
+                      {c.instanceCount === 1 ? "instance" : "instancí"}
+                    </span>
+                    <span>{c.advisorSlug}</span>
+                    {c.updatedAt && (
+                      <span>
+                        {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}
+                      </span>
+                    )}
+                  </>
+                }
+              />
+            );
+          })
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

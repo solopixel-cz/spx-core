@@ -38,6 +38,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Loader2 } from "lucide-react";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
+import { FilterBar } from "@/components/filter-bar";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 
 interface TicketRow {
@@ -152,8 +158,8 @@ export function TicketsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Tickety</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Tickety</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nový ticket</Button>} />
           <DialogContent>
@@ -208,38 +214,74 @@ export function TicketsPageClient({
         </Dialog>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
+      <FilterBar>
+        <Select items={{ all: "Všechny stavy", ...statusLabels }} value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Všechny stavy</SelectItem>
             {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? "all")}>
+        <Select items={{ all: "Všechny typy", ...typeLabels }} value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? "all")}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Všechny typy</SelectItem>
             {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={priorityFilter} onValueChange={(val) => setPriorityFilter(val ?? "all")}>
+        <Select items={{ all: "Všechny priority", ...priorityLabels }} value={priorityFilter} onValueChange={(val) => setPriorityFilter(val ?? "all")}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Všechny priority</SelectItem>
             {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={clientFilter} onValueChange={(val) => setClientFilter(val ?? "all")}>
+        <Select
+          items={{
+            all: "Všichni klienti",
+            ...Object.fromEntries(clients.map((c) => [c.id, c.name])),
+          }}
+          value={clientFilter}
+          onValueChange={(val) => setClientFilter(val ?? "all")}
+        >
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Všichni klienti</SelectItem>
             {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
+      </FilterBar>
 
-      <div className="rounded-md border">
+      {/* Mobil: karty */}
+      <EntityCardList>
+        {filtered.length === 0 ? (
+          <EntityCardEmpty>Žádné tickety</EntityCardEmpty>
+        ) : (
+          filtered.map((t) => (
+            <EntityCard
+              key={t.id}
+              onClick={() => setSelectedTicket(t)}
+              title={t.title}
+              badge={
+                <Badge variant={priorityVariants[t.priority] ?? "secondary"}>
+                  {priorityLabels[t.priority] ?? t.priority}
+                </Badge>
+              }
+              subtitle={t.clientName}
+              meta={
+                <>
+                  <span>{typeLabels[t.type] ?? t.type}</span>
+                  <span>{statusLabels[t.status] ?? t.status}</span>
+                  {t.createdAt && <span>{getTimeSince(t.createdAt)}</span>}
+                </>
+              }
+            />
+          ))
+        )}
+      </EntityCardList>
+
+      {/* Desktop: tabulka */}
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>

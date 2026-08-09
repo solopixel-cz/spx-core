@@ -3,7 +3,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -33,8 +34,13 @@ export function KanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeLead = leads.find((l) => l.id === activeId);
 
+  // Myš: drag po 5px. Dotyk: drag až po podržení (250 ms), aby swipe
+  // mezi sloupci na mobilu nespouštěl přetahování karet.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 8 },
+    })
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -60,7 +66,8 @@ export function KanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      {/* Mobil: swipe se snapem na sloupec; desktop: klasický scroll */}
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 md:snap-none">
         {KANBAN_STAGES.map((stage) => (
           <KanbanColumn
             key={stage}

@@ -175,7 +175,7 @@ export function DashboardClient({
 
       {/* Financial row — admin/member only */}
       {!isSales && (
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
           <Card>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">MRR</p>
@@ -225,7 +225,7 @@ export function DashboardClient({
               <div className="space-y-1.5">
                 {visibleFeed.map((item, i) => (
                   <Link key={i} href={item.href}>
-                    <div className="flex items-center gap-3 rounded-lg border p-2.5 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:bg-muted/50">
                       <div className={severityColors[item.severity]}>
                         {severityIcons[item.severity]}
                       </div>
@@ -416,7 +416,7 @@ export function DashboardClient({
       {!isSales && prospectOwnerStats.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Oslovování po obchodnících</h2>
-          <div className="rounded-md border">
+          <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
