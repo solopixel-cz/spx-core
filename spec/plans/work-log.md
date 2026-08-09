@@ -2,6 +2,22 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — 🔨 Fakturace: plán rozšíření + Fáze A (odeslání e-mailem + tracking)
+
+Zadavatel chce vystavovat/odesílat faktury klientům s trackingem doručení/otevření a vidět stav zaplacení (ČSOB). Zmapován současný stav (fakturace je minimální, e-mailová infra plně hotová, žádné PDF/banka/cron).
+
+- **Architektonické rozhodnutí** (potvrzeno): Fakturoid = účetní pravda + PDF + zdroj stavu platby (využije existující ČSOB↔Fakturoid link); přímé ČSOB PSD2 API zavrženo (licencovaný TPP/certifikát). E-mail posílá CRM přes Resend kvůli trackingu. Zadavatel neplátce DPH.
+- **Plán** sepsán do [`spec/prompts/31-fakturace-rozsireni.md`](../prompts/31-fakturace-rozsireni.md) — sub-fáze A (odeslání+tracking), B (detail+položky+VS), C (Fakturoid API+stav platby→provize), D (Vercel Cron: opakované faktury, overdue, upomínky). Index + data-model (`invoiceEmails`) aktualizovány.
+
+**Fáze A — hotovo:**
+- `lib/schemas/invoice-email.ts` — kolekce `invoiceEmails` (zrcadlí `deliveryEmails`).
+- `POST /api/invoices/[id]/send` — Resend odeslání (odesílatel = přihlášený uživatel), zápis `invoiceEmails{status:sent}`, `logActivity(entityType:invoice)`, draft→sent. Guardy: klient bez e-mailu / stornovaná faktura → 400. Opakované odeslání povolené. Bankovní účet z volitelného env `COMPANY_BANK_ACCOUNT`, VS odvozen z čísla faktury (plná definice ve fázi B).
+- `webhooks/resend` — přidán `invoiceEmails` do `findEmailByResendId` + větev logování na fakturu; `opened` → notifikace adminům „Klient otevřel fakturu".
+- UI `fakturace`: tlačítko „Odeslat"/„Odeslat znovu" (stavy mimo paid/cancelled), sloupec/badge stavu e-mailu (recyklace `outreachEmailStatus` + `StatusBadge`). Stránka načítá poslední e-mail stav per faktura.
+- `firestore.rules`: `invoiceEmails` (read isAuth, write admin SDK).
+- Lint + build + typecheck čisté. Ověření v provozu (reálná faktura + webhook) po nasazení.
+- **Pozn.**: e-mail zatím bez PDF (přijde s Fakturoidem, fáze C); nasadit rules (`firebase deploy --only firestore`).
+
 ## 2026-08-09 — ✅ Notifikační systém (in-app zvonek + Web Push na iPhone)
 
 Zadavatel chtěl v CRM notifikace na události (poptávka z webu, otevřený/vyplněný podklad) — a pokud možno i popup na iPhone přes PWA. Postaveno obojí naráz; příjemci = admini (malý tým, centrální dohled).

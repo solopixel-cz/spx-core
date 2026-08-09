@@ -32,13 +32,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X, Loader2 } from "lucide-react";
+import { Plus, Check, X, Loader2, Send } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
   EntityCardList,
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
+import { StatusBadge } from "@/components/status-badge";
+import { outreachEmailStatus } from "@/lib/status";
 import { invoiceFormSchema, type InvoiceFormData } from "@/lib/schemas/invoice";
 
 interface InvoiceRow {
@@ -51,6 +53,7 @@ interface InvoiceRow {
   dueAt: string | null;
   paidAt: string | null;
   status: string;
+  emailStatus: string | null;
 }
 
 interface ClientOption {
@@ -92,6 +95,7 @@ export function InvoicesPageClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [actingId, setActingId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
 
@@ -128,6 +132,22 @@ export function InvoicesPageClient({
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Chyba při vytváření faktury");
+    }
+  }
+
+  async function handleSend(invoiceId: string) {
+    setSendingId(invoiceId);
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.success("Faktura odeslána klientovi");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Odeslání se nezdařilo");
+    } finally {
+      setSendingId(null);
     }
   }
 
@@ -281,34 +301,54 @@ export function InvoicesPageClient({
                 </>
               }
             >
-              {(inv.status === "sent" || inv.status === "overdue") && (
-                <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {inv.emailStatus && (
+                  <StatusBadge map={outreachEmailStatus} value={inv.emailStatus} />
+                )}
+                {inv.status !== "paid" && inv.status !== "cancelled" && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="relative"
-                    onClick={() => handleAction(inv.id, "paid")}
-                    disabled={actingId === inv.id}
+                    onClick={() => handleSend(inv.id)}
+                    disabled={sendingId === inv.id}
                   >
-                    {actingId === inv.id ? (
+                    {sendingId === inv.id ? (
                       <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Check className="mr-1 h-3.5 w-3.5" />
+                      <Send className="mr-1 h-3.5 w-3.5" />
                     )}
-                    Zaplaceno
+                    {inv.emailStatus ? "Odeslat znovu" : "Odeslat"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="relative"
-                    onClick={() => handleAction(inv.id, "cancelled")}
-                    disabled={actingId === inv.id}
-                  >
-                    <X className="mr-1 h-3.5 w-3.5" />
-                    Stornovat
-                  </Button>
-                </div>
-              )}
+                )}
+                {(inv.status === "sent" || inv.status === "overdue") && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="relative"
+                      onClick={() => handleAction(inv.id, "paid")}
+                      disabled={actingId === inv.id}
+                    >
+                      {actingId === inv.id ? (
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-3.5 w-3.5" />
+                      )}
+                      Zaplaceno
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="relative"
+                      onClick={() => handleAction(inv.id, "cancelled")}
+                      disabled={actingId === inv.id}
+                    >
+                      <X className="mr-1 h-3.5 w-3.5" />
+                      Stornovat
+                    </Button>
+                  </>
+                )}
+              </div>
             </EntityCard>
           ))
         )}
@@ -325,13 +365,14 @@ export function InvoicesPageClient({
               <TableHead>Vystaveno</TableHead>
               <TableHead>Splatnost</TableHead>
               <TableHead>Stav</TableHead>
-              <TableHead className="w-24">Akce</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead className="w-28">Akce</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">Žádné faktury</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground">Žádné faktury</TableCell>
               </TableRow>
             ) : (
               filtered.map((inv) => (
@@ -347,7 +388,25 @@ export function InvoicesPageClient({
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {inv.emailStatus ? (
+                      <StatusBadge map={outreachEmailStatus} value={inv.emailStatus} />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-1">
+                      {inv.status !== "paid" && inv.status !== "cancelled" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSend(inv.id)}
+                          title={inv.emailStatus ? "Odeslat znovu" : "Odeslat"}
+                          disabled={sendingId === inv.id}
+                        >
+                          {sendingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      )}
                       {(inv.status === "sent" || inv.status === "overdue") && (
                         <>
                           <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno" disabled={actingId === inv.id}>
