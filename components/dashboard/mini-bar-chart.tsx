@@ -22,8 +22,11 @@ export function MiniBarChart({ data }: MiniBarChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={60}>
-      <BarChart data={data}>
+    // min-w-0 + width:0 zabrání recharts ResponsiveContainer roztáhnout rodiče
+    // (grid/flex buňku) nad šířku viewportu na mobilu.
+    <div className="w-full min-w-0">
+      <ResponsiveContainer width="99%" height={60}>
+        <BarChart data={data}>
         <Tooltip
           content={({ active, payload }) => {
             if (!active || !payload?.[0]) return null;
@@ -34,12 +37,13 @@ export function MiniBarChart({ data }: MiniBarChartProps) {
             );
           }}
         />
-        <Bar
-          dataKey="amount"
-          fill="oklch(0.6 0.118 181)"
-          radius={[2, 2, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
+          <Bar
+            dataKey="amount"
+            fill="oklch(0.6 0.118 181)"
+            radius={[2, 2, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

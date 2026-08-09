@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Fix: dashboard přetékal na mobilu (recharts)
+
+Uživatel hlásil, že dashboard je širší než displej. Příčina: `MiniBarChart` (recharts `ResponsiveContainer`) — na reálném mobilu při prvotním renderu (viewport se ustaluje) zafixuje širší SVG a roztáhne grid buňku KPI přes šířku viewportu. `main` má `overflow-y-auto`, což dle CSS spec dopočítá `overflow-x: auto` → vodorovný scroll. V headless Chromiu s pevným viewportem se neprojevilo (proto těžká reprodukce).
+
+- `MiniBarChart`: ResponsiveContainer obalen `div.w-full.min-w-0`, `width="99%"` (recharts doporučený trik proti overflow), aby nikdy neroztáhl rodiče.
+- `dashboard-client.tsx`: karta s grafem `min-w-0` (grid buňka se smrskne pod obsah).
+- `app/(app)/layout.tsx`: `main` → `overflow-x-hidden overflow-y-auto` jako pojistka — stránka nikdy nescrolluje vodorovně (tabulky mají vlastní `overflow-x-auto` wrappery, takže nic přístupného se neoře).
+- Jediný recharts v celé appce je tento graf (ověřeno grepem).
+- Ověřeno: scénář „načíst na 980px → zúžit na 390px" (přesně to, co recharts na mobilu láme) — `main.scrollWidth == clientWidth`, graf se vejde do karty (není oříznutý). Lint + build čisté (51/51).
+
 ## 2026-08-09 — ✅ Responzivní dashboard + revize widgetů
 
 Dashboard nebyl použitelný na mobilu (hlavně karta „Pipeline" = 6 holých čísel bez popisků, spoléhala na hover tooltip). Předěláno mobile-first po domluvě se zadavatelem.

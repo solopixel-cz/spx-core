@@ -315,8 +315,8 @@ export function DashboardClient({
           />
           <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
           <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
-          <Card className="col-span-2 md:col-span-4">
-            <CardContent className="pt-4">
+          <Card className="col-span-2 min-w-0 md:col-span-4">
+            <CardContent className="min-w-0 pt-4">
               <p className="mb-2 text-xs text-muted-foreground">Zaplaceno (12 měsíců)</p>
               <MiniBarChart data={monthlyPaidData} />
             </CardContent>
