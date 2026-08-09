@@ -340,6 +340,25 @@ Odeslané e-maily s předáním hotové vizitky klientovi — stav doručení p�
 
 Webhook `POST /api/webhooks/resend` hledá `resendId` v `outreachEmails` i `deliveryEmails`. U delivery loguje aktivitu na klienta (otevřel vizitku / kliknul / nedoručitelné).
 
+### `invoiceEmails`
+Odeslané faktury e-mailem klientovi — stav doručení přes stejný Resend webhook (fáze 31A). E-mail posílá CRM (ne Fakturoid), aby fungoval tracking otevření/kliknutí.
+
+```ts
+{
+  invoiceId: string
+  clientId: string
+  toEmail: string
+  senderUid: string
+  resendId: string             // ID z Resend API — klíč pro webhook párování
+  subject: string
+  status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  sentAt: Timestamp
+  lastEventAt?: Timestamp
+}
+```
+
+Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy loguje aktivitu na fakturu (`entityType:"invoice"`) a na `opened` pošle notifikaci adminům.
+
 ### `templates/outreach-email`
 Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
 

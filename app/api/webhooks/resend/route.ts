@@ -56,6 +56,17 @@ async function findEmailByResendId(resendId: string) {
     return { doc: cardFormSnap.docs[0], collection: "cardFormEmails" as const };
   }
 
+  // Try invoiceEmails
+  const invoiceSnap = await db
+    .collection("invoiceEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!invoiceSnap.empty) {
+    return { doc: invoiceSnap.docs[0], collection: "invoiceEmails" as const };
+  }
+
   return null;
 }
 
@@ -243,7 +254,7 @@ export async function POST(request: Request) {
         actorUid: senderUid,
       });
     }
-  } else {
+  } else if (collection === "cardFormEmails") {
     // cardFormEmails — log activity on client
     const clientId = emailData.clientId as string;
 
@@ -285,6 +296,51 @@ export async function POST(request: Request) {
         entityId: clientId,
         kind: "system",
         text: "E-mail s formulářem podkladů se nepodařilo doručit",
+        actorUid: senderUid,
+      });
+    }
+  } else if (collection === "invoiceEmails") {
+    // invoiceEmails — log activity on invoice
+    const invoiceId = emailData.invoiceId as string;
+
+    if (newStatus === "opened" && statusChanged) {
+      await logActivity({
+        entityType: "invoice",
+        entityId: invoiceId,
+        kind: "system",
+        text: "Klient otevřel fakturu",
+        actorUid: senderUid,
+      });
+      await notify({
+        type: "invoice.opened",
+        title: "Klient otevřel fakturu",
+        body: "Klient si otevřel e-mail s fakturou",
+        href: "/fakturace",
+        entityType: "invoice",
+        entityId: invoiceId,
+      });
+    } else if (newStatus === "clicked" && statusChanged) {
+      await logActivity({
+        entityType: "invoice",
+        entityId: invoiceId,
+        kind: "system",
+        text: "Klient kliknul ve faktuře ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced" && isFalseBounce) {
+      await logActivity({
+        entityType: "invoice",
+        entityId: invoiceId,
+        kind: "system",
+        text: "⚠️ Nahlášen bounce po otevření – pravděpodobně falešný (bezpečnostní skener pošty), e-mail nejspíš dorazil",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced") {
+      await logActivity({
+        entityType: "invoice",
+        entityId: invoiceId,
+        kind: "system",
+        text: "Fakturu se nepodařilo doručit",
         actorUid: senderUid,
       });
     }
