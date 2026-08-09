@@ -72,6 +72,12 @@ export default async function InvoiceDetailPage({
     issuedAt: data.issuedAt?.toDate?.()?.toISOString() ?? null,
     dueAt: dueAt?.toISOString() ?? null,
     paidAt: data.paidAt?.toDate?.()?.toISOString() ?? null,
+    fakturoidNumber: (data.fakturoidNumber as string) ?? null,
+    fakturoidConfigured: Boolean(
+      process.env.FAKTUROID_SLUG &&
+        process.env.FAKTUROID_CLIENT_ID &&
+        process.env.FAKTUROID_CLIENT_SECRET
+    ),
   };
 
   const clients = clientsSnap.docs.map((d) => ({

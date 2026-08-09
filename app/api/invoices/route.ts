@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { logActivity } from "@/lib/activity";
 
 export async function GET(request: Request) {
@@ -55,24 +56,7 @@ export async function POST(request: Request) {
 
     const db = getAdminFirestore();
 
-    // Generate invoice number via transaction on counters/invoices
-    const counterRef = db.collection("counters").doc("invoices");
-    const year = new Date().getFullYear();
-
-    const number = await db.runTransaction(async (tx) => {
-      const counterDoc = await tx.get(counterRef);
-      let seq = 1;
-
-      if (counterDoc.exists) {
-        const counterData = counterDoc.data()!;
-        if (counterData.year === year) {
-          seq = (counterData.seq || 0) + 1;
-        }
-      }
-
-      tx.set(counterRef, { year, seq });
-      return `${year}-${String(seq).padStart(3, "0")}`;
-    });
+    const number = await generateInvoiceNumber(db);
 
     const issuedAt = new Date();
     const dueAt = new Date(data.dueAt);

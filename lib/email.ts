@@ -35,6 +35,7 @@ export interface SendTransactionalEmailParams {
   subject: string;
   html: string;
   text?: string;
+  attachments?: { filename: string; content: Buffer }[];
 }
 
 export async function sendTransactionalEmail(params: SendTransactionalEmailParams) {
@@ -47,6 +48,7 @@ export async function sendTransactionalEmail(params: SendTransactionalEmailParam
     subject: params.subject,
     html: params.html,
     text: params.text,
+    attachments: params.attachments,
   });
 
   if (result.error) {

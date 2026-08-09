@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Send, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -42,6 +42,8 @@ interface InvoiceDetail {
   issuedAt: string | null;
   dueAt: string | null;
   paidAt: string | null;
+  fakturoidNumber: string | null;
+  fakturoidConfigured: boolean;
 }
 
 interface EmailRow {
@@ -112,6 +114,24 @@ export function InvoiceDetailClient({
     }
   }
 
+  async function pushFakturoid() {
+    setBusy("fakturoid");
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}/fakturoid`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.success("Faktura odeslána do Fakturoidu");
+      router.refresh();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Odeslání do Fakturoidu selhalo"
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const editData: EditInvoice = {
     id: invoice.id,
     clientId: invoice.clientId,
@@ -143,6 +163,28 @@ export function InvoiceDetailClient({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {invoice.fakturoidConfigured &&
+            invoice.status !== "cancelled" &&
+            (invoice.fakturoidNumber ? (
+              <span className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" />
+                Fakturoid {invoice.fakturoidNumber}
+              </span>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={pushFakturoid}
+                disabled={busy === "fakturoid"}
+              >
+                {busy === "fakturoid" ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-1 h-4 w-4" />
+                )}
+                Do Fakturoidu
+              </Button>
+            ))}
           {isDraft && (
             <InvoiceFormDialog
               clients={clients}

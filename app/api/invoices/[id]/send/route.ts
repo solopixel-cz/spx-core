@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { requireRole } from "@/lib/auth";
 import { sendTransactionalEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
+import { isFakturoidConfigured, downloadInvoicePdf } from "@/lib/fakturoid";
 
 function escapeHtml(value: string): string {
   return value.replace(
@@ -95,6 +96,15 @@ export async function POST(
       (bankAccount ? `Číslo účtu: ${bankAccount}\n` : "") +
       `\nDěkujeme za spolupráci.\n${senderName}, SoloPixel`;
 
+    // Pokud je faktura ve Fakturoidu, přilož PDF.
+    let attachments: { filename: string; content: Buffer }[] | undefined;
+    if (invoice.fakturoidId && isFakturoidConfigured()) {
+      const pdf = await downloadInvoicePdf(invoice.fakturoidId).catch(() => null);
+      if (pdf) {
+        attachments = [{ filename: `faktura-${number}.pdf`, content: pdf }];
+      }
+    }
+
     const result = await sendTransactionalEmail({
       to: toEmail,
       senderName,
@@ -102,6 +112,7 @@ export async function POST(
       subject,
       html,
       text,
+      attachments,
     });
 
     const resendId = (result as { id?: string } | null)?.id;

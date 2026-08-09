@@ -2,6 +2,23 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Fakturace Fáze C+D — Fakturoid integrace + fakturační cron
+
+Dokončení fakturace: napojení na Fakturoid (účetní pravda + PDF + stav platby z ČSOB) a automatizace přes Vercel Cron. Fakturoid API tvary ověřeny proti oficiální dokumentaci (OAuth client_credentials, subjects s custom_id, invoices s lines/due, download.pdf).
+
+**Fáze C — Fakturoid (manuální, spící dokud není nakonfigurováno):**
+- `lib/fakturoid.ts` — OAuth 2.0 client credentials (token cache 2 h), `findOrCreateSubject` (dedup přes `custom_id`=clientId), `createInvoice`, `getInvoice` (stav+paid_on), `downloadInvoicePdf` (retry na 204). `isFakturoidConfigured()` gate.
+- `POST /api/invoices/[id]/fakturoid` — ruční push: vytvoří odběratele + fakturu, uloží `fakturoidId/Number/Status` na fakturu a `fakturoidSubjectId` na klienta. Idempotentní. Vytváření reálného dokladu = záměrně manuální (tlačítko), ne auto.
+- Send route: pokud má faktura `fakturoidId`, přiloží PDF z Fakturoidu (rozšířen `sendTransactionalEmail` o `attachments`).
+- UI detailu: tlačítko „Do Fakturoidu" / badge s číslem.
+
+**Fáze D — Vercel Cron (`vercel.json`, denně 06:00 UTC, chráněno `CRON_SECRET`):**
+- `GET /api/cron/billing`: (1) generuje faktury z předplatných s `nextInvoiceAt <= now` (roční = 12× měsíční, sleva `discountPercent`), posune `nextInvoiceAt`; (2) materializuje `overdue` u faktur po splatnosti + notifikace adminům; (3) syncuje stav zaplacení z Fakturoidu → `markInvoicePaid` → provize.
+- Refaktor: sdílené `lib/invoice-number.ts` (číslo faktury) a `lib/invoice-actions.ts` (`markInvoicePaid` + `createCommissionIfNeeded`, přesunuto z `[id]/route.ts`) — používá route i cron.
+- Lint (0 errors), build, typecheck čisté. Nové routy v buildu.
+
+**Manuální kroky (uživatel):** Fakturoid API klíč (slug + client_id/secret) do Vercel env; `CRON_SECRET`; `firebase deploy` netřeba (žádné nové indexy — reuse status+dueAt). Fáze C ověřit naostro testovací fakturou. Pozn.: první běh cronu označí všechny stávající faktury po splatnosti jako overdue (dávka notifikací).
+
 ## 2026-08-09 — ✅ Fakturace Fáze B — detail faktury + položky + koncept
 
 Bohatší faktura a stránka detailu (příprava dat i pro Fakturoid ve fázi C).

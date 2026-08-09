@@ -4,57 +4,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
 import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
-
-async function createCommissionIfNeeded(
-  db: FirebaseFirestore.Firestore,
-  invoiceId: string,
-  invoiceData: FirebaseFirestore.DocumentData,
-  actorUid: string
-) {
-  const clientId = invoiceData.clientId as string;
-  if (!clientId) return;
-
-  const clientDoc = await db.collection("clients").doc(clientId).get();
-  if (!clientDoc.exists) return;
-
-  const salesOwnerUid = clientDoc.data()?.salesOwnerUid as string | undefined;
-  if (!salesOwnerUid) return;
-
-  // Verify the owner is actually a sales user
-  const salesUserDoc = await db.collection("users").doc(salesOwnerUid).get();
-  if (!salesUserDoc.exists) return;
-  const salesUserData = salesUserDoc.data()!;
-  if (salesUserData.role !== "sales") return;
-
-  // Get commission rate: user-specific or default
-  let rate = salesUserData.commissionRate as number | undefined;
-  if (rate === undefined || rate === null) {
-    const settingsDoc = await db.collection("settings").doc("commission").get();
-    rate = (settingsDoc.data()?.defaultRate as number) ?? 0.2;
-  }
-
-  const baseAmount = invoiceData.amount as number;
-  const amount = Math.round(baseAmount * rate);
-
-  // Use invoiceId as doc ID for idempotence
-  const commRef = db.collection("commissions").doc(invoiceId);
-  const existing = await commRef.get();
-  if (existing.exists) return; // already created
-
-  await commRef.set({
-    invoiceId,
-    clientId,
-    salesUid: salesOwnerUid,
-    baseAmount,
-    rate,
-    amount,
-    status: "pending",
-    earnedAt: FieldValue.serverTimestamp(),
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-    createdBy: actorUid,
-  });
-}
+import { markInvoicePaid } from "@/lib/invoice-actions";
 
 export async function PATCH(
   request: Request,
@@ -79,21 +29,7 @@ export async function PATCH(
     const data = doc.data()!;
 
     if (body.action === "paid") {
-      await docRef.update({
-        status: "paid",
-        paidAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      await logActivity({
-        entityType: "invoice",
-        entityId: id,
-        kind: "status_change",
-        text: `Faktura ${data.number} zaplacena`,
-        actorUid: user.uid,
-      });
-
-      // Create commission if client has a sales owner
-      await createCommissionIfNeeded(db, id, data, user.uid);
+      await markInvoicePaid(db, id, data, user.uid);
     } else if (body.action === "cancelled") {
       await docRef.update({
         status: "cancelled",
