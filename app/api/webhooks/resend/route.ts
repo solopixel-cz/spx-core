@@ -3,6 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { Webhook } from "svix";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notifications";
 import { statusOrder } from "@/lib/schemas/email-status";
 
 const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
@@ -253,6 +254,14 @@ export async function POST(request: Request) {
         kind: "system",
         text: "Klient otevřel e-mail s formulářem podkladů",
         actorUid: senderUid,
+      });
+      await notify({
+        type: "email.form_opened",
+        title: "Klient otevřel e-mail",
+        body: "Klient otevřel e-mail s formulářem podkladů",
+        href: `/klienti/${clientId}`,
+        entityType: "client",
+        entityId: clientId,
       });
     } else if (newStatus === "clicked" && statusChanged) {
       await logActivity({

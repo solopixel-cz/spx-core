@@ -25,6 +25,7 @@ import {
 import { MobileSidebar } from "@/components/app-sidebar";
 import { PixelLogo } from "@/components/pixel-logo";
 import { CommandSearch } from "@/components/command-search";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import type { SessionUser } from "@/lib/auth";
 
 export function AppTopbar({
@@ -97,6 +98,8 @@ export function AppTopbar({
         </Button>
 
         <div className="flex-1" />
+
+        <NotificationBell uid={user.uid} />
 
         <Button
           variant="ghost"

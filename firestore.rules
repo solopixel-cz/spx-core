@@ -22,6 +22,21 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuth();
       allow write: if isAdmin();
+
+      // Push odběry — zapisují/čtou se jen přes admin SDK (route handlers).
+      match /pushSubscriptions/{subId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Notifikace — příjemce čte jen svoje a smí měnit jen `readAt`.
+    // Vytváří/maže je admin SDK (notify()).
+    match /notifications/{notifId} {
+      allow read: if isAuth() && resource.data.recipientUid == request.auth.uid;
+      allow update: if isAuth()
+        && resource.data.recipientUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
+      allow create, delete: if false;
     }
 
     // Clients — admin/member reads all; sales reads only own (salesOwnerUid == uid)
