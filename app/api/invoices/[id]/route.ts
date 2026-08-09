@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
+import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
 
 async function createCommissionIfNeeded(
   db: FirebaseFirestore.Firestore,
@@ -62,7 +63,10 @@ export async function PATCH(
   try {
     const user = await requireRole("admin", "member");
     const { id } = await params;
-    const body = (await request.json()) as { action: string };
+    const body = (await request.json()) as { action: string } & Record<
+      string,
+      unknown
+    >;
 
     const db = getAdminFirestore();
     const docRef = db.collection("invoices").doc(id);
@@ -135,6 +139,35 @@ export async function PATCH(
           }
         }
       }
+    } else if (body.action === "update") {
+      if (data.status !== "draft") {
+        return NextResponse.json(
+          { error: "Upravit lze jen koncept faktury" },
+          { status: 400 }
+        );
+      }
+      const parsed = invoiceFormSchema.parse(body);
+      const amount = invoiceItemsTotal(parsed.items);
+      const variableSymbol =
+        parsed.variableSymbol?.trim() ||
+        (data.number as string).replace(/\D/g, "");
+
+      await docRef.update({
+        clientId: parsed.clientId,
+        items: parsed.items,
+        amount,
+        variableSymbol,
+        note: parsed.note?.trim() || null,
+        dueAt: new Date(parsed.dueAt),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      await logActivity({
+        entityType: "invoice",
+        entityId: id,
+        kind: "system",
+        text: `Koncept faktury ${data.number} upraven`,
+        actorUid: user.uid,
+      });
     } else {
       return NextResponse.json({ error: "Neznámá akce" }, { status: 400 });
     }

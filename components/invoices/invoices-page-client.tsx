@@ -1,22 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -41,7 +31,7 @@ import {
 import { FilterBar } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
-import { invoiceFormSchema, type InvoiceFormData } from "@/lib/schemas/invoice";
+import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 
 interface InvoiceRow {
   id: string;
@@ -92,48 +82,11 @@ export function InvoicesPageClient({
   };
 }) {
   const router = useRouter();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [actingId, setActingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
-
-  const [defaultDue] = useState(() =>
-    new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0]
-  );
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<InvoiceFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(invoiceFormSchema) as any,
-    defaultValues: {
-      dueAt: defaultDue,
-    },
-  });
-
-  async function onSubmit(data: InvoiceFormData) {
-    try {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      const result = await res.json();
-      toast.success(`Faktura ${result.number} vystavena`);
-      setDialogOpen(false);
-      reset();
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Chyba při vytváření faktury");
-    }
-  }
 
   async function handleSend(invoiceId: string) {
     setSendingId(invoiceId);
@@ -173,43 +126,15 @@ export function InvoicesPageClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nová faktura</Button>} />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nová faktura</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Klient *</Label>
-                <Select onValueChange={(val) => { if (val) setValue("clientId", String(val)); }}>
-                  <SelectTrigger><SelectValue placeholder="Vyberte klienta" /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.clientId && <p className="text-sm text-destructive">{errors.clientId.message}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Částka (Kč) *</Label>
-                  <Input id="amount" type="number" {...register("amount")} />
-                  {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dueAt">Splatnost *</Label>
-                  <Input id="dueAt" type="date" {...register("dueAt")} />
-                  {errors.dueAt && <p className="text-sm text-destructive">{errors.dueAt.message}</p>}
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Vytvářím..." : "Vystavit fakturu"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <InvoiceFormDialog
+          clients={clients}
+          trigger={
+            <Button size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Nová faktura
+            </Button>
+          }
+        />
       </div>
 
       {/* Stats cards */}
@@ -275,7 +200,9 @@ export function InvoicesPageClient({
             <EntityCard
               key={inv.id}
               title={
-                <span className="font-mono text-sm font-medium">{inv.number}</span>
+                <Link href={`/fakturace/${inv.id}`} className="font-mono text-sm font-medium hover:underline">
+                  {inv.number}
+                </Link>
               }
               badge={
                 <Badge variant={statusVariants[inv.status] ?? "secondary"}>
@@ -377,7 +304,11 @@ export function InvoicesPageClient({
             ) : (
               filtered.map((inv) => (
                 <TableRow key={inv.id}>
-                  <TableCell className="font-mono">{inv.number}</TableCell>
+                  <TableCell className="font-mono">
+                    <Link href={`/fakturace/${inv.id}`} className="hover:underline">
+                      {inv.number}
+                    </Link>
+                  </TableCell>
                   <TableCell>{inv.clientName}</TableCell>
                   <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
                   <TableCell>{inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ") : "—"}</TableCell>

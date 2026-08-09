@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-09 — ✅ Fakturace Fáze B — detail faktury + položky + koncept
+
+Bohatší faktura a stránka detailu (příprava dat i pro Fakturoid ve fázi C).
+
+- `lib/schemas/invoice.ts` rozšířeno: `items[]` (popis/množství/cena), `variableSymbol`, `subscriptionId?`, `note?`, `sentAt?`; helper `invoiceItemsTotal`. `invoiceFormSchema` přepsán na řádkové položky + `asDraft`.
+- `components/invoices/invoice-form-dialog.tsx` — sdílený formulář (create i edit) s dynamickými položkami (`useFieldArray`), živý součet, VS, poznámka, „Uložit koncept"/„Vystavit".
+- `POST /api/invoices` — amount = součet položek, VS (zadaný nebo z čísla faktury), status draft/sent, ukládá items/note.
+- `PATCH /api/invoices/[id]` — nová akce `update` (jen pro koncept): přepočet amount, úprava položek/VS/splatnosti/poznámky.
+- `app/(app)/fakturace/[id]/page.tsx` + `invoice-detail-client.tsx` — detail: hlavička se stavem, meta dlaždice (částka/vystaveno/splatnost/VS), tabulka položek, poznámka, historie odeslaných e-mailů (badge), timeline aktivity; akce Odeslat/Zaplaceno/Stornovat + Upravit (koncept). Aktivita čtena přes existující index (entityType+entityId+createdAt).
+- Seznam faktur: „Nová faktura" přes sdílený dialog, čísla faktur proklikem na detail.
+- Lint (0 errors; benigní react-compiler warning u RHF `watch`), build, typecheck čisté.
+- **Zbývá C** (Fakturoid API: PDF + stav platby z ČSOB → provize) a **D** (Vercel Cron).
+
 ## 2026-08-09 — 🔨 Fakturace: plán rozšíření + Fáze A (odeslání e-mailem + tracking)
 
 Zadavatel chce vystavovat/odesílat faktury klientům s trackingem doručení/otevření a vidět stav zaplacení (ČSOB). Zmapován současný stav (fakturace je minimální, e-mailová infra plně hotová, žádné PDF/banka/cron).
