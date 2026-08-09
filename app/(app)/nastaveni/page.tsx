@@ -8,6 +8,7 @@ import {
   Percent,
   User,
   ClipboardList,
+  Bell,
 } from "lucide-react";
 
 interface Tile {
@@ -38,6 +39,13 @@ const tiles: Tile[] = [
     description: "Checklist úkolů, který se vytvoří při výhře leadu",
     href: "/nastaveni/onboarding",
     icon: ClipboardList,
+    roles: ["admin"],
+  },
+  {
+    label: "Notifikace",
+    description: "Push upozornění na nové poptávky a události",
+    href: "/nastaveni/notifikace",
+    icon: Bell,
     roles: ["admin"],
   },
   {

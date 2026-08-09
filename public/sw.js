@@ -13,6 +13,56 @@ self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
 
+// --- Web Push ---------------------------------------------------------------
+// Payload posílá server (lib/push.ts) jako JSON { title, body, href }.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "SPX Core", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "SPX Core";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag,
+      data: { href: data.href || "/" },
+    })
+  );
+});
+
+// Klik na notifikaci — zaostři existující okno (a naviguj) nebo otevři nové.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const href = (event.notification.data && event.notification.data.href) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of all) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(href);
+            } catch {
+              // navigace může selhat (cross-origin apod.) — fokus stačí
+            }
+          }
+          return;
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(href);
+    })()
+  );
+});
+// ---------------------------------------------------------------------------
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
