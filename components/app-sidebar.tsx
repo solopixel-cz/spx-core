@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PixelLogo } from "@/components/pixel-logo";
 
 type UserRole = "admin" | "member" | "sales";
 
@@ -147,7 +148,11 @@ export function AppSidebar({ role }: { role: UserRole }) {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4">
-        <Link href="/" className="text-lg font-bold tracking-tight text-primary">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 font-heading text-lg font-bold tracking-tight"
+        >
+          <PixelLogo className="size-6 shrink-0" />
           SPX Core
         </Link>
       </div>

@@ -1,28 +1,13 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { PixelLogo } from "@/components/pixel-logo";
 
-export default function DashboardLoading() {
+/** Init obrazovka aplikace — rotující pixel logo. */
+export default function AppLoading() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-40" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
-      </div>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-3">
-          <Skeleton className="h-6 w-32" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 rounded-lg" />
-          ))}
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-6 w-32" />
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-lg" />
-          ))}
-        </div>
-      </div>
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
+      <PixelLogo spin className="size-12 text-foreground" />
+      <p className="font-heading text-sm font-medium text-muted-foreground">
+        SPX Core
+      </p>
     </div>
   );
 }

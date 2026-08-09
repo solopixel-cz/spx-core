@@ -24,13 +24,15 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex min-h-[400px] w-64 shrink-0 flex-col rounded-lg border bg-muted/30 p-2",
+        "flex min-h-[400px] w-[80vw] max-w-64 shrink-0 snap-center flex-col rounded-2xl border bg-muted/30 p-2 sm:w-64 md:snap-align-none",
         isOver && "ring-2 ring-primary/50"
       )}
     >
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-2 flex items-center justify-between px-1.5 pt-1">
         <h3 className="text-sm font-semibold">{title}</h3>
-        <span className="text-xs text-muted-foreground">{leads.length}</span>
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
+          {leads.length}
+        </span>
       </div>
       <div className="flex-1 space-y-2">
         {leads.map((lead) => (

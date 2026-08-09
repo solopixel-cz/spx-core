@@ -12,6 +12,11 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import {
+  EntityCard,
+  EntityCardEmpty,
+  EntityCardList,
+} from "@/components/entity-card";
 import { clientStatus, instanceStatus } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
 
@@ -66,7 +71,7 @@ export function MojeVizitkyClient({
       <PageHeader title="Moje vizitky" />
 
       {/* Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Čeká na vyplacení</p>
@@ -96,7 +101,43 @@ export function MojeVizitkyClient({
       {/* My clients */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Moji klienti</h2>
-        <div className="rounded-md border">
+
+        {/* Mobil: karty */}
+        <EntityCardList>
+          {clients.length === 0 ? (
+            <EntityCardEmpty>Zatím žádní klienti</EntityCardEmpty>
+          ) : (
+            clients.map((c) => (
+              <EntityCard
+                key={c.id}
+                title={c.name}
+                badge={<StatusBadge map={clientStatus} value={c.status} />}
+                subtitle={c.plan ? planLabels[c.plan] ?? c.plan : undefined}
+                meta={
+                  <>
+                    {c.instanceStatus && (
+                      <StatusBadge
+                        map={instanceStatus}
+                        value={c.instanceStatus}
+                      />
+                    )}
+                    {c.priceMonthly > 0 && (
+                      <span>{formatCurrency(c.priceMonthly)}/měs.</span>
+                    )}
+                    {c.myCommission > 0 && (
+                      <span className="font-medium text-foreground">
+                        Provize {formatCurrency(c.myCommission)}/měs.
+                      </span>
+                    )}
+                  </>
+                }
+              />
+            ))
+          )}
+        </EntityCardList>
+
+        {/* Desktop: tabulka */}
+        <div className="hidden rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -143,7 +184,45 @@ export function MojeVizitkyClient({
       {/* My commissions */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Provize</h2>
-        <div className="rounded-md border">
+
+        {/* Mobil: karty */}
+        <EntityCardList>
+          {commissions.length === 0 ? (
+            <EntityCardEmpty>Zatím žádné provize</EntityCardEmpty>
+          ) : (
+            commissions.map((c) => (
+              <EntityCard
+                key={c.id}
+                className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}
+                title={c.clientName}
+                badge={
+                  <Badge
+                    variant={
+                      c.status === "paid"
+                        ? "default"
+                        : c.status === "reversed"
+                          ? "destructive"
+                          : "outline"
+                    }
+                  >
+                    {commissionStatusLabels[c.status] ?? c.status}
+                  </Badge>
+                }
+                meta={
+                  <>
+                    <span className="font-medium text-foreground">
+                      {formatCurrency(c.amount)}
+                    </span>
+                    <span>{formatDate(c.paidAt ?? c.earnedAt)}</span>
+                  </>
+                }
+              />
+            ))
+          )}
+        </EntityCardList>
+
+        {/* Desktop: tabulka */}
+        <div className="hidden rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>

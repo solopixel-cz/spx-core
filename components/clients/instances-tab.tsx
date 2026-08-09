@@ -260,7 +260,7 @@ export function InstancesTab({
       {instances.length === 0 ? (
         <p className="text-muted-foreground">Žádné instance</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
