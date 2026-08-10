@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — 🔧 Fáze 32B — Vlastní PDF faktury + QR platba
+
+- **PDF generátor** `lib/pdf/invoice-pdf.tsx` (`@react-pdf/renderer`): hlavička dodavatel/odběratel, položky se slevou, součet, platební údaje, poznámka, patička, „Nejsem plátce DPH". Font Roboto (`assets/fonts/*.ttf`) vložen jako Type0/FontFile2 → funguje česká diakritika (standardní PDF Helvetica ne).
+- **QR platba (SPAYD)** `lib/spayd.ts`: `buildSpayd` + `accountToIban` (dopočet CZ IBAN z čísla účtu; ověřeno na `19-2000145399/0800` → `CZ65…`). QR jako PNG vložené do PDF.
+- **Endpoint** `GET /api/invoices/[id]/pdf` — `application/pdf` inline, vyžaduje `settings/company`.
+- **E-mail** `send/route.ts`: příloha PDF z vlastního generátoru (místo Fakturoidu), platební údaje ze `settings/company` (fallback env). QR jen v PDF (Gmail blokuje data-URI v těle).
+- **UI** detail faktury: tlačítko „Stáhnout PDF", odebrána sekce „Do Fakturoidu".
+- **Branding SPX (decentní):** pixel logo SoloPixel (Svg/Rect, mint čtverec) v hlavičce, teal akcent linka, teal labely sekcí, souhrn „Celkem k úhradě" v mint tintu, mint patička. Paleta dle solopixel.cz (teal #0d9488 / mint #5eead4 / slate). Font beze změny (Roboto). Oprava hlavičky (překryv čísla) a centrování souhrnu; logo bez wordmarku dle přání zadavatele.
+- **Číselná řada CRM:** nový formát `RRRR-NNNN` s vlastním blokem od 7001 (`lib/invoice-number.ts`, `INVOICE_NUMBER_BLOCK_START=7000`) — CRM není jediný zdroj fakturace, řada musí být odlišná. VS = číslo bez pomlčky (`20267001`). Čítač `counters/invoices` resetnut na `{2026, seq:0}` skriptem `scripts/reset-invoice-counter.ts` → první faktura = `2026-7001` (ověřeno bez kolize: existující 2026-001/002/003/900).
+- **Ověřeno trackování e-mailů faktur** (fáze 31A stále platí): send zapíše `invoiceEmails` (resendId), webhook párování + only-upgrade, `opened`→aktivita+notifikace, `clicked`/`bounced`→aktivita; přehled i detail zobrazují badge stavu.
+- `next.config.ts`: `serverExternalPackages: ["@react-pdf/renderer"]` + `outputFileTracingIncludes` pro fonty. Nové deps: `@react-pdf/renderer`, `qrcode`.
+- Ověřeno: PDF 23 KB, `%PDF-`, 2× Type0 font + FontFile2 + QR image. Lint + build čisté. Zbývá C (export), D (odstranění Fakturoidu).
+
 ## 2026-08-10 — 🔧 Fáze 32A — Fakturační údaje (klient + dodavatel)
 
 - Rozhodnutí (zadavatel): fakturaci řídit plně z CRM, zrušit Fakturoid (úspora ~4 000 Kč/rok). Stav platby ručně, CRM = jediná evidence (+ export pro účetní), QR platba ano. Plán: `spec/prompts/32-fakturace-bez-fakturoidu.md`.

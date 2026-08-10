@@ -110,24 +110,6 @@ export function InvoiceDetailClient({
     }
   }
 
-  async function pushFakturoid() {
-    setBusy("fakturoid");
-    try {
-      const res = await fetch(`/api/invoices/${invoice.id}/fakturoid`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("Faktura odeslána do Fakturoidu");
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Odeslání do Fakturoidu selhalo"
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -155,28 +137,23 @@ export function InvoiceDetailClient({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {invoice.fakturoidConfigured &&
-            invoice.status !== "cancelled" &&
-            (invoice.fakturoidNumber ? (
-              <span className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-muted-foreground">
-                <FileText className="h-3.5 w-3.5" />
-                Fakturoid {invoice.fakturoidNumber}
-              </span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={pushFakturoid}
-                disabled={busy === "fakturoid"}
-              >
-                {busy === "fakturoid" ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="mr-1 h-4 w-4" />
-                )}
-                Do Fakturoidu
-              </Button>
-            ))}
+          {invoice.status !== "cancelled" && (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={
+                <a
+                  href={`/api/invoices/${invoice.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              <FileText className="mr-1 h-4 w-4" />
+              Stáhnout PDF
+            </Button>
+          )}
           {isDraft && (
             <Button
               variant="outline"

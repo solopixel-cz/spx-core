@@ -101,7 +101,7 @@ Předplatné, 1:1 ke klientovi.
 ```ts
 {
   clientId: string
-  number: string             // RRRR-NNN, z counters/invoices
+  number: string             // RRRR-NNNN (vlastní blok od 7001), z counters/invoices; VS = číslo bez pomlčky
   amount: number             // CZK, součet řádků po slevě
   items?: {                  // řádky faktury (fáze 31B/E)
     description: string
@@ -409,7 +409,7 @@ Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy logu
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.
 
 ### `counters`
-`counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci.
+`counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci. `seq` je syrové pořadí (1, 2, …); číslo faktury = `RRRR-` + `(7000 + seq)` na 4 místa (`2026-7001`). Blok (7000) je v `lib/invoice-number.ts` (`INVOICE_NUMBER_BLOCK_START`).
 
 ## Security rules — principy
 

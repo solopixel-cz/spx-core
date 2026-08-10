@@ -4,7 +4,12 @@ import { FieldValue } from "firebase-admin/firestore";
 import { requireRole } from "@/lib/auth";
 import { sendTransactionalEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
-import { isFakturoidConfigured, downloadInvoicePdf } from "@/lib/fakturoid";
+import { companySchema } from "@/lib/schemas/company";
+import {
+  renderInvoicePdf,
+  type InvoicePdfData,
+  type InvoicePdfItem,
+} from "@/lib/pdf/invoice-pdf";
 
 function escapeHtml(value: string): string {
   return value.replace(
@@ -65,9 +70,36 @@ export async function POST(
 
     const number = invoice.number as string;
     const amount = (invoice.amount as number).toLocaleString("cs-CZ");
-    const variableSymbol = number.replace(/\D/g, "");
-    const bankAccount = process.env.COMPANY_BANK_ACCOUNT;
+    const variableSymbol =
+      (invoice.variableSymbol as string) || number.replace(/\D/g, "");
     const clientName = (client.name as string) || "kliente";
+
+    // Dodavatelské údaje (settings/company) — platební údaje, PDF, QR.
+    const companyDoc = await db.collection("settings").doc("company").get();
+    const company = companyDoc.exists
+      ? companySchema.parse(companyDoc.data())
+      : null;
+    const bankAccount = company?.bankAccount || process.env.COMPANY_BANK_ACCOUNT;
+
+    const pdfData: InvoicePdfData = {
+      number,
+      amount: invoice.amount as number,
+      items:
+        (invoice.items as InvoicePdfItem[] | undefined) &&
+        (invoice.items as InvoicePdfItem[]).length > 0
+          ? (invoice.items as InvoicePdfItem[])
+          : [
+              {
+                description: `Faktura ${number}`,
+                quantity: 1,
+                unitPrice: invoice.amount as number,
+              },
+            ],
+      variableSymbol,
+      note: (invoice.note as string) ?? null,
+      issuedAt: invoice.issuedAt?.toDate?.() ?? null,
+      dueAt: invoice.dueAt?.toDate?.() ?? null,
+    };
 
     const subject = `Faktura ${number}`;
 
@@ -81,6 +113,7 @@ export async function POST(
       `<li>Variabilní symbol: ${escapeHtml(variableSymbol)}</li>`,
       bankAccount ? `<li>Číslo účtu: ${escapeHtml(bankAccount)}</li>` : "",
       `</ul>`,
+      `<p>Fakturu v PDF (včetně QR platby) najdete v příloze.</p>`,
       `<p>Děkujeme za spolupráci.</p>`,
       `<p>${escapeHtml(senderName)}<br/>SoloPixel</p>`,
     ].filter(Boolean);
@@ -94,12 +127,25 @@ export async function POST(
       `Splatnost: ${fmtDate(invoice.dueAt)}\n` +
       `Variabilní symbol: ${variableSymbol}\n` +
       (bankAccount ? `Číslo účtu: ${bankAccount}\n` : "") +
+      `\nFakturu v PDF (včetně QR platby) najdete v příloze.\n` +
       `\nDěkujeme za spolupráci.\n${senderName}, SoloPixel`;
 
-    // Pokud je faktura ve Fakturoidu, přilož PDF.
+    // Příloha: PDF z vlastního generátoru (vyžaduje dodavatelské údaje).
     let attachments: { filename: string; content: Buffer }[] | undefined;
-    if (invoice.fakturoidId && isFakturoidConfigured()) {
-      const pdf = await downloadInvoicePdf(invoice.fakturoidId).catch(() => null);
+    if (company) {
+      const pdf = await renderInvoicePdf({
+        invoice: pdfData,
+        company,
+        client: {
+          name: clientName,
+          company: client.company ?? null,
+          ico: client.ico ?? null,
+          dic: client.dic ?? null,
+          billingStreet: client.billingStreet ?? null,
+          billingZip: client.billingZip ?? null,
+          billingCity: client.billingCity ?? null,
+        },
+      }).catch(() => null);
       if (pdf) {
         attachments = [{ filename: `faktura-${number}.pdf`, content: pdf }];
       }
