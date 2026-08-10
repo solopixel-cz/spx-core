@@ -2,7 +2,7 @@
 
 Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). Typy se definují zod schématy v `lib/schemas/` a odvozují přes `z.infer`.
 
-**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury se nemažou — jen stornují** (status `cancelled`). `commissions`, `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
+**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails` a `commissions/{id}`(+`-reversal`), zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
 
 ## Kolekce
 
@@ -30,6 +30,11 @@ Klienti (finanční poradci).
 {
   name: string               // jméno poradce
   company?: string
+  ico?: string               // odběratel na faktuře
+  dic?: string
+  billingStreet?: string     // fakturační adresa (ulice a č.p.)
+  billingZip?: string        // PSČ
+  billingCity?: string       // město
   email: string
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
@@ -96,15 +101,26 @@ Předplatné, 1:1 ke klientovi.
 ```ts
 {
   clientId: string
-  number: string             // RRRR-NNN, z counters/invoices
-  amount: number             // CZK
+  number: string             // RRRR-NNNN (vlastní blok od 7001), z counters/invoices; VS = číslo bez pomlčky
+  amount: number             // CZK, součet řádků po slevě
+  items?: {                  // řádky faktury (fáze 31B/E)
+    description: string
+    quantity: number
+    unitPrice: number
+    discountPercent?: number // sleva na řádku: 0/5/10/15/20/25/30 %
+  }[]
+  variableSymbol?: string
+  subscriptionId?: string    // vazba na předplatné (cron generování)
+  note?: string
   issuedAt: Timestamp
   dueAt: Timestamp
   paidAt?: Timestamp
+  sentAt?: Timestamp
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-  pdfPath?: string           // Storage cesta
 }
 ```
+
+PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GET /api/invoices/[id]/pdf`) — neukládá se. Historické faktury mohou mít reliktní pole `fakturoidId/fakturoidNumber/fakturoidStatus/pdfPath` (fáze 31, Fakturoid odstraněn ve fázi 32) — nová logika je nepoužívá.
 
 ### `tasks`
 ```ts
@@ -298,6 +314,25 @@ Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `us
 ### `settings/commission`
 `{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
 
+### `settings/company`
+Dodavatelské (fakturační) údaje — hlavička „dodavatel" na PDF faktuře, platební údaje a QR platba. Edituje admin v Nastavení → Fakturační údaje. Nahrazuje dřívější env `COMPANY_BANK_ACCOUNT`.
+
+```ts
+{
+  name: string               // název dodavatele
+  address: string            // adresa (víceřádkově)
+  ico?: string
+  dic?: string               // neplátce DPH → prázdné
+  bankAccount: string        // 123456789/0300
+  iban?: string              // pro QR platbu; když prázdné, dopočítá se z účtu
+  email?: string
+  phone?: string
+  web?: string
+  vatNote?: string           // default "Nejsem plátce DPH."
+  invoiceFooter?: string     // volitelná patička dokladu
+}
+```
+
 ### `outreachEmails`
 Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky. Pokrývá první oslovení i druhý (follow-up) e-mail; odlišeno polem `template`.
 
@@ -372,7 +407,7 @@ Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy logu
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.
 
 ### `counters`
-`counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci.
+`counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci. `seq` je syrové pořadí (1, 2, …); číslo faktury = `RRRR-` + `(7000 + seq)` na 4 místa (`2026-7001`). Blok (7000) je v `lib/invoice-number.ts` (`INVOICE_NUMBER_BLOCK_START`).
 
 ## Security rules — principy
 

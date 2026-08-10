@@ -9,6 +9,7 @@ import {
   User,
   ClipboardList,
   Bell,
+  Receipt,
 } from "lucide-react";
 
 interface Tile {
@@ -32,6 +33,13 @@ const tiles: Tile[] = [
     description: "E-maily pro oslovení a předání vizitky",
     href: "/nastaveni/sablony",
     icon: FileText,
+    roles: ["admin"],
+  },
+  {
+    label: "Fakturační údaje",
+    description: "Údaje dodavatele na fakturách, účet a QR platba",
+    href: "/nastaveni/fakturacni-udaje",
+    icon: Receipt,
     roles: ["admin"],
   },
   {

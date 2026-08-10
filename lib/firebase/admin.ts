@@ -33,7 +33,10 @@ export function getAdminAuth(): Auth {
 }
 
 export function getAdminFirestore(): Firestore {
-  return getFirestore(getAdminApp());
+  // Volitelná pojmenovaná databáze (dev izolace ve stejném projektu).
+  // Prázdné = (default) produkční databáze.
+  const dbId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID;
+  return dbId ? getFirestore(getAdminApp(), dbId) : getFirestore(getAdminApp());
 }
 
 export function getAdminStorage(): Storage {

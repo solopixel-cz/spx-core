@@ -31,7 +31,7 @@ import {
 import { FilterBar } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
-import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
+import { InvoiceExportDialog } from "@/components/invoices/invoice-export-dialog";
 
 interface InvoiceRow {
   id: string;
@@ -44,11 +44,6 @@ interface InvoiceRow {
   paidAt: string | null;
   status: string;
   emailStatus: string | null;
-}
-
-interface ClientOption {
-  id: string;
-  name: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -69,11 +64,9 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 
 export function InvoicesPageClient({
   invoices,
-  clients,
   stats,
 }: {
   invoices: InvoiceRow[];
-  clients: ClientOption[];
   stats: {
     overdueCount: number;
     overdueSum: number;
@@ -126,15 +119,13 @@ export function InvoicesPageClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
-        <InvoiceFormDialog
-          clients={clients}
-          trigger={
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Nová faktura
-            </Button>
-          }
-        />
+        <div className="flex gap-2">
+          <InvoiceExportDialog />
+          <Button size="sm" nativeButton={false} render={<Link href="/fakturace/nova" />}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nová faktura
+          </Button>
+        </div>
       </div>
 
       {/* Stats cards */}

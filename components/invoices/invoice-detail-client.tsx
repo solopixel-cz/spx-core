@@ -4,9 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -17,15 +26,13 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { invoiceStatus, outreachEmailStatus } from "@/lib/status";
-import {
-  InvoiceFormDialog,
-  type EditInvoice,
-} from "@/components/invoices/invoice-form-dialog";
+import { invoiceLineTotal } from "@/lib/schemas/invoice";
 
 interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountPercent?: number;
 }
 
 interface InvoiceDetail {
@@ -42,8 +49,6 @@ interface InvoiceDetail {
   issuedAt: string | null;
   dueAt: string | null;
   paidAt: string | null;
-  fakturoidNumber: string | null;
-  fakturoidConfigured: boolean;
 }
 
 interface EmailRow {
@@ -72,15 +77,33 @@ export function InvoiceDetailClient({
   invoice,
   emails,
   activities,
-  clients,
+  isAdmin,
 }: {
   invoice: InvoiceDetail;
   emails: EmailRow[];
   activities: ActivityRow[];
-  clients: { id: string; name: string }[];
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
+  async function handleDelete() {
+    if (deleteConfirm !== invoice.number) return;
+    setBusy("delete");
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.success("Faktura smazána");
+      router.push("/fakturace");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Smazání se nezdařilo");
+      setBusy(null);
+    }
+  }
 
   const canSend = invoice.status !== "paid" && invoice.status !== "cancelled";
   const canSettle =
@@ -114,38 +137,16 @@ export function InvoiceDetailClient({
     }
   }
 
-  async function pushFakturoid() {
-    setBusy("fakturoid");
-    try {
-      const res = await fetch(`/api/invoices/${invoice.id}/fakturoid`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("Faktura odeslána do Fakturoidu");
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Odeslání do Fakturoidu selhalo"
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const editData: EditInvoice = {
-    id: invoice.id,
-    clientId: invoice.clientId,
-    items: invoice.items ?? undefined,
-    dueAt: invoice.dueAt,
-    variableSymbol: invoice.variableSymbol,
-    note: invoice.note,
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" render={<Link href="/fakturace" />}>
+          <Button
+            variant="ghost"
+            size="icon"
+            nativeButton={false}
+            render={<Link href="/fakturace" />}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -163,39 +164,33 @@ export function InvoiceDetailClient({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {invoice.fakturoidConfigured &&
-            invoice.status !== "cancelled" &&
-            (invoice.fakturoidNumber ? (
-              <span className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-muted-foreground">
-                <FileText className="h-3.5 w-3.5" />
-                Fakturoid {invoice.fakturoidNumber}
-              </span>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={pushFakturoid}
-                disabled={busy === "fakturoid"}
-              >
-                {busy === "fakturoid" ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="mr-1 h-4 w-4" />
-                )}
-                Do Fakturoidu
-              </Button>
-            ))}
-          {isDraft && (
-            <InvoiceFormDialog
-              clients={clients}
-              invoice={editData}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Pencil className="mr-1 h-4 w-4" />
-                  Upravit
-                </Button>
+          {invoice.status !== "cancelled" && (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={
+                <a
+                  href={`/api/invoices/${invoice.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
               }
-            />
+            >
+              <FileText className="mr-1 h-4 w-4" />
+              Stáhnout PDF
+            </Button>
+          )}
+          {isDraft && (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/fakturace/${invoice.id}/upravit`} />}
+            >
+              <Pencil className="mr-1 h-4 w-4" />
+              Upravit
+            </Button>
           )}
           {canSend && (
             <Button
@@ -238,8 +233,66 @@ export function InvoiceDetailClient({
               </Button>
             </>
           )}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => {
+                setDeleteConfirm("");
+                setDeleteOpen(true);
+              }}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              Smazat
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Potvrzení smazání */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Smazat fakturu {invoice.number}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Trvale smaže fakturu i navázané e-maily a provizi. Tuto akci nelze
+              vzít zpět a vznikne mezera v číselné řadě. Pro storno (zachování
+              dokladu) použij tlačítko Stornovat.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Pro potvrzení opiš číslo faktury <strong>{invoice.number}</strong>
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={invoice.number}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Zrušit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteConfirm !== invoice.number || busy === "delete"}
+            >
+              {busy === "delete" ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1 h-4 w-4" />
+              )}
+              Smazat trvale
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Meta dlaždice */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -271,6 +324,7 @@ export function InvoiceDetailClient({
                   <TableHead>Popis</TableHead>
                   <TableHead className="w-16 text-right">Ks</TableHead>
                   <TableHead className="w-32 text-right">Cena/ks</TableHead>
+                  <TableHead className="w-16 text-right">Sleva</TableHead>
                   <TableHead className="w-32 text-right">Celkem</TableHead>
                 </TableRow>
               </TableHeader>
@@ -283,12 +337,15 @@ export function InvoiceDetailClient({
                       {item.unitPrice.toLocaleString("cs-CZ")} Kč
                     </TableCell>
                     <TableCell className="text-right">
-                      {(item.quantity * item.unitPrice).toLocaleString("cs-CZ")} Kč
+                      {item.discountPercent ? `${item.discountPercent} %` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {invoiceLineTotal(item).toLocaleString("cs-CZ")} Kč
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell colSpan={3} className="text-right font-medium">
+                  <TableCell colSpan={4} className="text-right font-medium">
                     Celkem
                   </TableCell>
                   <TableCell className="text-right font-bold">

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
+import {
+  invoiceFormSchema,
+  invoiceItemsTotal,
+  expandPeriodPlaceholders,
+} from "@/lib/schemas/invoice";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { logActivity } from "@/lib/activity";
 
@@ -60,7 +64,12 @@ export async function POST(request: Request) {
 
     const issuedAt = new Date();
     const dueAt = new Date(data.dueAt);
-    const amount = invoiceItemsTotal(data.items);
+    // Rozbal {obdobi}/{mesic}/{rok} v popisech dle data vystavení.
+    const items = data.items.map((it) => ({
+      ...it,
+      description: expandPeriodPlaceholders(it.description, issuedAt),
+    }));
+    const amount = invoiceItemsTotal(items);
     const variableSymbol =
       data.variableSymbol?.trim() || number.replace(/\D/g, "");
     const status = data.asDraft ? "draft" : "sent";
@@ -69,7 +78,7 @@ export async function POST(request: Request) {
       clientId: data.clientId,
       number,
       amount,
-      items: data.items,
+      items,
       variableSymbol,
       note: data.note?.trim() || null,
       issuedAt,
