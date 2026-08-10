@@ -98,7 +98,6 @@ export function InvoiceForm({
       discountPercent: Number(i.discountPercent) || 0,
     }))
   );
-  const clientVal = watch("clientId");
   const cancelHref = invoice ? `/fakturace/${invoice.id}` : "/fakturace";
 
   async function submit(data: InvoiceFormData, asDraft: boolean) {
@@ -131,7 +130,7 @@ export function InvoiceForm({
       <div className="space-y-2">
         <Label>Klient *</Label>
         <Select
-          value={clientVal || undefined}
+          defaultValue={invoice?.clientId ?? defaultClientId ?? undefined}
           onValueChange={(val) => {
             if (val) setValue("clientId", String(val));
           }}
