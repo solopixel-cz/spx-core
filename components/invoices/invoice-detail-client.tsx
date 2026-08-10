@@ -18,10 +18,6 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { invoiceStatus, outreachEmailStatus } from "@/lib/status";
 import { invoiceLineTotal } from "@/lib/schemas/invoice";
-import {
-  InvoiceFormDialog,
-  type EditInvoice,
-} from "@/components/invoices/invoice-form-dialog";
 
 interface InvoiceItem {
   description: string;
@@ -74,12 +70,10 @@ export function InvoiceDetailClient({
   invoice,
   emails,
   activities,
-  clients,
 }: {
   invoice: InvoiceDetail;
   emails: EmailRow[];
   activities: ActivityRow[];
-  clients: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -134,15 +128,6 @@ export function InvoiceDetailClient({
     }
   }
 
-  const editData: EditInvoice = {
-    id: invoice.id,
-    clientId: invoice.clientId,
-    items: invoice.items ?? undefined,
-    dueAt: invoice.dueAt,
-    variableSymbol: invoice.variableSymbol,
-    note: invoice.note,
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -193,16 +178,15 @@ export function InvoiceDetailClient({
               </Button>
             ))}
           {isDraft && (
-            <InvoiceFormDialog
-              clients={clients}
-              invoice={editData}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Pencil className="mr-1 h-4 w-4" />
-                  Upravit
-                </Button>
-              }
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/fakturace/${invoice.id}/upravit`} />}
+            >
+              <Pencil className="mr-1 h-4 w-4" />
+              Upravit
+            </Button>
           )}
           {canSend && (
             <Button

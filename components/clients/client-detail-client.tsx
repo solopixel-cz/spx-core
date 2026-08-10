@@ -564,7 +564,6 @@ export function ClientDetailClient({
             <ClientInvoicesTab
               invoices={invoices}
               clientId={client.id}
-              clientName={client.name}
               subscription={subscription}
             />
           </TabsContent>

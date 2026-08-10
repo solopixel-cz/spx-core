@@ -16,7 +16,7 @@ export default async function InvoiceDetailPage({
   if (!doc.exists) notFound();
   const data = doc.data()!;
 
-  const [clientSnap, emailsSnap, activitySnap, clientsSnap] = await Promise.all([
+  const [clientSnap, emailsSnap, activitySnap] = await Promise.all([
     db.collection("clients").doc(data.clientId).get(),
     db.collection("invoiceEmails").where("invoiceId", "==", id).get(),
     db
@@ -25,7 +25,6 @@ export default async function InvoiceDetailPage({
       .where("entityId", "==", id)
       .orderBy("createdAt", "desc")
       .get(),
-    db.collection("clients").get(),
   ]);
 
   const now = new Date();
@@ -80,17 +79,11 @@ export default async function InvoiceDetailPage({
     ),
   };
 
-  const clients = clientsSnap.docs.map((d) => ({
-    id: d.id,
-    name: d.data().name as string,
-  }));
-
   return (
     <InvoiceDetailClient
       invoice={invoice}
       emails={emails}
       activities={activities}
-      clients={clients}
     />
   );
 }

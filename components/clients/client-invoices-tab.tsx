@@ -13,8 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Link from "next/link";
 import { Check, X, Loader2, Plus, Repeat } from "lucide-react";
-import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 
 interface InvoiceData {
   id: string;
@@ -51,56 +51,35 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 export function ClientInvoicesTab({
   invoices,
   clientId,
-  clientName,
   subscription,
 }: {
   invoices: InvoiceData[];
   clientId: string;
-  clientName: string;
   subscription?: SubInfo | null;
 }) {
   const router = useRouter();
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const clientOption = [{ id: clientId, name: clientName }];
-  const subItems = subscription
-    ? [
-        {
-          description: `Předplatné ${subscription.plan} (${subscription.billingCycle === "yearly" ? "roční" : "měsíční"})`,
-          quantity: 1,
-          unitPrice:
-            subscription.billingCycle === "yearly"
-              ? subscription.priceMonthly * 12
-              : subscription.priceMonthly,
-          discountPercent: 0,
-        },
-      ]
-    : undefined;
-
   const actions = (
     <div className="flex flex-wrap gap-2">
-      <InvoiceFormDialog
-        clients={clientOption}
-        defaultClientId={clientId}
-        trigger={
-          <Button size="sm">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Vystavit fakturu
-          </Button>
-        }
-      />
-      {subItems && (
-        <InvoiceFormDialog
-          clients={clientOption}
-          defaultClientId={clientId}
-          defaultItems={subItems}
-          trigger={
-            <Button size="sm" variant="outline">
-              <Repeat className="mr-1.5 h-4 w-4" />
-              Z předplatného
-            </Button>
-          }
-        />
+      <Button
+        size="sm"
+        nativeButton={false}
+        render={<Link href={`/fakturace/nova?clientId=${clientId}`} />}
+      >
+        <Plus className="mr-1.5 h-4 w-4" />
+        Vystavit fakturu
+      </Button>
+      {subscription && (
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/fakturace/nova?clientId=${clientId}&sub=1`} />}
+        >
+          <Repeat className="mr-1.5 h-4 w-4" />
+          Z předplatného
+        </Button>
       )}
     </div>
   );
