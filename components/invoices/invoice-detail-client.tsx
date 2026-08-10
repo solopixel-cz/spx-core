@@ -145,7 +145,12 @@ export function InvoiceDetailClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" render={<Link href="/fakturace" />}>
+          <Button
+            variant="ghost"
+            size="icon"
+            nativeButton={false}
+            render={<Link href="/fakturace" />}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
