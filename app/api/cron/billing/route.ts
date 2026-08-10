@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   const db = getAdminFirestore();
   const now = new Date();
-  const summary = { generated: 0, overdue: 0, paidSynced: 0 };
+  const summary = { generated: 0, skippedZero: 0, overdue: 0, paidSynced: 0 };
 
   // 1) Opakované faktury z předplatných.
   const dueSubs = await db
@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
     const base = sub.billingCycle === "yearly" ? monthly * 12 : monthly;
     const discount = (sub.discountPercent as number) ?? 0;
     const amount = Math.round(base * (1 - discount / 100));
+
+    // Nulové (nebo neúplné) předplatné nefakturuj — nevystavuj 0 Kč doklad.
+    // nextInvoiceAt neposouváme: jakmile se cena doplní, faktura se vystaví.
+    if (amount <= 0) {
+      summary.skippedZero++;
+      continue;
+    }
 
     const cycleLabel = sub.billingCycle === "yearly" ? "roční" : "měsíční";
     const number = await generateInvoiceNumber(db);
