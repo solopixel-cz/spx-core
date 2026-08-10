@@ -51,10 +51,20 @@ export function InvoiceFormDialog({
   clients,
   invoice,
   trigger,
+  defaultClientId,
+  defaultItems,
 }: {
   clients: ClientOption[];
   invoice?: EditInvoice;
   trigger: React.ReactElement;
+  /** Předvyplnění při vystavení z klienta/předplatného (create mód). */
+  defaultClientId?: string;
+  defaultItems?: {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    discountPercent?: number;
+  }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,8 +77,12 @@ export function InvoiceFormDialog({
   );
 
   const buildDefaults = (): InvoiceFormData => ({
-    clientId: invoice?.clientId ?? "",
-    items: invoice?.items?.length ? invoice.items : [blankItem],
+    clientId: invoice?.clientId ?? defaultClientId ?? "",
+    items: invoice?.items?.length
+      ? invoice.items
+      : defaultItems?.length
+        ? defaultItems
+        : [blankItem],
     dueAt: invoice?.dueAt ? invoice.dueAt.split("T")[0] : defaultDue,
     variableSymbol: invoice?.variableSymbol ?? "",
     note: invoice?.note ?? "",

@@ -561,7 +561,12 @@ export function ClientDetailClient({
 
         {!isSales && (
           <TabsContent value="faktury" className="mt-5 md:mt-6">
-            <ClientInvoicesTab invoices={invoices} />
+            <ClientInvoicesTab
+              invoices={invoices}
+              clientId={client.id}
+              clientName={client.name}
+              subscription={subscription}
+            />
           </TabsContent>
         )}
 

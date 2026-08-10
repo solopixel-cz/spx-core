@@ -13,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, Plus, Repeat } from "lucide-react";
+import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 
 interface InvoiceData {
   id: string;
@@ -23,6 +24,12 @@ interface InvoiceData {
   dueAt: string | null;
   paidAt: string | null;
   status: string;
+}
+
+interface SubInfo {
+  plan: string;
+  priceMonthly: number;
+  billingCycle: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -41,9 +48,62 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
   cancelled: "secondary",
 };
 
-export function ClientInvoicesTab({ invoices }: { invoices: InvoiceData[] }) {
+export function ClientInvoicesTab({
+  invoices,
+  clientId,
+  clientName,
+  subscription,
+}: {
+  invoices: InvoiceData[];
+  clientId: string;
+  clientName: string;
+  subscription?: SubInfo | null;
+}) {
   const router = useRouter();
   const [actingId, setActingId] = useState<string | null>(null);
+
+  const clientOption = [{ id: clientId, name: clientName }];
+  const subItems = subscription
+    ? [
+        {
+          description: `Předplatné ${subscription.plan} (${subscription.billingCycle === "yearly" ? "roční" : "měsíční"})`,
+          quantity: 1,
+          unitPrice:
+            subscription.billingCycle === "yearly"
+              ? subscription.priceMonthly * 12
+              : subscription.priceMonthly,
+          discountPercent: 0,
+        },
+      ]
+    : undefined;
+
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      <InvoiceFormDialog
+        clients={clientOption}
+        defaultClientId={clientId}
+        trigger={
+          <Button size="sm">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Vystavit fakturu
+          </Button>
+        }
+      />
+      {subItems && (
+        <InvoiceFormDialog
+          clients={clientOption}
+          defaultClientId={clientId}
+          defaultItems={subItems}
+          trigger={
+            <Button size="sm" variant="outline">
+              <Repeat className="mr-1.5 h-4 w-4" />
+              Z předplatného
+            </Button>
+          }
+        />
+      )}
+    </div>
+  );
 
   async function handleAction(invoiceId: string, action: "paid" | "cancelled") {
     setActingId(invoiceId);
@@ -64,11 +124,18 @@ export function ClientInvoicesTab({ invoices }: { invoices: InvoiceData[] }) {
   }
 
   if (invoices.length === 0) {
-    return <p className="text-muted-foreground">Žádné faktury</p>;
+    return (
+      <div className="space-y-3">
+        {actions}
+        <p className="text-muted-foreground">Žádné faktury</p>
+      </div>
+    );
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="space-y-3">
+      {actions}
+      <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -114,6 +181,7 @@ export function ClientInvoicesTab({ invoices }: { invoices: InvoiceData[] }) {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
