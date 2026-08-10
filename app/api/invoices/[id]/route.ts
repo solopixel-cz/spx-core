@@ -80,3 +80,64 @@ export async function PATCH(
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
+
+/**
+ * Trvalé smazání faktury (jen admin). Na rozdíl od storna dokument odstraní
+ * úplně — vč. navázané provize (`commissions/{id}` + `{id}-reversal`) a
+ * odeslaných e-mailů (`invoiceEmails`). Smazání se zaloguje u klienta jako
+ * audit stopa (číslo faktury zůstane v historii aktivit).
+ *
+ * Pozn.: CRM je jediná evidence faktur — smazáním vznikne mezera v číselné
+ * řadě. Používat uvážlivě (spíš pro omyly/testy než pro ostré doklady).
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireRole("admin");
+    const { id } = await params;
+
+    const db = getAdminFirestore();
+    const docRef = db.collection("invoices").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      return NextResponse.json({ error: "Faktura nenalezena" }, { status: 404 });
+    }
+    const data = doc.data()!;
+
+    // Navázané e-maily faktury.
+    const emailsSnap = await db
+      .collection("invoiceEmails")
+      .where("invoiceId", "==", id)
+      .get();
+
+    const batch = db.batch();
+    emailsSnap.docs.forEach((d) => batch.delete(d.ref));
+    batch.delete(db.collection("commissions").doc(id));
+    batch.delete(db.collection("commissions").doc(`${id}-reversal`));
+    batch.delete(docRef);
+    await batch.commit();
+
+    // Audit stopa u klienta (faktura už neexistuje).
+    if (data.clientId) {
+      await logActivity({
+        entityType: "client",
+        entityId: data.clientId as string,
+        kind: "system",
+        text: `Faktura ${data.number} smazána`,
+        actorUid: user.uid,
+      });
+    }
+
+    return NextResponse.json({ status: "ok" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const status = message.includes("Forbidden")
+      ? 403
+      : message.includes("Unauthorized")
+        ? 401
+        : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
+}

@@ -2,7 +2,7 @@
 
 Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). Typy se definují zod schématy v `lib/schemas/` a odvozují přes `z.infer`.
 
-**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury se nemažou — jen stornují** (status `cancelled`). `commissions`, `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
+**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails` a `commissions/{id}`(+`-reversal`), zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
 
 ## Kolekce
 

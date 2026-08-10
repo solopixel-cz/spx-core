@@ -4,9 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -68,13 +77,33 @@ export function InvoiceDetailClient({
   invoice,
   emails,
   activities,
+  isAdmin,
 }: {
   invoice: InvoiceDetail;
   emails: EmailRow[];
   activities: ActivityRow[];
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
+  async function handleDelete() {
+    if (deleteConfirm !== invoice.number) return;
+    setBusy("delete");
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.success("Faktura smazána");
+      router.push("/fakturace");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Smazání se nezdařilo");
+      setBusy(null);
+    }
+  }
 
   const canSend = invoice.status !== "paid" && invoice.status !== "cancelled";
   const canSettle =
@@ -204,8 +233,66 @@ export function InvoiceDetailClient({
               </Button>
             </>
           )}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => {
+                setDeleteConfirm("");
+                setDeleteOpen(true);
+              }}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              Smazat
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Potvrzení smazání */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Smazat fakturu {invoice.number}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Trvale smaže fakturu i navázané e-maily a provizi. Tuto akci nelze
+              vzít zpět a vznikne mezera v číselné řadě. Pro storno (zachování
+              dokladu) použij tlačítko Stornovat.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Pro potvrzení opiš číslo faktury <strong>{invoice.number}</strong>
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={invoice.number}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Zrušit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteConfirm !== invoice.number || busy === "delete"}
+            >
+              {busy === "delete" ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1 h-4 w-4" />
+              )}
+              Smazat trvale
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Meta dlaždice */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

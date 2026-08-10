@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — ✅ Trvalé mazání faktur (jen admin)
+
+- `DELETE /api/invoices/[id]` (`requireRole admin`): smaže fakturu + navázané `invoiceEmails` a `commissions/{id}`(+`-reversal`) v batchi, zaloguje audit u klienta. Doplňuje dosavadní storno (které doklad zachovává).
+- UI: tlačítko „Smazat" na detailu faktury (jen admin), potvrzovací dialog s opsáním čísla faktury (vzor jako trvalé mazání v archivu). Varování o mezeře v číselné řadě.
+- Data-model (řádek o mazání) aktualizován. Lint + build čisté.
+
 ## 2026-08-10 — ✅ Fáze 32D — Odstranění Fakturoidu (fáze 32 hotová)
 
 - Smazáno `lib/fakturoid.ts` + `app/api/invoices/[id]/fakturoid/route.ts`.
