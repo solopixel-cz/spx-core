@@ -31,6 +31,7 @@ import {
 import { FilterBar } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
+import { InvoiceExportDialog } from "@/components/invoices/invoice-export-dialog";
 
 interface InvoiceRow {
   id: string;
@@ -118,10 +119,13 @@ export function InvoicesPageClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
-        <Button size="sm" nativeButton={false} render={<Link href="/fakturace/nova" />}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nová faktura
-        </Button>
+        <div className="flex gap-2">
+          <InvoiceExportDialog />
+          <Button size="sm" nativeButton={false} render={<Link href="/fakturace/nova" />}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nová faktura
+          </Button>
+        </div>
       </div>
 
       {/* Stats cards */}

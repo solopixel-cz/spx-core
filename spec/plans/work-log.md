@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — 🔧 Fáze 32C — Export evidence faktur pro účetní
+
+- **CSV export** `GET /api/invoices/export?from=&to=` (`requireRole admin/member`): faktury za období dle data vystavení; sloupce číslo, klient, IČO, VS, vystaveno, splatnost, úhrada, stav, částka. Oddělovač `;` + BOM (CZ Excel), escapování polí. Dotaz `where(issuedAt) + orderBy(issuedAt)` (bez composite indexu).
+- **UI** `components/invoices/invoice-export-dialog.tsx` — dialog s presety (Tento měsíc / Tento rok / Vše) + ruční od–do; tlačítko „Export" v hlavičce přehledu fakturace.
+- Ověřeno nad reálnými daty (join klienta+IČO, VS, stavy, data). CRM = jediná evidence. Lint + build čisté. Zbývá D (odstranění Fakturoidu).
+
 ## 2026-08-10 — 🔧 Fáze 32B — Vlastní PDF faktury + QR platba
 
 - **PDF generátor** `lib/pdf/invoice-pdf.tsx` (`@react-pdf/renderer`): hlavička dodavatel/odběratel, položky se slevou, součet, platební údaje, poznámka, patička, „Nejsem plátce DPH". Font Roboto (`assets/fonts/*.ttf`) vložen jako Type0/FontFile2 → funguje česká diakritika (standardní PDF Helvetica ne).
