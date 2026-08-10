@@ -3,7 +3,11 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
-import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
+import {
+  invoiceFormSchema,
+  invoiceItemsTotal,
+  expandPeriodPlaceholders,
+} from "@/lib/schemas/invoice";
 import { markInvoicePaid, cancelInvoice } from "@/lib/invoice-actions";
 
 export async function PATCH(
@@ -40,14 +44,19 @@ export async function PATCH(
         );
       }
       const parsed = invoiceFormSchema.parse(body);
-      const amount = invoiceItemsTotal(parsed.items);
+      const issuedAt = data.issuedAt?.toDate?.() ?? new Date();
+      const items = parsed.items.map((it) => ({
+        ...it,
+        description: expandPeriodPlaceholders(it.description, issuedAt),
+      }));
+      const amount = invoiceItemsTotal(items);
       const variableSymbol =
         parsed.variableSymbol?.trim() ||
         (data.number as string).replace(/\D/g, "");
 
       await docRef.update({
         clientId: parsed.clientId,
-        items: parsed.items,
+        items,
         amount,
         variableSymbol,
         note: parsed.note?.trim() || null,

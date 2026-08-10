@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
+import { currentPeriod } from "@/lib/schemas/invoice";
 import { markInvoicePaid } from "@/lib/invoice-actions";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       amount,
       items: [
         {
-          description: `Předplatné ${sub.plan} (${cycleLabel})`,
+          description: `Předplatné ${sub.plan} (${cycleLabel}) – ${currentPeriod(now)}`,
           quantity: 1,
           unitPrice: amount,
         },

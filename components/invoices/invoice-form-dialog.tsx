@@ -23,10 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, CalendarDays } from "lucide-react";
 import {
   invoiceFormSchema,
   invoiceItemsTotal,
+  currentPeriod,
   DISCOUNT_OPTIONS,
   type InvoiceFormData,
 } from "@/lib/schemas/invoice";
@@ -94,6 +95,7 @@ export function InvoiceFormDialog({
     control,
     reset,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm<InvoiceFormData>({
@@ -190,6 +192,25 @@ export function InvoiceFormDialog({
                     placeholder="Popis"
                     {...register(`items.${idx}.description`)}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    title="Vložit aktuální měsíc/rok (např. 08/2026)"
+                    onClick={() => {
+                      const cur = (
+                        getValues(`items.${idx}.description`) || ""
+                      ).trimEnd();
+                      setValue(
+                        `items.${idx}.description`,
+                        (cur ? cur + " " : "") + currentPeriod(),
+                        { shouldDirty: true }
+                      );
+                    }}
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                  </Button>
                   <Input
                     className="w-16"
                     type="number"
@@ -240,6 +261,11 @@ export function InvoiceFormDialog({
             >
               <Plus className="mr-1 h-4 w-4" /> Přidat položku
             </Button>
+            <p className="text-xs text-muted-foreground">
+              Tip: 📅 vloží aktuální měsíc/rok. Nebo napiš{" "}
+              <code className="rounded bg-muted px-1">{"{obdobi}"}</code> do
+              popisu — rozbalí se při vystavení (např. 08/2026).
+            </p>
           </div>
 
           <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm">

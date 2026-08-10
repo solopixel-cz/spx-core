@@ -56,6 +56,27 @@ export const invoiceFormSchema = z.object({
 
 export type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
 
+/** Aktuální období ve tvaru MM/RRRR (např. "08/2026"). */
+export function currentPeriod(date = new Date()): string {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  return `${mm}/${date.getFullYear()}`;
+}
+
+/**
+ * Rozbalí zástupné symboly v popisu položky podle data:
+ *   {obdobi} → MM/RRRR, {mesic} → MM, {rok} → RRRR
+ * Použije se při vystavení faktury (i z šablony / cronu), takže popis
+ * „Digitální vizitka PRO RŮST {obdobi}" se stane „… 08/2026".
+ */
+export function expandPeriodPlaceholders(text: string, date = new Date()): string {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(date.getFullYear());
+  return text
+    .replace(/\{obdobi\}/gi, `${mm}/${yyyy}`)
+    .replace(/\{mesic\}/gi, mm)
+    .replace(/\{rok\}/gi, yyyy);
+}
+
 /** Součet položek (řádky po slevě, zaokrouhlené). */
 export function invoiceItemsTotal(
   items: { quantity: number; unitPrice: number; discountPercent?: number }[]
