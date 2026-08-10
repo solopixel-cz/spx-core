@@ -117,12 +117,10 @@ Předplatné, 1:1 ke klientovi.
   paidAt?: Timestamp
   sentAt?: Timestamp
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-  pdfPath?: string           // Storage cesta (nevyužito — PDF řeší Fakturoid)
-  fakturoidId?: number       // ID dokladu ve Fakturoidu (fáze 31C)
-  fakturoidNumber?: string
-  fakturoidStatus?: string
 }
 ```
+
+PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GET /api/invoices/[id]/pdf`) — neukládá se. Historické faktury mohou mít reliktní pole `fakturoidId/fakturoidNumber/fakturoidStatus/pdfPath` (fáze 31, Fakturoid odstraněn ve fázi 32) — nová logika je nepoužívá.
 
 ### `tasks`
 ```ts

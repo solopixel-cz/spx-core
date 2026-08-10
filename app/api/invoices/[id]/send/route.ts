@@ -25,7 +25,7 @@ function fmtDate(ts: FirebaseFirestore.Timestamp | undefined): string {
 
 /**
  * Odeslání faktury klientovi e-mailem (přes Resend) + tracking (invoiceEmails).
- * Do fáze C (Fakturoid) bez PDF — platební údaje jsou v těle e-mailu.
+ * Přílohou je PDF z vlastního generátoru (settings/company); platební údaje i v těle.
  * Opakované odeslání je povolené (fakturu lze legitimně poslat znovu).
  */
 export async function POST(

@@ -55,8 +55,7 @@ export async function createCommissionIfNeeded(
 
 /**
  * Označí fakturu jako zaplacenou (idempotentně — už zaplacenou přeskočí),
- * zaloguje aktivitu a vytvoří provizi. Sdílené mezi ruční akcí a cronem
- * (synchronizace stavu z Fakturoidu).
+ * zaloguje aktivitu a vytvoří provizi. Volá se z ruční akce „Zaplaceno".
  */
 export async function markInvoicePaid(
   db: FirebaseFirestore.Firestore,

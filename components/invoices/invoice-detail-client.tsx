@@ -40,8 +40,6 @@ interface InvoiceDetail {
   issuedAt: string | null;
   dueAt: string | null;
   paidAt: string | null;
-  fakturoidNumber: string | null;
-  fakturoidConfigured: boolean;
 }
 
 interface EmailRow {

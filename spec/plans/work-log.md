@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — ✅ Fáze 32D — Odstranění Fakturoidu (fáze 32 hotová)
+
+- Smazáno `lib/fakturoid.ts` + `app/api/invoices/[id]/fakturoid/route.ts`.
+- `cron/billing`: odstraněna sekce 3 (sync stavu z ČSOB/Fakturoidu) + importy; zůstává generování z předplatných + overdue. Stav platby nově jen ručně.
+- `send/route`, `invoice-actions`: očištěny komentáře/importy; detail faktury a `fakturace/[id]/page` bez `fakturoidNumber/fakturoidConfigured`.
+- Datový model: z `invoices` odebrána pole `fakturoidId/Number/Status` + `pdfPath` (relikty ponechány jen v historických datech); PDF se generuje on-demand.
+- `.env.example`: odebrány `FAKTUROID_*` (COMPANY_BANK_ACCOUNT ponechán jako fallback). Historické prompty 31/31e označeny jako neplatné v části o Fakturoidu.
+- Ověřeno: žádná funkční reference na Fakturoid v kódu, lint + build čisté.
+- **Zbývá manuálně:** odebrat `FAKTUROID_*` z `.env.local` a z Vercel env; po ověření naostro zrušit předplatné Fakturoidu (úspora ~4 000 Kč/rok).
+
 ## 2026-08-10 — 🔧 Fáze 32C — Export evidence faktur pro účetní
 
 - **CSV export** `GET /api/invoices/export?from=&to=` (`requireRole admin/member`): faktury za období dle data vystavení; sloupce číslo, klient, IČO, VS, vystaveno, splatnost, úhrada, stav, částka. Oddělovač `;` + BOM (CZ Excel), escapování polí. Dotaz `where(issuedAt) + orderBy(issuedAt)` (bez composite indexu).

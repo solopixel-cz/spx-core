@@ -3,10 +3,8 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { currentPeriod } from "@/lib/schemas/invoice";
-import { markInvoicePaid } from "@/lib/invoice-actions";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
-import { isFakturoidConfigured, getInvoice } from "@/lib/fakturoid";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -17,7 +15,8 @@ export const dynamic = "force-dynamic";
  *
  * 1) Vygeneruje faktury z předplatných, kterým nastal `nextInvoiceAt`.
  * 2) Materializuje `overdue` u faktur po splatnosti + upozorní adminy.
- * 3) Synchronizuje stav zaplacení z Fakturoidu (pokud je nakonfigurovaný).
+ *
+ * Stav zaplacení se od fáze 32 označuje ručně (bez Fakturoidu / banky).
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   const db = getAdminFirestore();
   const now = new Date();
-  const summary = { generated: 0, skippedZero: 0, overdue: 0, paidSynced: 0 };
+  const summary = { generated: 0, skippedZero: 0, overdue: 0 };
 
   // 1) Opakované faktury z předplatných.
   const dueSubs = await db
@@ -140,30 +139,6 @@ export async function GET(request: NextRequest) {
       entityId: invDoc.id,
     });
     summary.overdue++;
-  }
-
-  // 3) Synchronizace stavu zaplacení z Fakturoidu.
-  if (isFakturoidConfigured()) {
-    const openSnap = await db
-      .collection("invoices")
-      .where("status", "in", ["sent", "overdue"])
-      .get();
-
-    for (const invDoc of openSnap.docs) {
-      const inv = invDoc.data();
-      if (!inv.fakturoidId) continue;
-      try {
-        const fk = await getInvoice(inv.fakturoidId);
-        await invDoc.ref.update({ fakturoidStatus: fk.status });
-        if (fk.status === "paid") {
-          const paidAt = fk.paid_on ? new Date(fk.paid_on) : now;
-          await markInvoicePaid(db, invDoc.id, inv, "system-fakturoid", paidAt);
-          summary.paidSynced++;
-        }
-      } catch {
-        // jednu fakturu přeskoč, cron nesmí spadnout celý
-      }
-    }
   }
 
   return NextResponse.json({ ok: true, ...summary });

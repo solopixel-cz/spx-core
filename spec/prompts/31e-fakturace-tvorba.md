@@ -7,6 +7,8 @@
 1. **Slevy na položce** — u řádku faktury jde zvolit sleva z přednastavených hodnot **5 / 10 / 15 / 20 / 25 / 30 %** (+ žádná). Řádková cena i součet slevu zohlední.
 2. **Šablony položek** — katalog přednastavených řádků (popis + cena), které si zadavatel **sám přidává/edituje**. Ve formuláři faktury se dají vložit jedním kliknutím (a dál upravit).
 3. **Vystavit z klienta / předplatného** — tlačítko „Vystavit fakturu" na detailu klienta (předvyplněný klient) a z konkrétního předplatného (předvyplněné položky z plánu).
+> ⚠️ Body o Fakturoidu níže jsou **historické** — Fakturoid odstraněn ve fázi 32 (vlastní PDF + QR, CRM = jediná evidence). Viz [`32-fakturace-bez-fakturoidu.md`](32-fakturace-bez-fakturoidu.md).
+
 4. **Sjednocení čísel CRM ↔ Fakturoid** — faktura má stejné číslo v CRM i ve Fakturoidu. **Rozhodnutí:** CRM posílá své číslo (`number`) do Fakturoidu při zakládání dokladu (Fakturoid to pole přijímá). Ověřit, že Fakturoid formát/sekvence nepadá; jinak varianta B = CRM přebere `fakturoidNumber` jako kanonické.
 5. **UX drobnosti** — hledatelný výběr klienta, rozumné defaulty, režim neplátce DPH (`vat_rate: 0`).
 6. **0 Kč pravidlo** — ✅ hotovo (cron přeskočí předplatné s `amount <= 0`).
