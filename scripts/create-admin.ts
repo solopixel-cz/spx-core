@@ -60,32 +60,45 @@ const dbId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID;
 const db = dbId ? getFirestore(dbId) : getFirestore();
 
 async function main() {
-  // Create Auth user
-  const userRecord = await auth.createUser({
-    email,
-    password,
-    displayName: displayName || email,
-  });
-
-  console.log(`Created Auth user: ${userRecord.uid}`);
+  // Auth je sdílený napříč databázemi — když účet už existuje, znovupoužij ho
+  // (užitečné při bootstrapu users dokumentu do dev databáze).
+  let userRecord;
+  try {
+    userRecord = await auth.createUser({
+      email,
+      password,
+      displayName: displayName || email,
+    });
+    console.log(`Created Auth user: ${userRecord.uid}`);
+  } catch (err) {
+    if ((err as { code?: string })?.code === "auth/email-already-exists") {
+      userRecord = await auth.getUserByEmail(email);
+      console.log(`Auth účet už existuje, používám: ${userRecord.uid} (heslo se nemění)`);
+    } else {
+      throw err;
+    }
+  }
 
   // Set custom claim
   await auth.setCustomUserClaims(userRecord.uid, { role: "admin" });
   console.log("Set custom claim: role=admin");
 
-  // Create Firestore document
-  await db.collection("users").doc(userRecord.uid).set({
-    email,
-    displayName: displayName || email,
-    role: "admin",
-    active: true,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-    createdBy: userRecord.uid,
-  });
+  // Create Firestore document (merge — neklobrcuje případná existující pole)
+  await db.collection("users").doc(userRecord.uid).set(
+    {
+      email,
+      displayName: displayName || email,
+      role: "admin",
+      active: true,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      createdBy: userRecord.uid,
+    },
+    { merge: true }
+  );
 
-  console.log("Created users document in Firestore");
-  console.log(`\nAdmin user created successfully: ${email}`);
+  console.log(`Users document zapsán do databáze "${dbId ?? "(default)"}"`);
+  console.log(`\nAdmin připraven: ${email}`);
 }
 
 main().catch((err) => {
