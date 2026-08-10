@@ -47,12 +47,12 @@ export default async function NovaFakturaPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/fakturace" />}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="font-heading text-2xl font-bold">Nová faktura</h1>
+        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Nová faktura</h1>
       </div>
       <Card>
         <CardContent className="pt-6">

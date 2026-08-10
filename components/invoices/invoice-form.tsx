@@ -194,7 +194,7 @@ export function InvoiceForm({
                 {...register(`items.${idx}.unitPrice`)}
               />
               <select
-                className="h-9 w-20 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs"
+                className="h-10 w-24 rounded-lg border border-input bg-transparent px-2.5 text-[0.9375rem]"
                 title="Sleva"
                 {...register(`items.${idx}.discountPercent`)}
               >
