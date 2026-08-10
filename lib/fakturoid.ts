@@ -120,12 +120,14 @@ export interface FakturoidInvoiceResult {
   id: number;
   number: string;
   status: string;
+  variableSymbol: string | null;
 }
 
 export async function createInvoice(params: {
   subjectId: number;
   lines: FakturoidLine[];
   dueDays: number;
+  /** Nepovinné — když se nepošle, Fakturoid VS dopočítá sám (varianta B). */
   variableSymbol?: string;
   note?: string | null;
 }): Promise<FakturoidInvoiceResult> {
@@ -143,8 +145,18 @@ export async function createInvoice(params: {
     const body = await res.text().catch(() => "");
     throw new Error(`Fakturoid: vytvoření faktury selhalo (${res.status}) ${body}`);
   }
-  const data = (await res.json()) as FakturoidInvoiceResult;
-  return { id: data.id, number: data.number, status: data.status };
+  const data = (await res.json()) as {
+    id: number;
+    number: string;
+    status: string;
+    variable_symbol?: string | null;
+  };
+  return {
+    id: data.id,
+    number: data.number,
+    status: data.status,
+    variableSymbol: data.variable_symbol ?? null,
+  };
 }
 
 export async function getInvoice(

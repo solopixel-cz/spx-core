@@ -102,11 +102,11 @@ export async function POST(
       Math.round((due.getTime() - issued.getTime()) / 86400000)
     );
 
+    // Varianta B: Fakturoid = účetní pravda → přiřadí číslo i VS (nevnucujeme své).
     const result = await createInvoice({
       subjectId,
       lines,
       dueDays,
-      variableSymbol: invoice.variableSymbol as string | undefined,
       note: (invoice.note as string) || null,
     });
 
@@ -114,6 +114,9 @@ export async function POST(
       fakturoidId: result.id,
       fakturoidNumber: result.number,
       fakturoidStatus: result.status,
+      // Převezmi číslo i VS z Fakturoidu jako kanonické.
+      number: result.number,
+      variableSymbol: result.variableSymbol ?? invoice.variableSymbol ?? null,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
