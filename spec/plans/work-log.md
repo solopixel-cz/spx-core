@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — 🔧 Fáze 32A — Fakturační údaje (klient + dodavatel)
+
+- Rozhodnutí (zadavatel): fakturaci řídit plně z CRM, zrušit Fakturoid (úspora ~4 000 Kč/rok). Stav platby ručně, CRM = jediná evidence (+ export pro účetní), QR platba ano. Plán: `spec/prompts/32-fakturace-bez-fakturoidu.md`.
+- **Klient rozšířen** o fakturační adresu (`billingStreet`, `billingZip`, `billingCity`) — schéma, formulář, detail, API (přes `clientFormSchema` automaticky), `page.tsx` whitelist, data-model.
+- **Dodavatelské údaje** `settings/company` — schéma `lib/schemas/company.ts`, `GET/PUT /api/settings/company` (PUT jen admin), stránka `/nastaveni/fakturacni-udaje` + `components/settings/company-form.tsx`, dlaždice v rozcestníku. Nahradí env `COMPANY_BANK_ACCOUNT`.
+- Data-model: přidán `settings/company`, doplněny fakturační pole klienta.
+- `npm run lint` + `npm run build` čisté. Zbývá: B (PDF+QR), C (export), D (odstranění Fakturoidu).
+
 ## 2026-08-09 — ✅ Fakturace Fáze C+D — Fakturoid integrace + fakturační cron
 
 Dokončení fakturace: napojení na Fakturoid (účetní pravda + PDF + stav platby z ČSOB) a automatizace přes Vercel Cron. Fakturoid API tvary ověřeny proti oficiální dokumentaci (OAuth client_credentials, subjects s custom_id, invoices s lines/due, download.pdf).

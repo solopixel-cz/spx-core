@@ -30,6 +30,11 @@ Klienti (finanční poradci).
 {
   name: string               // jméno poradce
   company?: string
+  ico?: string               // odběratel na faktuře
+  dic?: string
+  billingStreet?: string     // fakturační adresa (ulice a č.p.)
+  billingZip?: string        // PSČ
+  billingCity?: string       // město
   email: string
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
@@ -310,6 +315,25 @@ Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `us
 
 ### `settings/commission`
 `{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
+
+### `settings/company`
+Dodavatelské (fakturační) údaje — hlavička „dodavatel" na PDF faktuře, platební údaje a QR platba. Edituje admin v Nastavení → Fakturační údaje. Nahrazuje dřívější env `COMPANY_BANK_ACCOUNT`.
+
+```ts
+{
+  name: string               // název dodavatele
+  address: string            // adresa (víceřádkově)
+  ico?: string
+  dic?: string               // neplátce DPH → prázdné
+  bankAccount: string        // 123456789/0300
+  iban?: string              // pro QR platbu; když prázdné, dopočítá se z účtu
+  email?: string
+  phone?: string
+  web?: string
+  vatNote?: string           // default "Nejsem plátce DPH."
+  invoiceFooter?: string     // volitelná patička dokladu
+}
+```
 
 ### `outreachEmails`
 Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky. Pokrývá první oslovení i druhý (follow-up) e-mail; odlišeno polem `template`.

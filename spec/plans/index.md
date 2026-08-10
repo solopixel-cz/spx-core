@@ -34,5 +34,6 @@
 | Fáze 29 — Kopírovat podklad pro AI | ✅ Hotovo | [`../prompts/29-podklad-pro-ai.md`](../prompts/29-podklad-pro-ai.md) |
 | Fáze 30 — Podklady: nová struktura formuláře | ✅ Hotovo (§1–§4; §5 admin odloženo) | [`../prompts/30-podklady-nova-struktura.md`](../prompts/30-podklady-nova-struktura.md) |
 | Fáze 31 — Rozšíření fakturace (A–D) | ✅ Hotovo (C Fakturoid čeká na přístupy k ověření naostro) | [`../prompts/31-fakturace-rozsireni.md`](../prompts/31-fakturace-rozsireni.md) |
+| Fáze 32 — Odstřižení Fakturoidu (vlastní PDF, QR, evidence) | 🔧 Probíhá | [`../prompts/32-fakturace-bez-fakturoidu.md`](../prompts/32-fakturace-bez-fakturoidu.md) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).
