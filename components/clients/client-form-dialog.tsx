@@ -116,6 +116,22 @@ export function ClientFormDialog({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="billingStreet">Ulice a č.p.</Label>
+            <Input id="billingStreet" {...register("billingStreet")} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="billingZip">PSČ</Label>
+              <Input id="billingZip" {...register("billingZip")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billingCity">Město</Label>
+              <Input id="billingCity" {...register("billingCity")} />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail *</Label>

@@ -1,5 +1,7 @@
 # Fáze 31 — Rozšíření fakturace (odeslání, PDF, Fakturoid, banka)
 
+> ⚠️ **Historický dokument.** Fakturoid byl ve **fázi 32** odstraněn — fakturace běží plně z CRM (vlastní PDF + QR platba, ruční stav platby, CRM = jediná evidence). Části níže o „Fakturoid = účetní pravda", PDF z Fakturoidu a synchronizaci stavu z ČSOB už **neplatí**. Viz [`32-fakturace-bez-fakturoidu.md`](32-fakturace-bez-fakturoidu.md).
+
 > Prompt pro Claude Code. Před začátkem si přečti `spec/context/agents.md` a celý Required Reading řetězec. Navazuje na fázi 5 (Fakturace) a 16 (Provize). Datový model faktur (`invoices`, `subscriptions`, `commissions`) je ve `spec/context/data-model.md`.
 
 ## Záměr

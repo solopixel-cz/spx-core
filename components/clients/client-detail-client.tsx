@@ -38,6 +38,9 @@ interface ClientData {
   company?: string;
   ico?: string;
   dic?: string;
+  billingStreet?: string;
+  billingZip?: string;
+  billingCity?: string;
   email: string;
   phone?: string;
   status: string;
@@ -371,6 +374,9 @@ export function ClientDetailClient({
               company: client.company ?? "",
               ico: client.ico ?? "",
               dic: client.dic ?? "",
+              billingStreet: client.billingStreet ?? "",
+              billingZip: client.billingZip ?? "",
+              billingCity: client.billingCity ?? "",
               email: client.email,
               phone: client.phone ?? "",
               status: client.status as "onboarding" | "active" | "paused" | "churned",
@@ -494,6 +500,21 @@ export function ClientDetailClient({
                     <dd>{client.dic}</dd>
                   </div>
                 )}
+                {(client.billingStreet || client.billingCity) && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Fakturační adresa</dt>
+                    <dd className="text-right">
+                      {[
+                        client.billingStreet,
+                        [client.billingZip, client.billingCity]
+                          .filter(Boolean)
+                          .join(" "),
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Advisor Slug</dt>
                   <dd>{client.advisorSlug}</dd>
@@ -561,7 +582,11 @@ export function ClientDetailClient({
 
         {!isSales && (
           <TabsContent value="faktury" className="mt-5 md:mt-6">
-            <ClientInvoicesTab invoices={invoices} />
+            <ClientInvoicesTab
+              invoices={invoices}
+              clientId={client.id}
+              subscription={subscription}
+            />
           </TabsContent>
         )}
 

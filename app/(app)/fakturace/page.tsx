@@ -52,11 +52,6 @@ export default async function FakturacePage() {
     };
   });
 
-  const clients = clientsSnap.docs.map((doc) => ({
-    id: doc.id,
-    name: doc.data().name as string,
-  }));
-
   // Stats
   const overdue = invoices.filter((i) => i.status === "overdue");
   const thisMonth = now.getMonth();
@@ -79,5 +74,5 @@ export default async function FakturacePage() {
     paidThisMonthSum: paidThisMonth.reduce((s, i) => s + i.amount, 0),
   };
 
-  return <InvoicesPageClient invoices={invoices} clients={clients} stats={stats} />;
+  return <InvoicesPageClient invoices={invoices} stats={stats} />;
 }

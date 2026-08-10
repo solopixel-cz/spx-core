@@ -2,6 +2,49 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-10 — ✅ Trvalé mazání faktur (jen admin)
+
+- `DELETE /api/invoices/[id]` (`requireRole admin`): smaže fakturu + navázané `invoiceEmails` a `commissions/{id}`(+`-reversal`) v batchi, zaloguje audit u klienta. Doplňuje dosavadní storno (které doklad zachovává).
+- UI: tlačítko „Smazat" na detailu faktury (jen admin), potvrzovací dialog s opsáním čísla faktury (vzor jako trvalé mazání v archivu). Varování o mezeře v číselné řadě.
+- Data-model (řádek o mazání) aktualizován. Lint + build čisté.
+
+## 2026-08-10 — ✅ Fáze 32D — Odstranění Fakturoidu (fáze 32 hotová)
+
+- Smazáno `lib/fakturoid.ts` + `app/api/invoices/[id]/fakturoid/route.ts`.
+- `cron/billing`: odstraněna sekce 3 (sync stavu z ČSOB/Fakturoidu) + importy; zůstává generování z předplatných + overdue. Stav platby nově jen ručně.
+- `send/route`, `invoice-actions`: očištěny komentáře/importy; detail faktury a `fakturace/[id]/page` bez `fakturoidNumber/fakturoidConfigured`.
+- Datový model: z `invoices` odebrána pole `fakturoidId/Number/Status` + `pdfPath` (relikty ponechány jen v historických datech); PDF se generuje on-demand.
+- `.env.example`: odebrány `FAKTUROID_*` (COMPANY_BANK_ACCOUNT ponechán jako fallback). Historické prompty 31/31e označeny jako neplatné v části o Fakturoidu.
+- Ověřeno: žádná funkční reference na Fakturoid v kódu, lint + build čisté.
+- **Zbývá manuálně:** odebrat `FAKTUROID_*` z `.env.local` a z Vercel env; po ověření naostro zrušit předplatné Fakturoidu (úspora ~4 000 Kč/rok).
+
+## 2026-08-10 — 🔧 Fáze 32C — Export evidence faktur pro účetní
+
+- **CSV export** `GET /api/invoices/export?from=&to=` (`requireRole admin/member`): faktury za období dle data vystavení; sloupce číslo, klient, IČO, VS, vystaveno, splatnost, úhrada, stav, částka. Oddělovač `;` + BOM (CZ Excel), escapování polí. Dotaz `where(issuedAt) + orderBy(issuedAt)` (bez composite indexu).
+- **UI** `components/invoices/invoice-export-dialog.tsx` — dialog s presety (Tento měsíc / Tento rok / Vše) + ruční od–do; tlačítko „Export" v hlavičce přehledu fakturace.
+- Ověřeno nad reálnými daty (join klienta+IČO, VS, stavy, data). CRM = jediná evidence. Lint + build čisté. Zbývá D (odstranění Fakturoidu).
+
+## 2026-08-10 — 🔧 Fáze 32B — Vlastní PDF faktury + QR platba
+
+- **PDF generátor** `lib/pdf/invoice-pdf.tsx` (`@react-pdf/renderer`): hlavička dodavatel/odběratel, položky se slevou, součet, platební údaje, poznámka, patička, „Nejsem plátce DPH". Font Roboto (`assets/fonts/*.ttf`) vložen jako Type0/FontFile2 → funguje česká diakritika (standardní PDF Helvetica ne).
+- **QR platba (SPAYD)** `lib/spayd.ts`: `buildSpayd` + `accountToIban` (dopočet CZ IBAN z čísla účtu; ověřeno na `19-2000145399/0800` → `CZ65…`). QR jako PNG vložené do PDF.
+- **Endpoint** `GET /api/invoices/[id]/pdf` — `application/pdf` inline, vyžaduje `settings/company`.
+- **E-mail** `send/route.ts`: příloha PDF z vlastního generátoru (místo Fakturoidu), platební údaje ze `settings/company` (fallback env). QR jen v PDF (Gmail blokuje data-URI v těle).
+- **UI** detail faktury: tlačítko „Stáhnout PDF", odebrána sekce „Do Fakturoidu".
+- **Branding SPX (decentní):** pixel logo SoloPixel (Svg/Rect, mint čtverec) v hlavičce, teal akcent linka, teal labely sekcí, souhrn „Celkem k úhradě" v mint tintu, mint patička. Paleta dle solopixel.cz (teal #0d9488 / mint #5eead4 / slate). Font beze změny (Roboto). Oprava hlavičky (překryv čísla) a centrování souhrnu; logo bez wordmarku dle přání zadavatele.
+- **Číselná řada CRM:** nový formát `RRRR-NNNN` s vlastním blokem od 7001 (`lib/invoice-number.ts`, `INVOICE_NUMBER_BLOCK_START=7000`) — CRM není jediný zdroj fakturace, řada musí být odlišná. VS = číslo bez pomlčky (`20267001`). Čítač `counters/invoices` resetnut na `{2026, seq:0}` skriptem `scripts/reset-invoice-counter.ts` → první faktura = `2026-7001` (ověřeno bez kolize: existující 2026-001/002/003/900).
+- **Ověřeno trackování e-mailů faktur** (fáze 31A stále platí): send zapíše `invoiceEmails` (resendId), webhook párování + only-upgrade, `opened`→aktivita+notifikace, `clicked`/`bounced`→aktivita; přehled i detail zobrazují badge stavu.
+- `next.config.ts`: `serverExternalPackages: ["@react-pdf/renderer"]` + `outputFileTracingIncludes` pro fonty. Nové deps: `@react-pdf/renderer`, `qrcode`.
+- Ověřeno: PDF 23 KB, `%PDF-`, 2× Type0 font + FontFile2 + QR image. Lint + build čisté. Zbývá C (export), D (odstranění Fakturoidu).
+
+## 2026-08-10 — 🔧 Fáze 32A — Fakturační údaje (klient + dodavatel)
+
+- Rozhodnutí (zadavatel): fakturaci řídit plně z CRM, zrušit Fakturoid (úspora ~4 000 Kč/rok). Stav platby ručně, CRM = jediná evidence (+ export pro účetní), QR platba ano. Plán: `spec/prompts/32-fakturace-bez-fakturoidu.md`.
+- **Klient rozšířen** o fakturační adresu (`billingStreet`, `billingZip`, `billingCity`) — schéma, formulář, detail, API (přes `clientFormSchema` automaticky), `page.tsx` whitelist, data-model.
+- **Dodavatelské údaje** `settings/company` — schéma `lib/schemas/company.ts`, `GET/PUT /api/settings/company` (PUT jen admin), stránka `/nastaveni/fakturacni-udaje` + `components/settings/company-form.tsx`, dlaždice v rozcestníku. Nahradí env `COMPANY_BANK_ACCOUNT`.
+- Data-model: přidán `settings/company`, doplněny fakturační pole klienta.
+- `npm run lint` + `npm run build` čisté. Zbývá: B (PDF+QR), C (export), D (odstranění Fakturoidu).
+
 ## 2026-08-09 — ✅ Fakturace Fáze C+D — Fakturoid integrace + fakturační cron
 
 Dokončení fakturace: napojení na Fakturoid (účetní pravda + PDF + stav platby z ČSOB) a automatizace přes Vercel Cron. Fakturoid API tvary ověřeny proti oficiální dokumentaci (OAuth client_credentials, subjects s custom_id, invoices s lines/due, download.pdf).

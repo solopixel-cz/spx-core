@@ -8,7 +8,8 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole("admin", "member");
+  const user = await requireRole("admin", "member");
+  const isAdmin = user.role === "admin";
   const { id } = await params;
   const db = getAdminFirestore();
 
@@ -16,7 +17,7 @@ export default async function InvoiceDetailPage({
   if (!doc.exists) notFound();
   const data = doc.data()!;
 
-  const [clientSnap, emailsSnap, activitySnap, clientsSnap] = await Promise.all([
+  const [clientSnap, emailsSnap, activitySnap] = await Promise.all([
     db.collection("clients").doc(data.clientId).get(),
     db.collection("invoiceEmails").where("invoiceId", "==", id).get(),
     db
@@ -25,7 +26,6 @@ export default async function InvoiceDetailPage({
       .where("entityId", "==", id)
       .orderBy("createdAt", "desc")
       .get(),
-    db.collection("clients").get(),
   ]);
 
   const now = new Date();
@@ -72,25 +72,14 @@ export default async function InvoiceDetailPage({
     issuedAt: data.issuedAt?.toDate?.()?.toISOString() ?? null,
     dueAt: dueAt?.toISOString() ?? null,
     paidAt: data.paidAt?.toDate?.()?.toISOString() ?? null,
-    fakturoidNumber: (data.fakturoidNumber as string) ?? null,
-    fakturoidConfigured: Boolean(
-      process.env.FAKTUROID_SLUG &&
-        process.env.FAKTUROID_CLIENT_ID &&
-        process.env.FAKTUROID_CLIENT_SECRET
-    ),
   };
-
-  const clients = clientsSnap.docs.map((d) => ({
-    id: d.id,
-    name: d.data().name as string,
-  }));
 
   return (
     <InvoiceDetailClient
       invoice={invoice}
       emails={emails}
       activities={activities}
-      clients={clients}
+      isAdmin={isAdmin}
     />
   );
 }

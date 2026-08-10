@@ -69,7 +69,7 @@ export function AppTopbar({
 
   return (
     <>
-      <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
+      <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         {/* Mobile menu */}
         <Sheet>
           <SheetTrigger
@@ -79,7 +79,7 @@ export function AppTopbar({
             <span className="sr-only">Menu</span>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
-            <SheetTitle className="flex h-14 items-center gap-2.5 border-b px-4 font-heading text-lg font-bold">
+            <SheetTitle className="flex h-16 items-center gap-2.5 border-b px-4 font-heading text-xl font-bold">
               <PixelLogo className="size-6 shrink-0" />
               SPX Core
             </SheetTitle>
@@ -90,11 +90,11 @@ export function AppTopbar({
         {/* Search */}
         <Button
           variant="outline"
-          className="hidden h-9 w-64 justify-start gap-2 text-muted-foreground md:flex"
+          className="hidden h-10 w-72 justify-start gap-2 text-muted-foreground md:flex"
           onClick={() => setSearchOpen(true)}
         >
           <Search className="h-4 w-4" />
-          <span className="text-sm">Hledat... (Cmd+K)</span>
+          <span className="text-[0.9375rem]">Hledat... (Cmd+K)</span>
         </Button>
 
         <div className="flex-1" />
