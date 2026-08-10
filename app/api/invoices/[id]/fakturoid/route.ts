@@ -9,6 +9,7 @@ import {
   createInvoice,
   type FakturoidLine,
 } from "@/lib/fakturoid";
+import { invoiceLineTotal } from "@/lib/schemas/invoice";
 
 /**
  * Odešle fakturu do Fakturoidu (vytvoří odběratele + fakturu). Manuální akce —
@@ -62,16 +63,29 @@ export async function POST(
 
     // Řádky z položek faktury; fallback jednořádková faktura.
     const items = invoice.items as
-      | { description: string; quantity: number; unitPrice: number }[]
+      | {
+          description: string;
+          quantity: number;
+          unitPrice: number;
+          discountPercent?: number;
+        }[]
       | undefined;
     const lines: FakturoidLine[] =
       items && items.length > 0
-        ? items.map((it) => ({
-            name: it.description,
-            quantity: it.quantity,
-            unit_price: it.unitPrice,
-            vat_rate: 0,
-          }))
+        ? items.map((it) => {
+            const d = it.discountPercent ?? 0;
+            // Sleva promítnutá do jednotkové ceny (Fakturoid nemá slevu na řádku),
+            // ať sedí řádkový součet s CRM. Sleva viditelná v názvu řádku.
+            const line = invoiceLineTotal(it);
+            const unit =
+              it.quantity > 0 ? Math.round((line / it.quantity) * 100) / 100 : line;
+            return {
+              name: d > 0 ? `${it.description} (sleva ${d} %)` : it.description,
+              quantity: it.quantity,
+              unit_price: unit,
+              vat_rate: 0,
+            };
+          })
         : [
             {
               name: `Faktura ${invoice.number}`,

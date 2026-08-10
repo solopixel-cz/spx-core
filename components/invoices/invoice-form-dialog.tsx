@@ -27,6 +27,7 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 import {
   invoiceFormSchema,
   invoiceItemsTotal,
+  DISCOUNT_OPTIONS,
   type InvoiceFormData,
 } from "@/lib/schemas/invoice";
 
@@ -44,7 +45,7 @@ export interface EditInvoice {
   note?: string | null;
 }
 
-const blankItem = { description: "", quantity: 1, unitPrice: 0 };
+const blankItem = { description: "", quantity: 1, unitPrice: 0, discountPercent: 0 };
 
 export function InvoiceFormDialog({
   clients,
@@ -100,6 +101,7 @@ export function InvoiceFormDialog({
     (items ?? []).map((i) => ({
       quantity: Number(i.quantity) || 0,
       unitPrice: Number(i.unitPrice) || 0,
+      discountPercent: Number(i.discountPercent) || 0,
     }))
   );
   const clientVal = watch("clientId");
@@ -182,12 +184,23 @@ export function InvoiceFormDialog({
                     {...register(`items.${idx}.quantity`)}
                   />
                   <Input
-                    className="w-28"
+                    className="w-24"
                     type="number"
                     step="0.01"
                     placeholder="Kč/ks"
                     {...register(`items.${idx}.unitPrice`)}
                   />
+                  <select
+                    className="h-9 w-20 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs"
+                    title="Sleva"
+                    {...register(`items.${idx}.discountPercent`)}
+                  >
+                    {DISCOUNT_OPTIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {d === 0 ? "—" : `${d} %`}
+                      </option>
+                    ))}
+                  </select>
                   <Button
                     type="button"
                     variant="ghost"

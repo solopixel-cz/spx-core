@@ -1,14 +1,29 @@
 import { z } from "zod";
 import { baseFields, timestampSchema } from "./timestamp";
 
+/** Přednastavené hodnoty slevy (v %). 0 = bez slevy. */
+export const DISCOUNT_OPTIONS = [0, 5, 10, 15, 20, 25, 30] as const;
+
 /** Řádek faktury. */
 export const invoiceItemSchema = z.object({
   description: z.string().min(1, "Zadejte popis"),
   quantity: z.coerce.number().positive("Množství > 0"),
   unitPrice: z.coerce.number().nonnegative("Cena ≥ 0"),
+  discountPercent: z.coerce.number().min(0).max(100).optional(),
 });
 
 export type InvoiceItem = z.infer<typeof invoiceItemSchema>;
+
+/** Cena řádku po slevě, zaokrouhlená na celé koruny. */
+export function invoiceLineTotal(item: {
+  quantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+}): number {
+  return Math.round(
+    item.quantity * item.unitPrice * (1 - (item.discountPercent ?? 0) / 100)
+  );
+}
 
 export const invoiceSchema = z.object({
   ...baseFields,
@@ -41,9 +56,9 @@ export const invoiceFormSchema = z.object({
 
 export type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
 
-/** Součet položek (množství × cena). */
+/** Součet položek (řádky po slevě, zaokrouhlené). */
 export function invoiceItemsTotal(
-  items: { quantity: number; unitPrice: number }[]
+  items: { quantity: number; unitPrice: number; discountPercent?: number }[]
 ): number {
-  return items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+  return items.reduce((sum, i) => sum + invoiceLineTotal(i), 0);
 }

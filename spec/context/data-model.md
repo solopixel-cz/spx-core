@@ -97,12 +97,25 @@ Předplatné, 1:1 ke klientovi.
 {
   clientId: string
   number: string             // RRRR-NNN, z counters/invoices
-  amount: number             // CZK
+  amount: number             // CZK, součet řádků po slevě
+  items?: {                  // řádky faktury (fáze 31B/E)
+    description: string
+    quantity: number
+    unitPrice: number
+    discountPercent?: number // sleva na řádku: 0/5/10/15/20/25/30 %
+  }[]
+  variableSymbol?: string
+  subscriptionId?: string    // vazba na předplatné (cron generování)
+  note?: string
   issuedAt: Timestamp
   dueAt: Timestamp
   paidAt?: Timestamp
+  sentAt?: Timestamp
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-  pdfPath?: string           // Storage cesta
+  pdfPath?: string           // Storage cesta (nevyužito — PDF řeší Fakturoid)
+  fakturoidId?: number       // ID dokladu ve Fakturoidu (fáze 31C)
+  fakturoidNumber?: string
+  fakturoidStatus?: string
 }
 ```
 

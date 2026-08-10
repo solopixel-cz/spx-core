@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { invoiceStatus, outreachEmailStatus } from "@/lib/status";
+import { invoiceLineTotal } from "@/lib/schemas/invoice";
 import {
   InvoiceFormDialog,
   type EditInvoice,
@@ -26,6 +27,7 @@ interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountPercent?: number;
 }
 
 interface InvoiceDetail {
@@ -276,6 +278,7 @@ export function InvoiceDetailClient({
                   <TableHead>Popis</TableHead>
                   <TableHead className="w-16 text-right">Ks</TableHead>
                   <TableHead className="w-32 text-right">Cena/ks</TableHead>
+                  <TableHead className="w-16 text-right">Sleva</TableHead>
                   <TableHead className="w-32 text-right">Celkem</TableHead>
                 </TableRow>
               </TableHeader>
@@ -288,12 +291,15 @@ export function InvoiceDetailClient({
                       {item.unitPrice.toLocaleString("cs-CZ")} Kč
                     </TableCell>
                     <TableCell className="text-right">
-                      {(item.quantity * item.unitPrice).toLocaleString("cs-CZ")} Kč
+                      {item.discountPercent ? `${item.discountPercent} %` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {invoiceLineTotal(item).toLocaleString("cs-CZ")} Kč
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell colSpan={3} className="text-right font-medium">
+                  <TableCell colSpan={4} className="text-right font-medium">
                     Celkem
                   </TableCell>
                   <TableCell className="text-right font-bold">
