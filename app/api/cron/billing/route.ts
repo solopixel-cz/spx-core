@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Kill-switch: cron je aktivní jen když je BILLING_CRON_ENABLED="true".
+  // Dokud fakturaci nedoladíme a nemáme dev DB, necháváme vypnuté.
+  if (process.env.BILLING_CRON_ENABLED !== "true") {
+    return NextResponse.json({ ok: true, skipped: "billing cron disabled" });
+  }
+
   const db = getAdminFirestore();
   const now = new Date();
   const summary = { generated: 0, overdue: 0, paidSynced: 0 };

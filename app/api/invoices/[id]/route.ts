@@ -4,7 +4,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
 import { invoiceFormSchema, invoiceItemsTotal } from "@/lib/schemas/invoice";
-import { markInvoicePaid } from "@/lib/invoice-actions";
+import { markInvoicePaid, cancelInvoice } from "@/lib/invoice-actions";
 
 export async function PATCH(
   request: Request,
@@ -31,50 +31,7 @@ export async function PATCH(
     if (body.action === "paid") {
       await markInvoicePaid(db, id, data, user.uid);
     } else if (body.action === "cancelled") {
-      await docRef.update({
-        status: "cancelled",
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      await logActivity({
-        entityType: "invoice",
-        entityId: id,
-        kind: "status_change",
-        text: `Faktura ${data.number} stornována`,
-        actorUid: user.uid,
-      });
-
-      // Handle commission reversal
-      const commRef = db.collection("commissions").doc(id);
-      const commDoc = await commRef.get();
-      if (commDoc.exists) {
-        const commData = commDoc.data()!;
-        if (commData.status === "pending") {
-          // Simply reverse the pending commission
-          await commRef.update({
-            status: "reversed",
-            updatedAt: FieldValue.serverTimestamp(),
-          });
-        } else if (commData.status === "paid") {
-          // Create a negative reversal record
-          const reversalRef = db.collection("commissions").doc(`${id}-reversal`);
-          const existingReversal = await reversalRef.get();
-          if (!existingReversal.exists) {
-            await reversalRef.set({
-              invoiceId: id,
-              clientId: commData.clientId,
-              salesUid: commData.salesUid,
-              baseAmount: -(commData.baseAmount as number),
-              rate: commData.rate,
-              amount: -(commData.amount as number),
-              status: "pending",
-              earnedAt: FieldValue.serverTimestamp(),
-              createdAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-              createdBy: user.uid,
-            });
-          }
-        }
-      }
+      await cancelInvoice(db, id, data, user.uid);
     } else if (body.action === "update") {
       if (data.status !== "draft") {
         return NextResponse.json(
