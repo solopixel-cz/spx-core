@@ -46,7 +46,12 @@ export function getClientAuth(): Auth {
 
 export function getClientFirestore(): Firestore {
   if (_db) return _db;
-  _db = getFirestore(getFirebaseApp());
+  // Volitelná pojmenovaná databáze (dev izolace ve stejném projektu).
+  // Prázdné = (default) produkční databáze.
+  const dbId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID;
+  _db = dbId
+    ? getFirestore(getFirebaseApp(), dbId)
+    : getFirestore(getFirebaseApp());
 
   if (process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === "true") {
     connectFirestoreEmulator(_db, "127.0.0.1", 8080);

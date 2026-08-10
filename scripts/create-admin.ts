@@ -56,7 +56,8 @@ if (getApps().length === 0) {
 }
 
 const auth = getAuth();
-const db = getFirestore();
+const dbId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID;
+const db = dbId ? getFirestore(dbId) : getFirestore();
 
 async function main() {
   // Create Auth user
