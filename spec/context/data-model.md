@@ -92,6 +92,9 @@ Předplatné, 1:1 ke klientovi.
   priceMonthly: number       // CZK
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
+  internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se, nepočítá do MRR ani do „Blížící se fakturace"
+  discountPercent?: number   // sleva z předplatného (0–100), přenáší se do řádku faktury
+  discountNote?: string      // důvod slevy
   startedAt: Timestamp
   nextInvoiceAt: Timestamp
 }
@@ -133,9 +136,12 @@ PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GE
   assigneeUid: string
   dueAt?: Timestamp
   status: 'open' | 'done'
+  doneAt?: Timestamp         // razítko odbavení; nastaveno při přechodu na „done", smazáno při znovuotevření — pohání deník hotových úkolů
   recurrence?: 'none' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'  // opakovaný úkol; při označení „hotovo" se založí další výskyt s posunutým dueAt
   checklistTemplateId?: string  // pokud vznikl z onboarding šablony
 }
+
+Stránka **Úkoly** (`/ukoly`) zobrazuje otevřené úkoly seskupené podle termínu (Po termínu / Dnes / Tento týden / Později / Bez termínu) a hotové úkoly jako deník seskupený podle dne odbavení (`doneAt`). Filtr Moje/Všechny; v „Všechny" nese úkol barevný štítek řešitele.
 ```
 
 ### `tickets`

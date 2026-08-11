@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         id: doc.id,
         ...data,
         dueAt: data.dueAt?.toDate?.()?.toISOString() ?? null,
+        doneAt: data.doneAt?.toDate?.()?.toISOString() ?? null,
         createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
       };

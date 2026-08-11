@@ -39,12 +39,29 @@ export async function PATCH(
     }
     const prev = snap.data()!;
 
+    // Odbavit / znovuotevřít úkol smí jen jeho řešitel.
+    const changingStatus = typeof body.status === "string" && body.status !== prev.status;
+    if (changingStatus && prev.assigneeUid !== user.uid) {
+      return NextResponse.json({ error: "Úkol může splnit jen jeho řešitel" }, { status: 403 });
+    }
+    // Hotový úkol nelze upravovat (povolené je pouze znovuotevření = změna stavu).
+    const editingNonStatusFields = Object.keys(body).some((k) => k !== "status");
+    if (prev.status === "done" && editingNonStatusFields) {
+      return NextResponse.json({ error: "Hotový úkol nelze upravovat" }, { status: 403 });
+    }
+
     const updates: Record<string, unknown> = {
       ...body,
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (body.dueAt) {
       updates.dueAt = new Date(body.dueAt);
+    }
+    // Razítko odbavení: nastav při přechodu na „hotovo", smaž při znovuotevření.
+    if (body.status === "done" && prev.status !== "done") {
+      updates.doneAt = FieldValue.serverTimestamp();
+    } else if (body.status === "open" && prev.status === "done") {
+      updates.doneAt = FieldValue.delete();
     }
 
     await ref.update(updates);
@@ -112,6 +129,11 @@ export async function DELETE(
     await requireRole("admin", "member");
     const { id } = await params;
     const db = getAdminFirestore();
+    const snap = await db.collection("tasks").doc(id).get();
+    // Hotové úkoly nelze mazat (nejdřív je nutné je znovuotevřít).
+    if (snap.exists && snap.data()?.status === "done") {
+      return NextResponse.json({ error: "Hotový úkol nelze smazat" }, { status: 403 });
+    }
     // Úkoly nejsou archivovatelné → tvrdé smazání.
     await db.collection("tasks").doc(id).delete();
     return NextResponse.json({ status: "ok" });

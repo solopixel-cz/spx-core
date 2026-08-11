@@ -23,6 +23,8 @@ export const taskSchema = z.object({
   assigneeUid: z.string().min(1),
   dueAt: timestampSchema.optional(),
   status: z.enum(["open", "done"]),
+  /** Kdy byl úkol odbaven (nastaveno při přechodu na `done`, smazáno při znovuotevření). */
+  doneAt: timestampSchema.optional(),
   recurrence: z.enum(TASK_RECURRENCES).optional(),
   checklistTemplateId: z.string().optional(),
 });
