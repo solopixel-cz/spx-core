@@ -107,6 +107,7 @@ export default async function ClientDetailPage({
           subDoc.data().nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
         discountPercent: (subDoc.data().discountPercent as number | undefined) ?? 0,
         discountNote: (subDoc.data().discountNote as string | undefined) ?? "",
+        internal: (subDoc.data().internal as boolean | undefined) ?? false,
       }
     : null;
 

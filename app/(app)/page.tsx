@@ -47,6 +47,7 @@ export default async function DashboardPage() {
   if (!isSales && invoicesSnap && subsSnap) {
     subsSnap.docs.forEach((doc) => {
       const d = doc.data();
+      if (d.internal) return; // interní vizitky negenerují příjem
       const price = d.priceMonthly as number;
       const cycle = d.billingCycle as string;
       const discount = (d.discountPercent as number) || 0;
@@ -83,35 +84,6 @@ export default async function DashboardPage() {
       }
     });
   }
-
-  // Onboarding clients (sales sees only own)
-  const onboardingClients = clientsSnap.docs
-    .filter((doc) => {
-      if (doc.data().deletedAt) return false;
-      if (doc.data().status !== "onboarding") return false;
-      if (isSales && doc.data().salesOwnerUid !== user.uid) return false;
-      return true;
-    })
-    .map((doc) => {
-      const d = doc.data();
-      const clientTasks = tasksSnap.docs.filter(
-        (t) => t.data().clientId === doc.id && t.data().checklistTemplateId
-      );
-      const done = clientTasks.filter((t) => t.data().status === "done").length;
-      const total = clientTasks.length;
-      const createdAt = d.createdAt?.toDate?.();
-      const serverNow = new Date();
-      const daysIn = createdAt ? Math.floor((serverNow.getTime() - createdAt.getTime()) / 86400000) : 0;
-      const lastDone = clientTasks
-        .filter((t) => t.data().status === "done")
-        .map((t) => t.data().updatedAt?.toDate?.()?.getTime() ?? 0)
-        .sort((a: number, b: number) => b - a)[0];
-      const stale = lastDone
-        ? serverNow.getTime() - lastDone > 7 * 86400000
-        : total > 0 && daysIn > 7;
-
-      return { id: doc.id, name: d.name as string, daysIn, done, total, stale: !!stale };
-    });
 
   // Počty klientů podle stavu (sales počítá jen vlastní)
   const visibleClients = clientsSnap.docs.filter(
@@ -276,7 +248,8 @@ export default async function DashboardPage() {
         const s = doc.data();
         const due = s.nextInvoiceAt?.toDate?.() as Date | undefined;
         const client = clientById[s.clientId as string];
-        if (!due || !client || client.deleted) return null;
+        // Interní vizitky (obchodník/vlastní) se nefakturují → přeskoč.
+        if (!due || !client || client.deleted || s.internal) return null;
         const monthly = (s.priceMonthly as number) ?? 0;
         const base = s.billingCycle === "yearly" ? monthly * 12 : monthly;
         const discount = (s.discountPercent as number) ?? 0;
@@ -290,15 +263,30 @@ export default async function DashboardPage() {
           _due: due,
         };
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon)
+      // Interní vizitky se 100% slevou (částka 0 Kč) se nefakturují → nezobrazuj.
+      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon && x.amount > 0)
       .sort((a, b) => a.nextInvoiceAt.localeCompare(b.nextInvoiceAt))
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .map(({ _due, ...rest }) => rest);
   }
 
-  const myOpenTasks = tasksSnap.docs.filter(
-    (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
-  ).length;
+  // Moje úkoly — celkem otevřené + rozpad po termínu / dnes (pro hero widget).
+  const taskStartToday = new Date();
+  taskStartToday.setHours(0, 0, 0, 0);
+  const taskEndToday = new Date();
+  taskEndToday.setHours(23, 59, 59, 999);
+  let myOpenTasks = 0;
+  let myTasksOverdue = 0;
+  let myTasksDueToday = 0;
+  tasksSnap.docs.forEach((t) => {
+    const d = t.data();
+    if (d.assigneeUid !== user.uid || d.status !== "open") return;
+    myOpenTasks++;
+    const due = d.dueAt?.toDate?.();
+    if (!due) return;
+    if (due < taskStartToday) myTasksOverdue++;
+    else if (due <= taskEndToday) myTasksDueToday++;
+  });
 
   return (
     <DashboardClient
@@ -307,9 +295,10 @@ export default async function DashboardPage() {
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}
       chartSeries={chartSeries}
-      onboardingClients={onboardingClients}
       recentActivity={recentActivity}
       myOpenTasks={myOpenTasks}
+      myTasksOverdue={myTasksOverdue}
+      myTasksDueToday={myTasksDueToday}
       overdueInvoices={overdueInvoices}
       followUps={followUps}
       upcomingBilling={upcomingBilling}

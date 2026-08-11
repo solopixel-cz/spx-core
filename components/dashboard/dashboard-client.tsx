@@ -16,6 +16,7 @@ import {
   UserPlus,
   Phone,
   CalendarClock,
+  ListChecks,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -50,15 +51,6 @@ function timeAgo(dateStr: string | null): string {
   const days = Math.floor(hours / 24);
   if (days === 1) return "včera";
   return `${days} d`;
-}
-
-interface OnboardingClient {
-  id: string;
-  name: string;
-  daysIn: number;
-  done: number;
-  total: number;
-  stale: boolean;
 }
 
 interface ActivityItem {
@@ -118,9 +110,10 @@ export function DashboardClient({
   paidThisMonth,
   invoicedThisMonth,
   chartSeries = [],
-  onboardingClients,
   recentActivity,
   myOpenTasks,
+  myTasksOverdue = 0,
+  myTasksDueToday = 0,
   overdueInvoices,
   followUps,
   upcomingBilling = [],
@@ -134,9 +127,10 @@ export function DashboardClient({
   paidThisMonth: number;
   invoicedThisMonth: number;
   chartSeries?: ChartSeries[];
-  onboardingClients: OnboardingClient[];
   recentActivity: ActivityItem[];
   myOpenTasks: number;
+  myTasksOverdue?: number;
+  myTasksDueToday?: number;
   overdueInvoices: { count: number; sum: number };
   followUps: FollowUp[];
   upcomingBilling?: UpcomingBill[];
@@ -176,6 +170,39 @@ export function DashboardClient({
           </div>
         }
       />
+
+      {/* 1. Moje úkoly — hlavní widget, první na co se dívám */}
+      <Link href="/ukoly" className="block">
+        <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent transition-colors hover:border-primary/50">
+          <CardContent className="flex items-center gap-4 py-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <ListChecks className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-muted-foreground">Moje úkoly</p>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-heading text-4xl font-bold leading-none tabular-nums">
+                  {myOpenTasks}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {myOpenTasks === 1 ? "otevřený" : "otevřených"}
+                </span>
+                {myTasksOverdue > 0 && (
+                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
+                    {myTasksOverdue} po termínu
+                  </span>
+                )}
+                {myTasksDueToday > 0 && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {myTasksDueToday} dnes
+                  </span>
+                )}
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* 2. Akční upozornění: faktury po splatnosti + blížící se fakturace + follow-upy */}
       {(!isSales && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
@@ -331,69 +358,8 @@ export function DashboardClient({
         </div>
       )}
 
-      {/* 4. Detail: vlevo pipeline + onboarding, vpravo aktivita + engagement */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {/* Moje úkoly */}
-          <Link href="/ukoly" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Moje úkoly</p>
-                <p className="mt-1 font-heading text-3xl font-bold tabular-nums">
-                  {myOpenTasks}
-                </p>
-                <p className="text-xs text-muted-foreground">otevřené</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Onboarding */}
-          {onboardingClients.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Onboarding</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {onboardingClients.map((c) => (
-                  <Link key={c.id} href={`/klienti/${c.id}`}>
-                    <Card
-                      className={cn(
-                        "h-full transition-colors hover:bg-muted/50",
-                        c.stale && "border-amber-300 dark:border-amber-700"
-                      )}
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">{c.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{c.daysIn} dní</span>
-                          <span
-                            className={cn(
-                              "font-medium",
-                              c.stale && "text-amber-600 dark:text-amber-400"
-                            )}
-                          >
-                            {c.done}/{c.total} úkolů
-                          </span>
-                        </div>
-                        {c.total > 0 && (
-                          <div className="mt-2 h-1.5 rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-primary transition-all"
-                              style={{ width: `${(c.done / c.total) * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Pravý sloupec: aktivita + engagement */}
-        <div className="space-y-6">
+      {/* 4. Poslední aktivita */}
+      <div className="space-y-6">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -445,7 +411,6 @@ export function DashboardClient({
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   );
 }

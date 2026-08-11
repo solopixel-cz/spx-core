@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
   for (const subDoc of dueSubs.docs) {
     const sub = subDoc.data();
     if (sub.status !== "active" && sub.status !== "past_due") continue;
+    // Interní vizitky (obchodník/vlastní) se nefakturují.
+    if (sub.internal) continue;
 
     const clientSnap = await db.collection("clients").doc(sub.clientId).get();
     if (!clientSnap.exists || clientSnap.data()?.deletedAt) continue;
