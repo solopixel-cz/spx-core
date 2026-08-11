@@ -8,51 +8,18 @@ import {
   Receipt,
   TicketCheck,
   Briefcase,
-  ClipboardList,
   CheckSquare,
-  CheckCircle,
-  AlertTriangle,
   AlertCircle,
-  Info,
-  BookUser,
   ArrowRight,
   History,
   Plus,
   UserPlus,
   Phone,
+  CalendarClock,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AttentionItem } from "@/lib/attention";
-import { MiniBarChart } from "./mini-bar-chart";
-import { EngagementCard, type EngagementDay } from "./engagement-card";
-
-const stageLabels: Record<string, string> = {
-  new: "Nový", contacted: "Osloven", demo: "Demo",
-  offer: "Nabídka", contract: "Smlouva", onboarding: "Onboarding",
-};
-const PIPELINE_STAGES = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
-
-const typeIcons: Record<string, React.ReactNode> = {
-  invoice: <Receipt className="h-4 w-4" />,
-  ticket: <TicketCheck className="h-4 w-4" />,
-  lead: <Briefcase className="h-4 w-4" />,
-  submission: <ClipboardList className="h-4 w-4" />,
-  task: <CheckSquare className="h-4 w-4" />,
-  prospect: <BookUser className="h-4 w-4" />,
-};
-
-const severityColors: Record<string, string> = {
-  high: "text-red-600 dark:text-red-400",
-  medium: "text-amber-600 dark:text-amber-400",
-  low: "text-sky-600 dark:text-sky-400",
-};
-
-const severityIcons: Record<string, React.ReactNode> = {
-  high: <AlertCircle className="h-4 w-4" />,
-  medium: <AlertTriangle className="h-4 w-4" />,
-  low: <Info className="h-4 w-4" />,
-};
+import { DashboardChart, type ChartSeries } from "./dashboard-chart";
 
 // Deterministic color from uid for avatar
 const avatarColors = [
@@ -111,6 +78,15 @@ interface FollowUp {
   overdue: boolean;
 }
 
+interface UpcomingBill {
+  id: string;
+  clientId: string;
+  clientName: string;
+  nextInvoiceAt: string;
+  amount: number;
+  overdue: boolean;
+}
+
 /** Malé statistické okénko (KPI). */
 function StatCard({
   label,
@@ -137,47 +113,44 @@ function StatCard({
 }
 
 export function DashboardClient({
-  attentionItems,
-  leadsByStage,
   pipelineValue,
   mrr,
   paidThisMonth,
   invoicedThisMonth,
-  monthlyPaidData,
+  chartSeries = [],
   onboardingClients,
   recentActivity,
   myOpenTasks,
   overdueInvoices,
   followUps,
-  engagementDaily,
-  engagementToday,
+  upcomingBilling = [],
+  activeClients = 0,
+  onboardingCount = 0,
+  unpaidInvoices = 0,
   userRole = "member",
 }: {
-  attentionItems: AttentionItem[];
-  leadsByStage: Record<string, number>;
   pipelineValue: number;
   mrr: number;
   paidThisMonth: number;
   invoicedThisMonth: number;
-  monthlyPaidData: { month: string; amount: number }[];
+  chartSeries?: ChartSeries[];
   onboardingClients: OnboardingClient[];
   recentActivity: ActivityItem[];
   myOpenTasks: number;
   overdueInvoices: { count: number; sum: number };
   followUps: FollowUp[];
-  engagementDaily: EngagementDay[];
-  engagementToday: { opened: number; clicked: number };
+  upcomingBilling?: UpcomingBill[];
+  activeClients?: number;
+  onboardingCount?: number;
+  unpaidInvoices?: number;
   userRole?: string;
 }) {
   const isSales = userRole === "sales";
-  const MAX_FEED = 8;
-  const visibleFeed = attentionItems.slice(0, MAX_FEED);
-  const hiddenCount = attentionItems.length - MAX_FEED;
-  const maxStage = Math.max(1, ...PIPELINE_STAGES.map((s) => leadsByStage[s] || 0));
 
   const quickActions = [
     { label: "Lead", href: "/leady", icon: Briefcase },
     { label: "Klient", href: "/klienti", icon: UserPlus },
+    ...(!isSales ? [{ label: "Faktura", href: "/fakturace/nova", icon: Receipt }] : []),
     { label: "Ticket", href: "/tickety", icon: TicketCheck },
     { label: "Úkol", href: "/ukoly", icon: CheckSquare },
   ];
@@ -204,40 +177,63 @@ export function DashboardClient({
         }
       />
 
-      {/* 1. Vyžaduje akci — priorita na mobilu */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Vyžaduje akci</h2>
-        {attentionItems.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-dashed p-6 text-emerald-600 dark:text-emerald-400">
-            <CheckCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">Vše vyřízeno</span>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {visibleFeed.map((item, i) => (
-              <Link key={i} href={item.href}>
-                <div className="flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-all hover:bg-muted/50 active:scale-[0.99]">
-                  <div className={severityColors[item.severity]}>
-                    {severityIcons[item.severity]}
-                  </div>
-                  <div className="text-muted-foreground">{typeIcons[item.type]}</div>
-                  <span className="min-w-0 flex-1 truncate text-sm">{item.title}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-              </Link>
-            ))}
-            {hiddenCount > 0 && (
-              <p className="px-1 pt-1 text-xs text-muted-foreground">
-                … a dalších {hiddenCount} položek
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 2. Akční upozornění: faktury po splatnosti + dnešní follow-upy */}
-      {(!isSales && overdueInvoices.count > 0) || followUps.length > 0 ? (
+      {/* 2. Akční upozornění: faktury po splatnosti + blížící se fakturace + follow-upy */}
+      {(!isSales && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
+      followUps.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
+          {!isSales && upcomingBilling.length > 0 && (
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarClock className="h-4 w-4 text-primary" />
+                    Blížící se fakturace
+                  </CardTitle>
+                  <Link
+                    href="/fakturace"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Vše <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {upcomingBilling.slice(0, 5).map((b) => (
+                    <Link key={b.id} href={`/fakturace/nova?clientId=${b.clientId}&sub=1`}>
+                      <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
+                        <span className="min-w-0 flex-1 truncate text-sm">{b.clientName}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {formatCurrency(b.amount)}
+                        </span>
+                        <span
+                          className={cn(
+                            "w-16 shrink-0 text-right text-xs tabular-nums",
+                            b.overdue
+                              ? "font-medium text-red-600 dark:text-red-400"
+                              : "text-muted-foreground"
+                          )}
+                          suppressHydrationWarning
+                        >
+                          {b.overdue
+                            ? "po termínu"
+                            : new Date(b.nextInvoiceAt).toLocaleDateString("cs-CZ", {
+                                day: "numeric",
+                                month: "numeric",
+                              })}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                  {upcomingBilling.length > 5 && (
+                    <p className="px-1 pt-0.5 text-xs text-muted-foreground">
+                      … a dalších {upcomingBilling.length - 5}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {!isSales && overdueInvoices.count > 0 && (
             <Link href="/fakturace">
               <Card className="h-full border-destructive/40 transition-colors hover:bg-destructive/5">
@@ -304,79 +300,52 @@ export function DashboardClient({
         </div>
       ) : null}
 
-      {/* 3. Finanční KPI — admin/member */}
+      {/* 3. Přehled + finanční KPI — admin/member */}
       {!isSales && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-          <StatCard label="MRR" value={formatCurrency(mrr)} />
-          <StatCard
-            label="Zaplaceno tento měsíc"
-            value={formatCurrency(paidThisMonth)}
-            accent="text-emerald-600 dark:text-emerald-400"
-          />
-          <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
-          <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
-          <Card className="col-span-2 min-w-0 md:col-span-4">
-            <CardContent className="min-w-0 pt-4">
-              <p className="mb-2 text-xs text-muted-foreground">Zaplaceno (12 měsíců)</p>
-              <MiniBarChart data={monthlyPaidData} />
-            </CardContent>
-          </Card>
+        <div className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <StatCard label="Aktivní klienti" value={activeClients} href="/klienti" />
+            <StatCard label="Onboarding" value={onboardingCount} href="/klienti" />
+            <StatCard label="MRR" value={formatCurrency(mrr)} />
+            <StatCard
+              label="Nezaplacené faktury"
+              value={unpaidInvoices}
+              accent={unpaidInvoices > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
+              href="/fakturace"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <StatCard
+              label="Zaplaceno tento měsíc"
+              value={formatCurrency(paidThisMonth)}
+              accent="text-emerald-600 dark:text-emerald-400"
+            />
+            <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
+            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
+            <Card className="col-span-2 min-w-0 md:col-span-4">
+              <CardContent className="min-w-0 pt-4">
+                <DashboardChart series={chartSeries} />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
       {/* 4. Detail: vlevo pipeline + onboarding, vpravo aktivita + engagement */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* Pipeline funnel + moje úkoly */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Link href="/ukoly" className="sm:col-span-1">
-              <Card className="h-full transition-colors hover:bg-muted/50">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-muted-foreground">Moje úkoly</p>
-                  <p className="mt-1 font-heading text-3xl font-bold tabular-nums">
-                    {myOpenTasks}
-                  </p>
-                  <p className="text-xs text-muted-foreground">otevřené</p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Card className="sm:col-span-2">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Pipeline</CardTitle>
-                  <Link
-                    href="/leady"
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    Leady <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-1.5">
-                  {PIPELINE_STAGES.map((s) => {
-                    const count = leadsByStage[s] || 0;
-                    return (
-                      <div key={s} className="flex items-center gap-2 text-sm">
-                        <span className="w-20 shrink-0 text-xs text-muted-foreground">
-                          {stageLabels[s]}
-                        </span>
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${(count / maxStage) * 100}%` }}
-                          />
-                        </div>
-                        <span className="w-5 shrink-0 text-right text-xs font-medium tabular-nums">
-                          {count}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* Moje úkoly */}
+          <Link href="/ukoly" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">Moje úkoly</p>
+                <p className="mt-1 font-heading text-3xl font-bold tabular-nums">
+                  {myOpenTasks}
+                </p>
+                <p className="text-xs text-muted-foreground">otevřené</p>
               </CardContent>
             </Card>
-          </div>
+          </Link>
 
           {/* Onboarding */}
           {onboardingClients.length > 0 && (
@@ -475,9 +444,6 @@ export function DashboardClient({
               )}
             </CardContent>
           </Card>
-
-          {/* Engagement — otevření + kliknutí na demo */}
-          <EngagementCard today={engagementToday} daily={engagementDaily} />
         </div>
       </div>
     </div>

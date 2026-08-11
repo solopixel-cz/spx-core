@@ -133,6 +133,7 @@ PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GE
   assigneeUid: string
   dueAt?: Timestamp
   status: 'open' | 'done'
+  recurrence?: 'none' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'  // opakovaný úkol; při označení „hotovo" se založí další výskyt s posunutým dueAt
   checklistTemplateId?: string  // pokud vznikl z onboarding šablony
 }
 ```

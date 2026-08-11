@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -72,6 +72,7 @@ const priorityVariants: Record<string, "default" | "secondary" | "outline" | "de
   low: "outline", medium: "secondary", high: "default", urgent: "destructive",
 };
 const TICKET_STATUSES = ["open", "in_progress", "waiting_client", "resolved", "closed"];
+const ASSIGNEE_NONE = "__none__";
 
 export function TicketsPageClient({
   tickets,
@@ -84,6 +85,7 @@ export function TicketsPageClient({
 }) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<TicketRow | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -91,6 +93,7 @@ export function TicketsPageClient({
   const [clientFilter, setClientFilter] = useState("all");
   const [now] = useState(() => Date.now());
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   const filtered = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
@@ -105,6 +108,7 @@ export function TicketsPageClient({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<TicketFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,20 +116,47 @@ export function TicketsPageClient({
     defaultValues: { type: "bug", priority: "medium" },
   });
 
+  const clientItems = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+  const assigneeItems = { [ASSIGNEE_NONE]: "Nepřiřazeno", ...Object.fromEntries(users.map((u) => [u.id, u.displayName])) };
+
+  function openCreate() {
+    setEditingTicket(null);
+    reset({ type: "bug", priority: "medium", title: "", description: "", clientId: undefined, assigneeUid: undefined });
+    setDialogOpen(true);
+  }
+
+  function openEdit(ticket: TicketRow) {
+    setEditingTicket(ticket);
+    reset({
+      clientId: ticket.clientId,
+      type: ticket.type as TicketFormData["type"],
+      priority: ticket.priority as TicketFormData["priority"],
+      title: ticket.title,
+      description: ticket.description,
+      assigneeUid: ticket.assigneeUid,
+    });
+    setSelectedTicket(null);
+    setDialogOpen(true);
+  }
+
   async function onSubmit(data: TicketFormData) {
     try {
-      const res = await fetch("/api/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(
+        editingTicket ? `/api/tickets/${editingTicket.id}` : "/api/tickets",
+        {
+          method: editingTicket ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
       if (!res.ok) throw new Error();
-      toast.success("Ticket vytvořen");
+      toast.success(editingTicket ? "Ticket upraven" : "Ticket vytvořen");
       setDialogOpen(false);
+      setEditingTicket(null);
       reset();
       router.refresh();
     } catch {
-      toast.error("Nepodařilo se vytvořit ticket");
+      toast.error(editingTicket ? "Nepodařilo se upravit ticket" : "Nepodařilo se vytvořit ticket");
     }
   }
 
@@ -148,6 +179,26 @@ export function TicketsPageClient({
     }
   }
 
+  async function handleArchive(ticket: TicketRow) {
+    if (!window.confirm(`Smazat ticket „${ticket.title}"? Přesune se do archivu (lze obnovit).`)) return;
+    setArchiving(true);
+    try {
+      const res = await fetch("/api/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive", collection: "tickets", id: ticket.id }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Ticket smazán");
+      setSelectedTicket(null);
+      router.refresh();
+    } catch {
+      toast.error("Nepodařilo se smazat ticket");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   function getTimeSince(dateStr: string | null): string {
     if (!dateStr) return "";
     const days = Math.floor((now - new Date(dateStr).getTime()) / 86400000);
@@ -160,16 +211,16 @@ export function TicketsPageClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Tickety</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button size="sm"><Plus className="mr-2 h-4 w-4" />Nový ticket</Button>} />
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nový ticket</DialogTitle></DialogHeader>
+        <Button size="sm" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Nový ticket</Button>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingTicket(null); }}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader><DialogTitle>{editingTicket ? "Upravit ticket" : "Nový ticket"}</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Klient *</Label>
-                  <Select onValueChange={(val) => { if (val) setValue("clientId", String(val)); }}>
-                    <SelectTrigger><SelectValue placeholder="Vyberte" /></SelectTrigger>
+                  <Select items={clientItems} value={watch("clientId")} onValueChange={(val) => { if (val) setValue("clientId", String(val)); }}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Vyberte" /></SelectTrigger>
                     <SelectContent>
                       {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
@@ -178,11 +229,10 @@ export function TicketsPageClient({
                 </div>
                 <div className="space-y-2">
                   <Label>Typ</Label>
-                  <Select defaultValue="bug" onValueChange={(val) => { if (val) setValue("type", val as TicketFormData["type"]); }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select items={typeLabels} value={watch("type")} onValueChange={(val) => { if (val) setValue("type", val as TicketFormData["type"]); }}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="bug">Bug</SelectItem>
-                      <SelectItem value="change_request">Změna</SelectItem>
+                      {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -194,20 +244,36 @@ export function TicketsPageClient({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ticketDesc">Popis *</Label>
-                <Input id="ticketDesc" {...register("description")} />
+                <Textarea id="ticketDesc" rows={3} {...register("description")} />
                 {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
               </div>
-              <div className="space-y-2">
-                <Label>Priorita</Label>
-                <Select defaultValue="medium" onValueChange={(val) => { if (val) setValue("priority", val as TicketFormData["priority"]); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Priorita</Label>
+                  <Select items={priorityLabels} value={watch("priority")} onValueChange={(val) => { if (val) setValue("priority", val as TicketFormData["priority"]); }}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Řešitel</Label>
+                  <Select
+                    items={assigneeItems}
+                    value={watch("assigneeUid") ?? ASSIGNEE_NONE}
+                    onValueChange={(val) => setValue("assigneeUid", val && val !== ASSIGNEE_NONE ? String(val) : undefined)}
+                  >
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ASSIGNEE_NONE}>Nepřiřazeno</SelectItem>
+                      {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.displayName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Vytvářím..." : "Vytvořit"}
+                {isSubmitting ? "Ukládám..." : editingTicket ? "Uložit" : "Vytvořit"}
               </Button>
             </form>
           </DialogContent>
@@ -317,13 +383,30 @@ export function TicketsPageClient({
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
           {selectedTicket && (
             <div className="space-y-4 p-4">
-              <SheetTitle>{selectedTicket.title}</SheetTitle>
+              <div className="flex items-start justify-between gap-2">
+                <SheetTitle>{selectedTicket.title}</SheetTitle>
+                <div className="flex shrink-0 gap-1">
+                  <Button variant="outline" size="sm" onClick={() => openEdit(selectedTicket)}>
+                    <Pencil className="mr-1 h-4 w-4" /> Upravit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleArchive(selectedTicket)}
+                    disabled={archiving}
+                  >
+                    {archiving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+                    Smazat
+                  </Button>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Badge variant="outline">{typeLabels[selectedTicket.type]}</Badge>
                 <Badge variant={priorityVariants[selectedTicket.priority]}>{priorityLabels[selectedTicket.priority]}</Badge>
                 <Badge variant="secondary">{statusLabels[selectedTicket.status]}</Badge>
               </div>
-              <p className="text-sm">{selectedTicket.description}</p>
+              <p className="text-sm whitespace-pre-wrap">{selectedTicket.description}</p>
               <dl className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Klient</dt>

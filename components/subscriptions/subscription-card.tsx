@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -61,6 +63,7 @@ export function SubscriptionCard({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SubscriptionFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,6 +113,13 @@ export function SubscriptionCard({
     setValue("priceMonthly", PLANS[plan].defaultPrice);
   }
 
+  // Živý náhled ceny ve formuláři — kolik klient reálně zaplatí.
+  const wPrice = Number(watch("priceMonthly")) || 0;
+  const wCycle = watch("billingCycle");
+  const wDiscount = Number(watch("discountPercent")) || 0;
+  const wUnit = wCycle === "yearly" ? "rok" : "měs";
+  const wAfterDiscount = Math.round(wPrice * (1 - wDiscount / 100));
+
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between">
@@ -123,34 +133,33 @@ export function SubscriptionCard({
               </Button>
             }
           />
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{isEdit ? "Upravit předplatné" : "Založit předplatné"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tarif</Label>
-                <Select
-                  defaultValue={subscription?.plan ?? "basic"}
-                  onValueChange={handlePlanChange}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PLANS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v.label} ({v.defaultPrice} Kč)</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="priceMonthly">Cena/měs. (Kč)</Label>
-                  <Input id="priceMonthly" type="number" {...register("priceMonthly")} />
-                  {errors.priceMonthly && <p className="text-sm text-destructive">{errors.priceMonthly.message}</p>}
+                  <Label>Tarif</Label>
+                  <Select
+                    items={Object.fromEntries(
+                      Object.entries(PLANS).map(([k, v]) => [k, v.label])
+                    )}
+                    defaultValue={subscription?.plan ?? "basic"}
+                    onValueChange={handlePlanChange}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PLANS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Cyklus</Label>
                   <Select
+                    items={{ monthly: "Měsíční", yearly: "Roční" }}
                     defaultValue={subscription?.billingCycle ?? "monthly"}
                     onValueChange={(val) => { if (val) setValue("billingCycle", val as "monthly" | "yearly"); }}
                   >
@@ -162,6 +171,15 @@ export function SubscriptionCard({
                   </Select>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priceMonthly">
+                  Cena za {wCycle === "yearly" ? "rok" : "měsíc"} (Kč)
+                </Label>
+                <Input id="priceMonthly" type="number" {...register("priceMonthly")} />
+                {errors.priceMonthly && <p className="text-sm text-destructive">{errors.priceMonthly.message}</p>}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="discountPercent">Sleva (%)</Label>
@@ -172,6 +190,25 @@ export function SubscriptionCard({
                   <Input id="discountNote" placeholder="Např. první rok zdarma" {...register("discountNote")} />
                 </div>
               </div>
+
+              {isEdit && (
+                <div className="space-y-2">
+                  <Label>Stav</Label>
+                  <Select
+                    items={statusLabels}
+                    defaultValue={subscription?.status ?? "active"}
+                    onValueChange={(val) => { if (val) setValue("status", val as SubscriptionFormData["status"]); }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusLabels).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {!isEdit && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -186,25 +223,33 @@ export function SubscriptionCard({
                   </div>
                 </div>
               )}
-              {isEdit && (
-                <div className="space-y-2">
-                  <Label>Stav</Label>
-                  <Select
-                    defaultValue={subscription?.status ?? "active"}
-                    onValueChange={(val) => { if (val) setValue("status", val as SubscriptionFormData["status"]); }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+              {/* Živý náhled ceny */}
+              <div className="rounded-xl border bg-muted/40 px-4 py-3">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Klient platí</span>
+                  <span className="text-lg font-semibold">
+                    {wAfterDiscount.toLocaleString("cs-CZ")} Kč/{wUnit}
+                  </span>
                 </div>
-              )}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Ukládám..." : isEdit ? "Uložit" : "Založit"}
-              </Button>
+                {wDiscount > 0 && (
+                  <p className="mt-0.5 text-right text-xs text-muted-foreground">
+                    <span className="line-through">{wPrice.toLocaleString("cs-CZ")} Kč</span>
+                    {" "}· sleva −{wDiscount} %
+                  </p>
+                )}
+              </div>
+
+              <DialogFooter>
+                <DialogClose
+                  render={
+                    <Button type="button" variant="outline">Zrušit</Button>
+                  }
+                />
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Ukládám..." : isEdit ? "Uložit" : "Založit"}
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

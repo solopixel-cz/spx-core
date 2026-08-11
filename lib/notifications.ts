@@ -22,20 +22,21 @@ export interface NotifyParams {
   entityId?: string;
 }
 
-export async function notify(params: NotifyParams): Promise<void> {
+/**
+ * Doručí notifikaci konkrétním uživatelům (in-app záznam + Web Push).
+ * Nikdy neshodí hlavní operaci — chyby jen zaloguje.
+ */
+export async function notifyUsers(
+  uids: string[],
+  params: NotifyParams
+): Promise<void> {
   try {
-    const db = getAdminFirestore();
-    const adminsSnap = await db
-      .collection("users")
-      .where("role", "==", "admin")
-      .get();
-    const adminUids = adminsSnap.docs
-      .filter((doc) => doc.data().active !== false)
-      .map((doc) => doc.id);
-    if (adminUids.length === 0) return;
+    const recipients = [...new Set(uids)].filter(Boolean);
+    if (recipients.length === 0) return;
 
+    const db = getAdminFirestore();
     const batch = db.batch();
-    for (const uid of adminUids) {
+    for (const uid of recipients) {
       const ref = db.collection("notifications").doc();
       batch.set(ref, {
         recipientUid: uid,
@@ -51,11 +52,28 @@ export async function notify(params: NotifyParams): Promise<void> {
     }
     await batch.commit();
 
-    await sendPushToUsers(adminUids, {
+    await sendPushToUsers(recipients, {
       title: params.title,
       body: params.body,
       href: params.href,
     });
+  } catch (error) {
+    console.error("[notifyUsers] failed", error);
+  }
+}
+
+/** Notifikace všem aktivním adminům (centrální dohled). */
+export async function notify(params: NotifyParams): Promise<void> {
+  try {
+    const db = getAdminFirestore();
+    const adminsSnap = await db
+      .collection("users")
+      .where("role", "==", "admin")
+      .get();
+    const adminUids = adminsSnap.docs
+      .filter((doc) => doc.data().active !== false)
+      .map((doc) => doc.id);
+    await notifyUsers(adminUids, params);
   } catch (error) {
     console.error("[notify] failed", error);
   }

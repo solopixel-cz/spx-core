@@ -14,7 +14,9 @@ import {
   Mail,
   Phone,
   Globe,
+  Repeat,
 } from "lucide-react";
+import { taskRecurrenceLabels } from "@/lib/schemas/task";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -31,6 +33,8 @@ import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { CardFormButton } from "./card-form-button";
 import { DeliveryDialog } from "./delivery-dialog";
+import { ClientTaskDialog } from "./client-task-dialog";
+import { ClientTicketDialog } from "./client-ticket-dialog";
 
 interface ClientData {
   id: string;
@@ -214,6 +218,7 @@ export function ClientDetailClient({
   tickets = [],
   salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
+  currentUid = "",
   lastDelivery = null,
 }: {
   client: ClientData;
@@ -221,10 +226,11 @@ export function ClientDetailClient({
   activities: ActivityData[];
   subscription?: SubData | null;
   invoices?: InvoiceData[];
-  tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string }>;
+  tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string; recurrence?: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
+  currentUid?: string;
   lastDelivery?: { id: string; sentAt: string | null; status: string } | null;
 }) {
   const isSales = userRole === "sales";
@@ -590,7 +596,16 @@ export function ClientDetailClient({
           </TabsContent>
         )}
 
-        <TabsContent value="ukoly" className="mt-5 md:mt-6">
+        <TabsContent value="ukoly" className="mt-5 space-y-4 md:mt-6">
+          {!isArchived && (
+            <div className="flex justify-end">
+              <ClientTaskDialog
+                clientId={client.id}
+                users={salesUsers}
+                currentUid={currentUid}
+              />
+            </div>
+          )}
           {tasks.length === 0 ? (
             <p className="text-muted-foreground">Žádné úkoly</p>
           ) : (
@@ -602,6 +617,12 @@ export function ClientDetailClient({
                 >
                   <span className={`text-sm ${t.status === "done" ? "line-through text-muted-foreground" : "font-medium"}`}>{t.title}</span>
                   <div className="flex items-center gap-2">
+                    {t.recurrence && t.recurrence !== "none" && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Repeat className="h-3 w-3" />
+                        {taskRecurrenceLabels[t.recurrence as keyof typeof taskRecurrenceLabels] ?? t.recurrence}
+                      </Badge>
+                    )}
                     <Badge variant={t.status === "done" ? "secondary" : "outline"}>{t.status === "done" ? "Hotovo" : "Otevřený"}</Badge>
                     {t.dueAt && <span className="text-xs text-muted-foreground">{new Date(t.dueAt).toLocaleDateString("cs-CZ")}</span>}
                   </div>
@@ -611,7 +632,16 @@ export function ClientDetailClient({
           )}
         </TabsContent>
 
-        <TabsContent value="tickety" className="mt-5 md:mt-6">
+        <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
+          {!isArchived && (
+            <div className="flex justify-end">
+              <ClientTicketDialog
+                clientId={client.id}
+                users={salesUsers}
+                instances={instances.map((i) => ({ id: i.id, domain: i.domain }))}
+              />
+            </div>
+          )}
           {tickets.length === 0 ? (
             <p className="text-muted-foreground">Žádné tickety</p>
           ) : (
