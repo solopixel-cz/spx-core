@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Kořen workspace explicitně = tato složka. Jinak Next.js kvůli druhému
+  // lockfile v ~/ (home) chybně zvolí root a rozbije se Turbopack/RSC manifest
+  // („Manifest file is empty", „Could not find … global-error.js").
+  turbopack: {
+    root: import.meta.dirname,
+  },
+  outputFileTracingRoot: import.meta.dirname,
   // Dev přes vlastní hostname (Docker → http://spx.core) je pro Next.js
   // cross-origin; bez tohohle blokuje HMR/_next assety a stránka se nezhydratuje.
   allowedDevOrigins: ["spx.core"],
