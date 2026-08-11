@@ -11,7 +11,15 @@ export async function PATCH(
   try {
     const user = await requireAuth();
     const { id } = await params;
-    const body = (await request.json()) as { status?: string; assigneeUid?: string };
+    const body = (await request.json()) as {
+      status?: string;
+      assigneeUid?: string;
+      title?: string;
+      description?: string;
+      type?: string;
+      priority?: string;
+      clientId?: string;
+    };
 
     const db = getAdminFirestore();
     const docRef = db.collection("tickets").doc(id);
@@ -27,6 +35,11 @@ export async function PATCH(
 
     if (body.status) updates.status = body.status;
     if (body.assigneeUid !== undefined) updates.assigneeUid = body.assigneeUid;
+    if (body.title !== undefined) updates.title = body.title;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.type) updates.type = body.type;
+    if (body.priority) updates.priority = body.priority;
+    if (body.clientId) updates.clientId = body.clientId;
 
     await docRef.update(updates);
 

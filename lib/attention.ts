@@ -133,27 +133,48 @@ export async function getAttentionItems(
       })
   );
 
-  // 5. Overdue onboarding tasks
+  // 5. Úkoly: onboarding po termínu + běžné přiřazené úkoly s termínem dnes/po termínu
   fetches.push(
     db
       .collection("tasks")
       .where("status", "==", "open")
       .get()
       .then((snap) => {
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
         snap.docs.forEach((doc) => {
           const d = doc.data();
-          if (isSales && d.assigneeUid !== uid) return;
           const dueAt = d.dueAt?.toDate?.();
-          if (!dueAt || dueAt >= new Date()) return;
-          if (!d.checklistTemplateId) return; // only onboarding tasks
-          const age = Math.floor((now - dueAt.getTime()) / DAY_MS);
-          items.push({
-            type: "task",
-            severity: age > 7 ? "high" : "medium",
-            title: `Onboarding úkol „${d.title}" po termínu (${age} dní)`,
-            age,
-            href: "/ukoly",
-          });
+          if (!dueAt) return;
+
+          if (d.checklistTemplateId) {
+            // Onboarding úkoly — po termínu (zachované chování)
+            if (isSales && d.assigneeUid !== uid) return;
+            if (dueAt >= new Date()) return;
+            const age = Math.floor((now - dueAt.getTime()) / DAY_MS);
+            items.push({
+              type: "task",
+              severity: age > 7 ? "high" : "medium",
+              title: `Onboarding úkol „${d.title}" po termínu (${age} dní)`,
+              age,
+              href: "/ukoly",
+            });
+          } else {
+            // Běžný úkol — jen řešiteli, s termínem dnes nebo po termínu
+            if (d.assigneeUid !== uid) return;
+            if (dueAt > endOfToday) return;
+            const age = Math.floor((now - dueAt.getTime()) / DAY_MS);
+            items.push({
+              type: "task",
+              severity: age > 3 ? "high" : age > 0 ? "medium" : "low",
+              title:
+                age > 0
+                  ? `Úkol „${d.title}" po termínu (${age} dní)`
+                  : `Úkol „${d.title}" — dnes`,
+              age,
+              href: "/ukoly",
+            });
+          }
         });
       })
   );

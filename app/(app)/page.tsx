@@ -1,6 +1,5 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { getAttentionItems } from "@/lib/attention";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
 export default async function DashboardPage() {
@@ -8,11 +7,7 @@ export default async function DashboardPage() {
   const db = getAdminFirestore();
   const isSales = user.role === "sales";
 
-  const startNow = new Date();
-  const engagementSince = new Date(startNow.getTime() - 8 * 86400000);
-
   const [
-    attentionItems,
     leadsSnap,
     invoicesSnap,
     subsSnap,
@@ -21,9 +16,7 @@ export default async function DashboardPage() {
     clientsSnap,
     usersSnap,
     prospectsSnap,
-    engagementSnap,
   ] = await Promise.all([
-    getAttentionItems(user.uid, user.role),
     db.collection("leads").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
     isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
@@ -32,19 +25,14 @@ export default async function DashboardPage() {
     db.collection("clients").get(),
     db.collection("users").get(),
     db.collection("prospects").get(),
-    // Engagement events (otevření / kliknutí) za posledních 8 dní pro denní rozpad
-    db.collection("activity").where("createdAt", ">=", engagementSince).get(),
   ]);
 
-  // Lead funnel
-  const leadsByStage: Record<string, number> = {};
+  // Pipeline hodnota (aktivní leady s očekávanou hodnotou)
   let pipelineValue = 0;
   const activeLeadStages = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
   leadsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
     const d = doc.data();
-    const stage = d.stage as string;
-    leadsByStage[stage] = (leadsByStage[stage] || 0) + 1;
-    if (activeLeadStages.includes(stage) && d.value) {
+    if (activeLeadStages.includes(d.stage as string) && d.value) {
       pipelineValue += d.value as number;
     }
   });
@@ -53,8 +41,8 @@ export default async function DashboardPage() {
   let mrr = 0;
   let paidThisMonth = 0;
   let invoicedThisMonth = 0;
+  let unpaidInvoicesCount = 0;
   const overdueInvoices = { count: 0, sum: 0 };
-  const monthlyPaidData: { month: string; amount: number }[] = [];
 
   if (!isSales && invoicesSnap && subsSnap) {
     subsSnap.docs.forEach((doc) => {
@@ -71,13 +59,6 @@ export default async function DashboardPage() {
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
 
-    const monthBuckets: Record<string, number> = {};
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(thisYear, thisMonth - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      monthBuckets[key] = 0;
-    }
-
     invoicesSnap.docs.forEach((doc) => {
       const d = doc.data();
       const amount = d.amount as number;
@@ -91,20 +72,16 @@ export default async function DashboardPage() {
         overdueInvoices.count++;
         overdueInvoices.sum += amount;
       }
+      // Vystavené a nezaplacené (odesláno nebo po splatnosti).
+      if (d.status === "sent" || d.status === "overdue") {
+        unpaidInvoicesCount++;
+      }
       if (paidAt) {
         if (paidAt.getMonth() === thisMonth && paidAt.getFullYear() === thisYear) {
           paidThisMonth += amount;
         }
-        const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}`;
-        if (key in monthBuckets) {
-          monthBuckets[key] += amount;
-        }
       }
     });
-
-    for (const [month, amount] of Object.entries(monthBuckets)) {
-      monthlyPaidData.push({ month, amount });
-    }
   }
 
   // Onboarding clients (sales sees only own)
@@ -135,6 +112,78 @@ export default async function DashboardPage() {
 
       return { id: doc.id, name: d.name as string, daysIn, done, total, stale: !!stale };
     });
+
+  // Počty klientů podle stavu (sales počítá jen vlastní)
+  const visibleClients = clientsSnap.docs.filter(
+    (d) => !d.data().deletedAt && (!isSales || d.data().salesOwnerUid === user.uid)
+  );
+  const activeClientsCount = visibleClients.filter((d) => d.data().status === "active").length;
+  const onboardingCount = visibleClients.filter((d) => d.data().status === "onboarding").length;
+
+  // Série pro filtrovatelný dashboard graf (12 měsíců, admin/member).
+  // Peněžní řady = součet za měsíc; počty = kumulativně dle createdAt (poslední
+  // měsíc odpovídá aktuálním KPI). Stavové počty jsou aproximace (bez historie stavů).
+  type ChartSeries = {
+    key: string;
+    label: string;
+    unit: "czk" | "count";
+    data: { month: string; value: number }[];
+  };
+  let chartSeries: ChartSeries[] = [];
+  if (!isSales && invoicesSnap) {
+    const chartBase = new Date();
+    const months = [] as { start: Date; end: Date; key: string }[];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(chartBase.getFullYear(), chartBase.getMonth() - i, 1);
+      months.push({
+        start: d,
+        end: new Date(d.getFullYear(), d.getMonth() + 1, 1),
+        key: `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`,
+      });
+    }
+    const ymIndex: Record<string, number> = {};
+    months.forEach((m, i) => {
+      ymIndex[`${m.start.getFullYear()}-${m.start.getMonth()}`] = i;
+    });
+
+    const invoiced = new Array(12).fill(0);
+    const revenue = new Array(12).fill(0);
+    invoicesSnap.docs.forEach((doc) => {
+      const d = doc.data();
+      const amount = (d.amount as number) ?? 0;
+      const iss = d.issuedAt?.toDate?.();
+      const paid = d.paidAt?.toDate?.();
+      if (iss) {
+        const k = `${iss.getFullYear()}-${iss.getMonth()}`;
+        if (k in ymIndex) invoiced[ymIndex[k]] += amount;
+      }
+      if (paid) {
+        const k = `${paid.getFullYear()}-${paid.getMonth()}`;
+        if (k in ymIndex) revenue[ymIndex[k]] += amount;
+      }
+    });
+
+    const clientDocs = clientsSnap.docs
+      .filter((d) => !d.data().deletedAt)
+      .map((d) => ({ createdAt: d.data().createdAt?.toDate?.() as Date | undefined, status: d.data().status as string }));
+    const subDocs = (subsSnap?.docs ?? []).map((d) => ({
+      createdAt: d.data().createdAt?.toDate?.() as Date | undefined,
+    }));
+    const cumulative = (
+      items: { createdAt?: Date }[],
+      pred: (it: { createdAt?: Date }) => boolean
+    ) => months.map((m) => items.filter((it) => pred(it) && it.createdAt && it.createdAt < m.end).length);
+
+    const toData = (arr: number[]) => months.map((m, i) => ({ month: m.key, value: arr[i] }));
+    chartSeries = [
+      { key: "invoiced", label: "Vystavené faktury (Kč)", unit: "czk", data: toData(invoiced) },
+      { key: "revenue", label: "Měsíční příjmy (Kč)", unit: "czk", data: toData(revenue) },
+      { key: "clientsTotal", label: "Počet klientů", unit: "count", data: toData(cumulative(clientDocs, () => true)) },
+      { key: "activeClients", label: "Aktivní klienti", unit: "count", data: toData(cumulative(clientDocs, (c) => (c as { status?: string }).status === "active")) },
+      { key: "onboarding", label: "Onboarding", unit: "count", data: toData(cumulative(clientDocs, (c) => (c as { status?: string }).status === "onboarding")) },
+      { key: "subscriptions", label: "Počet předplatných", unit: "count", data: toData(cumulative(subDocs, () => true)) },
+    ];
+  }
 
   // User name map
   const userMap: Record<string, string> = {};
@@ -203,60 +252,49 @@ export default async function DashboardPage() {
     })
     .sort((a, b) => a.nextFollowUpAt.localeCompare(b.nextFollowUpAt));
 
-  // Engagement: denní rozpad otevření a kliknutí za posledních 7 dní (v české zóně)
-  const PRAGUE_TZ = "Europe/Prague";
-  const dayKeyFmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: PRAGUE_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const dayLabelFmt = new Intl.DateTimeFormat("cs-CZ", {
-    timeZone: PRAGUE_TZ,
-    weekday: "short",
-    day: "numeric",
-    month: "numeric",
-  });
-
-  // Posledních 7 dní (nejstarší → nejnovější), ukotveno na pražské poledne kvůli DST
-  const todayKey = dayKeyFmt.format(startNow);
-  const anchor = new Date(`${todayKey}T12:00:00Z`);
-  const engagementDaily = [] as {
-    day: string;
-    label: string;
-    opened: number;
-    clicked: number;
-  }[];
-  const dayIndex: Record<string, number> = {};
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(anchor.getTime() - i * 86400000);
-    const key = dayKeyFmt.format(d);
-    dayIndex[key] = engagementDaily.length;
-    engagementDaily.push({ day: key, label: dayLabelFmt.format(d), opened: 0, clicked: 0 });
+  // Blížící se fakturace — aktivní předplatná s nextInvoiceAt do 7 dnů
+  // (včetně těch po termínu, které čekají na vystavení). Jen admin/member.
+  let upcomingBilling: {
+    id: string;
+    clientId: string;
+    clientName: string;
+    nextInvoiceAt: string;
+    amount: number;
+    overdue: boolean;
+  }[] = [];
+  if (!isSales && subsSnap) {
+    const clientById: Record<string, { name: string; deleted: boolean }> = {};
+    clientsSnap.docs.forEach((d) => {
+      clientById[d.id] = { name: d.data().name as string, deleted: !!d.data().deletedAt };
+    });
+    const nowDate = new Date();
+    const horizon = new Date(nowDate.getTime() + 7 * 86400000);
+    const startOfToday = new Date(nowDate);
+    startOfToday.setHours(0, 0, 0, 0);
+    upcomingBilling = subsSnap.docs
+      .map((doc) => {
+        const s = doc.data();
+        const due = s.nextInvoiceAt?.toDate?.() as Date | undefined;
+        const client = clientById[s.clientId as string];
+        if (!due || !client || client.deleted) return null;
+        const monthly = (s.priceMonthly as number) ?? 0;
+        const base = s.billingCycle === "yearly" ? monthly * 12 : monthly;
+        const discount = (s.discountPercent as number) ?? 0;
+        return {
+          id: doc.id,
+          clientId: s.clientId as string,
+          clientName: client.name,
+          nextInvoiceAt: due.toISOString(),
+          amount: Math.round(base * (1 - discount / 100)),
+          overdue: due < startOfToday,
+          _due: due,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon)
+      .sort((a, b) => a.nextInvoiceAt.localeCompare(b.nextInvoiceAt))
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .map(({ _due, ...rest }) => rest);
   }
-
-  engagementSnap.docs.forEach((doc) => {
-    const d = doc.data();
-    if (d.kind !== "system") return;
-    const text = d.text as string;
-    const isOpen = text === "Otevřel e-mail";
-    const isClick = text === "Kliknul na demo ✨";
-    if (!isOpen && !isClick) return;
-    // Sales vidí jen vlastní oslovení (actorUid = senderUid e-mailu)
-    if (isSales && d.actorUid !== user.uid) return;
-    const created = d.createdAt?.toDate?.();
-    if (!created) return;
-    const key = dayKeyFmt.format(created);
-    const idx = dayIndex[key];
-    if (idx === undefined) return;
-    if (isOpen) engagementDaily[idx].opened++;
-    else engagementDaily[idx].clicked++;
-  });
-
-  const engagementToday = engagementDaily[engagementDaily.length - 1] ?? {
-    opened: 0,
-    clicked: 0,
-  };
 
   const myOpenTasks = tasksSnap.docs.filter(
     (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
@@ -264,20 +302,20 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      attentionItems={attentionItems}
-      leadsByStage={leadsByStage}
       pipelineValue={pipelineValue}
       mrr={mrr}
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}
-      monthlyPaidData={monthlyPaidData}
+      chartSeries={chartSeries}
       onboardingClients={onboardingClients}
       recentActivity={recentActivity}
       myOpenTasks={myOpenTasks}
       overdueInvoices={overdueInvoices}
       followUps={followUps}
-      engagementDaily={engagementDaily}
-      engagementToday={{ opened: engagementToday.opened, clicked: engagementToday.clicked }}
+      upcomingBilling={upcomingBilling}
+      activeClients={activeClientsCount}
+      onboardingCount={onboardingCount}
+      unpaidInvoices={unpaidInvoicesCount}
       userRole={user.role}
     />
   );
