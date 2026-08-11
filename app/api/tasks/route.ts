@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { taskFormSchema } from "@/lib/schemas/task";
+import { notifyUsers } from "@/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -53,6 +54,20 @@ export async function POST(request: Request) {
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,
     });
+
+    // Notifikuj řešitele, pokud mu úkol přiřadil někdo jiný.
+    if (data.assigneeUid && data.assigneeUid !== user.uid) {
+      const actorSnap = await db.collection("users").doc(user.uid).get();
+      const actorName = (actorSnap.data()?.displayName as string) ?? "Někdo";
+      await notifyUsers([data.assigneeUid], {
+        type: "task.assigned",
+        title: "Nový úkol pro tebe",
+        body: `${actorName} ti přiřadil úkol „${data.title}"`,
+        href: "/ukoly",
+        entityType: "task",
+        entityId: docRef.id,
+      });
+    }
 
     return NextResponse.json({ id: docRef.id });
   } catch (error) {

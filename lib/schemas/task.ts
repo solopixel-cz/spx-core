@@ -1,6 +1,18 @@
 import { z } from "zod";
 import { baseFields, timestampSchema } from "./timestamp";
 
+/** Interval opakování úkolu. `none` = jednorázový. */
+export const TASK_RECURRENCES = ["none", "weekly", "monthly", "quarterly", "yearly"] as const;
+export type TaskRecurrence = (typeof TASK_RECURRENCES)[number];
+
+export const taskRecurrenceLabels: Record<TaskRecurrence, string> = {
+  none: "Neopakovat",
+  weekly: "Týdně",
+  monthly: "Měsíčně",
+  quarterly: "Čtvrtletně",
+  yearly: "Ročně",
+};
+
 export const taskSchema = z.object({
   ...baseFields,
   title: z.string().min(1),
@@ -11,6 +23,7 @@ export const taskSchema = z.object({
   assigneeUid: z.string().min(1),
   dueAt: timestampSchema.optional(),
   status: z.enum(["open", "done"]),
+  recurrence: z.enum(TASK_RECURRENCES).optional(),
   checklistTemplateId: z.string().optional(),
 });
 
@@ -25,6 +38,7 @@ export const taskFormSchema = z.object({
   assigneeUid: z.string().min(1, "Vyberte řešitele"),
   dueAt: z.string().optional(),
   status: z.enum(["open", "done"]),
+  recurrence: z.enum(TASK_RECURRENCES).optional(),
 });
 
 export type TaskFormData = z.infer<typeof taskFormSchema>;

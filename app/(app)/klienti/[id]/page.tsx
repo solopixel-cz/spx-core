@@ -137,6 +137,7 @@ export default async function ClientDetailPage({
       status: tData.status as string,
       dueAt: tData.dueAt?.toDate?.()?.toISOString() ?? null,
       assigneeUid: tData.assigneeUid as string,
+      recurrence: tData.recurrence as string | undefined,
     };
   });
 
@@ -176,6 +177,7 @@ export default async function ClientDetailPage({
       tickets={clientTickets}
       salesUsers={salesUsers}
       userRole={user.role}
+      currentUid={user.uid}
       lastDelivery={lastDelivery}
     />
   );

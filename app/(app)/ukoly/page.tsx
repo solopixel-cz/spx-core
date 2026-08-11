@@ -22,6 +22,7 @@ export default async function UkolyPage() {
       assigneeUid: data.assigneeUid as string,
       dueAt: data.dueAt?.toDate?.()?.toISOString() ?? null,
       status: data.status as string,
+      recurrence: data.recurrence as string | undefined,
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     };
   });
