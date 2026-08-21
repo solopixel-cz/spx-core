@@ -27,6 +27,18 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const importBatchId = nanoid(10);
 
+    // Optional owner assignment for all imported prospects
+    const requestedOwnerUid =
+      typeof body.ownerUid === "string" && body.ownerUid.trim() ? body.ownerUid.trim() : null;
+    let ownerUid: string | null = null;
+    if (requestedOwnerUid) {
+      const ownerDoc = await db.collection("users").doc(requestedOwnerUid).get();
+      if (!ownerDoc.exists) {
+        return NextResponse.json({ error: "Vybraný vlastník neexistuje" }, { status: 400 });
+      }
+      ownerUid = requestedOwnerUid;
+    }
+
     // Load existing prospects for dedup
     const existingSnap = await db.collection("prospects").get();
     const existingEmails = new Set<string>();
@@ -105,8 +117,8 @@ export async function POST(request: Request) {
           portalUrl: row.portalUrl?.trim() || null,
           demoUrl: row.demoUrl?.trim() || null,
           status: "new",
-          ownerUid: null,
-          claimedAt: null,
+          ownerUid,
+          claimedAt: ownerUid ? FieldValue.serverTimestamp() : null,
           lastTouchAt: null,
           nextFollowUpAt: null,
           leadId: null,
