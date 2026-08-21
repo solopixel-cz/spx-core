@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "domains",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "activity",
       "queryScope": "COLLECTION",
       "fields": [

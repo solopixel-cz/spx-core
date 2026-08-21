@@ -17,6 +17,7 @@ import {
   Phone,
   CalendarClock,
   ListChecks,
+  Globe,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,15 @@ interface UpcomingBill {
   overdue: boolean;
 }
 
+interface UpcomingDomainRenewal {
+  id: string;
+  clientId: string;
+  clientName: string;
+  domainName: string;
+  renewalAt: string;
+  overdue: boolean;
+}
+
 /** Malé statistické okénko (KPI). */
 function StatCard({
   label,
@@ -117,6 +127,7 @@ export function DashboardClient({
   overdueInvoices,
   followUps,
   upcomingBilling = [],
+  upcomingDomainRenewals = [],
   activeClients = 0,
   onboardingCount = 0,
   unpaidInvoices = 0,
@@ -134,6 +145,7 @@ export function DashboardClient({
   overdueInvoices: { count: number; sum: number };
   followUps: FollowUp[];
   upcomingBilling?: UpcomingBill[];
+  upcomingDomainRenewals?: UpcomingDomainRenewal[];
   activeClients?: number;
   onboardingCount?: number;
   unpaidInvoices?: number;
@@ -142,11 +154,11 @@ export function DashboardClient({
   const isSales = userRole === "sales";
 
   const quickActions = [
-    { label: "Lead", href: "/leady", icon: Briefcase },
-    { label: "Klient", href: "/klienti", icon: UserPlus },
-    ...(!isSales ? [{ label: "Faktura", href: "/fakturace/nova", icon: Receipt }] : []),
-    { label: "Ticket", href: "/tickety", icon: TicketCheck },
-    { label: "Úkol", href: "/ukoly", icon: CheckSquare },
+    { label: "Lead", href: "/leads", icon: Briefcase },
+    { label: "Klient", href: "/clients", icon: UserPlus },
+    ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
+    { label: "Ticket", href: "/tickets", icon: TicketCheck },
+    { label: "Úkol", href: "/tasks", icon: CheckSquare },
   ];
 
   return (
@@ -172,7 +184,7 @@ export function DashboardClient({
       />
 
       {/* 1. Moje úkoly — hlavní widget, první na co se dívám */}
-      <Link href="/ukoly" className="block">
+      <Link href="/tasks" className="block">
         <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent transition-colors hover:border-primary/50">
           <CardContent className="flex items-center gap-4 py-5">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
@@ -206,7 +218,8 @@ export function DashboardClient({
 
       {/* 2. Akční upozornění: faktury po splatnosti + blížící se fakturace + follow-upy */}
       {(!isSales && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
-      followUps.length > 0 ? (
+      followUps.length > 0 ||
+      upcomingDomainRenewals.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
           {!isSales && upcomingBilling.length > 0 && (
             <Card className="h-full">
@@ -217,7 +230,7 @@ export function DashboardClient({
                     Blížící se fakturace
                   </CardTitle>
                   <Link
-                    href="/fakturace"
+                    href="/invoices"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Vše <ArrowRight className="h-3 w-3" />
@@ -227,7 +240,7 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingBilling.slice(0, 5).map((b) => (
-                    <Link key={b.id} href={`/fakturace/nova?clientId=${b.clientId}&sub=1`}>
+                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=1`}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">{b.clientName}</span>
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -262,7 +275,7 @@ export function DashboardClient({
             </Card>
           )}
           {!isSales && overdueInvoices.count > 0 && (
-            <Link href="/fakturace">
+            <Link href="/invoices">
               <Card className="h-full border-destructive/40 transition-colors hover:bg-destructive/5">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 text-destructive">
@@ -280,6 +293,53 @@ export function DashboardClient({
               </Card>
             </Link>
           )}
+          {upcomingDomainRenewals.length > 0 && (
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Blížící se obnovení domén
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {upcomingDomainRenewals.slice(0, 5).map((d) => (
+                    <Link key={d.id} href={`/clients/${d.clientId}`}>
+                      <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {d.domainName}
+                          <span className="text-muted-foreground"> · {d.clientName}</span>
+                        </span>
+                        <span
+                          className={cn(
+                            "w-16 shrink-0 text-right text-xs tabular-nums",
+                            d.overdue
+                              ? "font-medium text-red-600 dark:text-red-400"
+                              : "text-muted-foreground"
+                          )}
+                          suppressHydrationWarning
+                        >
+                          {d.overdue
+                            ? "po termínu"
+                            : new Date(d.renewalAt).toLocaleDateString("cs-CZ", {
+                                day: "numeric",
+                                month: "numeric",
+                              })}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                  {upcomingDomainRenewals.length > 5 && (
+                    <p className="px-1 pt-0.5 text-xs text-muted-foreground">
+                      … a dalších {upcomingDomainRenewals.length - 5}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {followUps.length > 0 && (
             <Card className="h-full">
               <CardHeader className="pb-2">
@@ -289,7 +349,7 @@ export function DashboardClient({
                     Dnešní follow-upy
                   </CardTitle>
                   <Link
-                    href="/prospekti"
+                    href="/prospects"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Vše <ArrowRight className="h-3 w-3" />
@@ -299,7 +359,7 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {followUps.slice(0, 5).map((f) => (
-                    <Link key={f.id} href="/prospekti">
+                    <Link key={f.id} href="/prospects">
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {f.name}
@@ -331,14 +391,14 @@ export function DashboardClient({
       {!isSales && (
         <div className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            <StatCard label="Aktivní klienti" value={activeClients} href="/klienti" />
-            <StatCard label="Onboarding" value={onboardingCount} href="/klienti" />
+            <StatCard label="Aktivní klienti" value={activeClients} href="/clients" />
+            <StatCard label="Onboarding" value={onboardingCount} href="/clients" />
             <StatCard label="MRR" value={formatCurrency(mrr)} />
             <StatCard
               label="Nezaplacené faktury"
               value={unpaidInvoices}
               accent={unpaidInvoices > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
-              href="/fakturace"
+              href="/invoices"
             />
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -348,7 +408,7 @@ export function DashboardClient({
               accent="text-emerald-600 dark:text-emerald-400"
             />
             <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
-            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
+            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leads" />
             <Card className="col-span-2 min-w-0 md:col-span-4">
               <CardContent className="min-w-0 pt-4">
                 <DashboardChart series={chartSeries} />
@@ -367,7 +427,7 @@ export function DashboardClient({
                   Aktivita
                 </CardTitle>
                 <Link
-                  href="/aktivita"
+                  href="/activity"
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Vše <ArrowRight className="h-3 w-3" />

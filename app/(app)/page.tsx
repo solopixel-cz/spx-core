@@ -16,6 +16,7 @@ export default async function DashboardPage() {
     clientsSnap,
     usersSnap,
     prospectsSnap,
+    domainsSnap,
   ] = await Promise.all([
     db.collection("leads").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
     db.collection("clients").get(),
     db.collection("users").get(),
     db.collection("prospects").get(),
+    db.collection("domains").get(),
   ]);
 
   // Pipeline hodnota (aktivní leady s očekávanou hodnotou)
@@ -184,7 +186,7 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
-      const href = et === "client" ? `/klienti/${d.entityId}` : et === "lead" ? "/leady" : et === "ticket" ? "/tickety" : et === "prospect" ? "/prospekti" : "/fakturace";
+      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/leads" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
       return {
         id: doc.id,
         actorUid: d.actorUid as string,
@@ -270,6 +272,42 @@ export default async function DashboardPage() {
       .map(({ _due, ...rest }) => rest);
   }
 
+  // Blížící se obnovení domén — domény s renewalAt do 30 dnů (vč. po termínu),
+  // bez auto-renew. Sales vidí jen domény svých klientů.
+  const domainClientById: Record<string, { name: string; deleted: boolean; owner?: string }> = {};
+  clientsSnap.docs.forEach((d) => {
+    domainClientById[d.id] = {
+      name: d.data().name as string,
+      deleted: !!d.data().deletedAt,
+      owner: d.data().salesOwnerUid as string | undefined,
+    };
+  });
+  const domainNowDate = new Date();
+  const domainHorizon = new Date(domainNowDate.getTime() + 30 * 86400000);
+  const domainStartToday = new Date(domainNowDate);
+  domainStartToday.setHours(0, 0, 0, 0);
+  const upcomingDomainRenewals = domainsSnap.docs
+    .map((doc) => {
+      const d = doc.data();
+      const due = d.renewalAt?.toDate?.() as Date | undefined;
+      const client = domainClientById[d.clientId as string];
+      if (!due || !client || client.deleted || d.autoRenew) return null;
+      if (isSales && client.owner !== user.uid) return null;
+      return {
+        id: doc.id,
+        clientId: d.clientId as string,
+        clientName: client.name,
+        domainName: d.name as string,
+        renewalAt: due.toISOString(),
+        overdue: due < domainStartToday,
+        _due: due,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= domainHorizon)
+    .sort((a, b) => a.renewalAt.localeCompare(b.renewalAt))
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .map(({ _due, ...rest }) => rest);
+
   // Moje úkoly — celkem otevřené + rozpad po termínu / dnes (pro hero widget).
   const taskStartToday = new Date();
   taskStartToday.setHours(0, 0, 0, 0);
@@ -302,6 +340,7 @@ export default async function DashboardPage() {
       overdueInvoices={overdueInvoices}
       followUps={followUps}
       upcomingBilling={upcomingBilling}
+      upcomingDomainRenewals={upcomingDomainRenewals}
       activeClients={activeClientsCount}
       onboardingCount={onboardingCount}
       unpaidInvoices={unpaidInvoicesCount}

@@ -62,6 +62,26 @@ DBC instance. Obvykle 1:1 ke klientovi, ale model umožňuje víc.
 }
 ```
 
+### `domains`
+Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít víc domén. Odlišné od `instances.domain` (to je solopixel.cz subdoména vizitky); tady jde o doménu, kterou si klient koupil u registrátora.
+
+```ts
+{
+  clientId: string
+  name: string               // doména, např. jmeno.cz
+  registrar?: string         // u koho zakoupena (Wedos, Forpsi, GoDaddy, …)
+  account?: string           // pod jakým účtem je vedena
+  purchasedAt?: Timestamp     // kdy zakoupena
+  renewalAt?: Timestamp       // datum obnovení/expirace — pohání připomínky
+  autoRenew?: boolean         // automatické obnovení zapnuto (pak cron netlačí připomínku)
+  note?: string
+  renewalReminderSentAt?: Timestamp  // throttle cron připomínky; PATCH renewalAt ho maže
+}
+```
+
+- **Připomínka obnovení:** odznak na detailu klienta (brzy/po expiraci), widget „Blížící se obnovení domén" na dashboardu, denní cron `/api/cron/domain-renewals` (notifikace adminům 30 dnů předem, throttle 7 dnů přes `renewalReminderSentAt`, přeskakuje `autoRenew`).
+- **Zápis** jen přes Route Handlers s admin SDK (`/api/domains`), klientský SDK jen čte.
+
 ### `leads`
 Obchodní pipeline.
 
@@ -157,7 +177,8 @@ Bugy a požadavky na změnu vizitky.
   priority: 'low' | 'medium' | 'high' | 'urgent'
   status: 'open' | 'in_progress' | 'waiting_client' | 'resolved' | 'closed'
   assigneeUid?: string
-  attachments: string[]      // Storage cesty
+  attachments: string[]      // Storage cesty (nahrané soubory)
+  links: string[]            // externí odkazy (např. fotky na Google Drive), validované jako URL
 }
 ```
 
