@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const docRef = await db.collection("tickets").add({
       ...data,
+      links: data.links ?? [],
       status: "open",
       attachments: [],
       createdAt: FieldValue.serverTimestamp(),
