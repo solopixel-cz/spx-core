@@ -112,7 +112,7 @@ export function InvoiceForm({
   const selectedClient = clients.find((c) => c.id === clientId) ?? null;
   const clientItems = Object.fromEntries(clients.map((c) => [c.id, c.name]));
 
-  const cancelHref = invoice ? `/fakturace/${invoice.id}` : "/fakturace";
+  const cancelHref = invoice ? `/invoices/${invoice.id}` : "/invoices";
 
   async function submit(data: InvoiceFormData, asDraft: boolean) {
     setSubmitting(true);
@@ -131,7 +131,7 @@ export function InvoiceForm({
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json().catch(() => ({}));
       toast.success(isEdit ? "Faktura upravena" : `Faktura ${result.number ?? ""} uložena`);
-      router.push(isEdit ? `/fakturace/${invoice!.id}` : `/fakturace/${result.id}`);
+      router.push(isEdit ? `/invoices/${invoice!.id}` : `/invoices/${result.id}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Uložení se nezdařilo");

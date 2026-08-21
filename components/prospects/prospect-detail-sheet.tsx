@@ -169,7 +169,7 @@ export function ProspectDetailSheet({
       if (!res.ok) throw new Error();
       toast.success("Kontakt konvertován na lead");
       onClose();
-      router.push("/leady");
+      router.push("/leads");
       router.refresh();
     } catch {
       toast.error("Nepodařilo se konvertovat");

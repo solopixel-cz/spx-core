@@ -42,7 +42,7 @@ export async function getAttentionItems(
               severity: age > 14 ? "high" : "medium",
               title: `Faktura ${doc.data().number} po splatnosti (${age} dní)`,
               age,
-              href: "/fakturace",
+              href: "/invoices",
             });
           });
         })
@@ -73,7 +73,7 @@ export async function getAttentionItems(
               severity: priority === "urgent" ? "high" : "medium",
               title: `Ticket „${d.title}" — ${!d.assigneeUid ? "bez řešitele" : `bez změny ${age} dní`}`,
               age,
-              href: "/tickety",
+              href: "/tickets",
             });
           }
         });
@@ -101,7 +101,7 @@ export async function getAttentionItems(
               severity: age > 30 ? "high" : "medium",
               title: `Lead „${d.name}" stagnuje ${age} dní`,
               age,
-              href: "/leady",
+              href: "/leads",
             });
           }
         });
@@ -126,7 +126,7 @@ export async function getAttentionItems(
               severity: age > 7 ? "high" : "low",
               title: `Podklady „${d.fullName}" čekají ${age} dní`,
               age,
-              href: "/podklady",
+              href: "/submissions",
             });
           }
         });
@@ -157,7 +157,7 @@ export async function getAttentionItems(
               severity: age > 7 ? "high" : "medium",
               title: `Onboarding úkol „${d.title}" po termínu (${age} dní)`,
               age,
-              href: "/ukoly",
+              href: "/tasks",
             });
           } else {
             // Běžný úkol — jen řešiteli, s termínem dnes nebo po termínu
@@ -172,7 +172,7 @@ export async function getAttentionItems(
                   ? `Úkol „${d.title}" po termínu (${age} dní)`
                   : `Úkol „${d.title}" — dnes`,
               age,
-              href: "/ukoly",
+              href: "/tasks",
             });
           }
         });
@@ -202,7 +202,7 @@ export async function getAttentionItems(
             severity: age > 3 ? "high" : age > 0 ? "medium" : "low",
             title: `Follow-up „${d.name}"${age > 0 ? ` (${age} dní po termínu)` : " dnes"}`,
             age,
-            href: "/prospekti",
+            href: "/prospects",
           });
         });
       })
@@ -244,7 +244,7 @@ export async function getAttentionItems(
             severity: "high",
             title: `„${pData.name}" kliknul na demo — zavolej!`,
             age,
-            href: "/prospekti",
+            href: "/prospects",
           });
         }
       })

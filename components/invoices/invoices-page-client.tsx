@@ -121,7 +121,7 @@ export function InvoicesPageClient({
         <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
         <div className="flex gap-2">
           <InvoiceExportDialog />
-          <Button size="sm" nativeButton={false} render={<Link href="/fakturace/nova" />}>
+          <Button size="sm" nativeButton={false} render={<Link href="/invoices/new" />}>
             <Plus className="mr-2 h-4 w-4" />
             Nová faktura
           </Button>
@@ -191,7 +191,7 @@ export function InvoicesPageClient({
             <EntityCard
               key={inv.id}
               title={
-                <Link href={`/fakturace/${inv.id}`} className="font-mono text-sm font-medium hover:underline">
+                <Link href={`/invoices/${inv.id}`} className="font-mono text-sm font-medium hover:underline">
                   {inv.number}
                 </Link>
               }
@@ -296,7 +296,7 @@ export function InvoicesPageClient({
               filtered.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-mono">
-                    <Link href={`/fakturace/${inv.id}`} className="hover:underline">
+                    <Link href={`/invoices/${inv.id}`} className="hover:underline">
                       {inv.number}
                     </Link>
                   </TableCell>

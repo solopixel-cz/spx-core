@@ -70,7 +70,7 @@ const columns = [
     header: "Jméno",
     cell: (info) => (
       <Link
-        href={`/klienti/${info.row.original.id}`}
+        href={`/clients/${info.row.original.id}`}
         className="font-medium hover:underline"
       >
         {info.getValue()}
@@ -226,7 +226,7 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
             return (
               <EntityCard
                 key={c.id}
-                href={`/klienti/${c.id}`}
+                href={`/clients/${c.id}`}
                 title={c.name}
                 badge={
                   <Badge variant={statusVariants[c.status] ?? "secondary"}>

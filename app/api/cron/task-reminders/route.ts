@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       type: "task.due",
       title: "Úkol na dnes",
       body: `Dnes máš termín úkolu „${d.title}"`,
-      href: "/ukoly",
+      href: "/tasks",
       entityType: "task",
       entityId: doc.id,
     });

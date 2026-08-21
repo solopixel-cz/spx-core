@@ -74,11 +74,11 @@ const roleLabels: Record<string, string> = {
 
 const defaultPages = [
   { value: "/", label: "Dashboard" },
-  { value: "/leady", label: "Leady" },
-  { value: "/klienti", label: "Klienti" },
-  { value: "/prospekti", label: "Oslovení" },
-  { value: "/ukoly", label: "Úkoly" },
-  { value: "/tickety", label: "Tickety" },
+  { value: "/leads", label: "Leady" },
+  { value: "/clients", label: "Klienti" },
+  { value: "/prospects", label: "Oslovení" },
+  { value: "/tasks", label: "Úkoly" },
+  { value: "/tickets", label: "Tickety" },
 ];
 
 export default function ProfilPage() {

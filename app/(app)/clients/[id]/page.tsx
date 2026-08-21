@@ -40,11 +40,16 @@ export default async function ClientDetailPage({
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
   };
 
-  // Fetch instances, activity, subscription, invoices in parallel
-  const [instancesSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap] =
+  // Fetch instances, domains, activity, subscription, invoices in parallel
+  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap] =
     await Promise.all([
       db
         .collection("instances")
+        .where("clientId", "==", id)
+        .orderBy("createdAt", "desc")
+        .get(),
+      db
+        .collection("domains")
         .where("clientId", "==", id)
         .orderBy("createdAt", "desc")
         .get(),
@@ -83,6 +88,18 @@ export default async function ClientDetailPage({
     deployUrl: d.data().deployUrl as string | undefined,
     features: (d.data().features ?? []) as string[],
     notes: d.data().notes as string | undefined,
+  }));
+
+  const domains = domainsSnap.docs.map((d) => ({
+    id: d.id,
+    clientId: d.data().clientId as string,
+    name: d.data().name as string,
+    registrar: (d.data().registrar as string | undefined) ?? null,
+    account: (d.data().account as string | undefined) ?? null,
+    purchasedAt: d.data().purchasedAt?.toDate?.()?.toISOString() ?? null,
+    renewalAt: d.data().renewalAt?.toDate?.()?.toISOString() ?? null,
+    autoRenew: (d.data().autoRenew as boolean | undefined) ?? false,
+    note: (d.data().note as string | undefined) ?? null,
   }));
 
   const activities = activitySnap.docs.map((d) => ({
@@ -171,6 +188,7 @@ export default async function ClientDetailPage({
     <ClientDetailClient
       client={client}
       instances={instances}
+      domains={domains}
       activities={activities}
       subscription={subscription}
       invoices={invoices}

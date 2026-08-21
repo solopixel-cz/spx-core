@@ -183,7 +183,7 @@ export function SubmissionsPageClient() {
                   <TableCell>
                     {s.clientName ? (
                       <Link
-                        href={`/klienti/${s.clientId}`}
+                        href={`/clients/${s.clientId}`}
                         className="hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -249,7 +249,7 @@ export function SubmissionsPageClient() {
               {selected.clientName && (
                 <div>
                   <span className="text-sm text-muted-foreground">Klient: </span>
-                  <Link href={`/klienti/${selected.clientId}`} className="text-sm hover:underline">
+                  <Link href={`/clients/${selected.clientId}`} className="text-sm hover:underline">
                     {selected.clientName}
                   </Link>
                 </div>

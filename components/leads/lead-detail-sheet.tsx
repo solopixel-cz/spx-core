@@ -96,7 +96,7 @@ export function LeadDetailSheet({
             : ""
         }`
       );
-      router.push(`/klienti/${data.clientId}`);
+      router.push(`/clients/${data.clientId}`);
     } catch {
       toast.error("Nepodařilo se konvertovat lead");
     } finally {

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         type: "task.assigned",
         title: "Nový úkol pro tebe",
         body: `${actorName} ti přiřadil úkol „${data.title}"`,
-        href: "/ukoly",
+        href: "/tasks",
         entityType: "task",
         entityId: docRef.id,
       });

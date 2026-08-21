@@ -270,7 +270,7 @@ export async function POST(request: Request) {
         type: "email.form_opened",
         title: "Klient otevřel e-mail",
         body: "Klient otevřel e-mail s formulářem podkladů",
-        href: `/klienti/${clientId}`,
+        href: `/clients/${clientId}`,
         entityType: "client",
         entityId: clientId,
       });
@@ -315,7 +315,7 @@ export async function POST(request: Request) {
         type: "invoice.opened",
         title: "Klient otevřel fakturu",
         body: "Klient si otevřel e-mail s fakturou",
-        href: "/fakturace",
+        href: "/invoices",
         entityType: "invoice",
         entityId: invoiceId,
       });

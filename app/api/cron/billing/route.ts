@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       type: "invoice.generated",
       title: "Nová faktura z předplatného",
       body: `${number} · ${amount.toLocaleString("cs-CZ")} Kč`,
-      href: `/fakturace/${invRef.id}`,
+      href: `/invoices/${invRef.id}`,
       entityType: "invoice",
       entityId: invRef.id,
     });
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       type: "invoice.overdue",
       title: "Faktura po splatnosti",
       body: `${inv.number} nebyla zaplacena do splatnosti`,
-      href: `/fakturace/${invDoc.id}`,
+      href: `/invoices/${invDoc.id}`,
       entityType: "invoice",
       entityId: invDoc.id,
     });

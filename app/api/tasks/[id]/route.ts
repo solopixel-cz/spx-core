@@ -78,7 +78,7 @@ export async function PATCH(
         type: "task.assigned",
         title: "Nový úkol pro tebe",
         body: `${actorName} ti přiřadil úkol „${prev.title}"`,
-        href: "/ukoly",
+        href: "/tasks",
         entityType: "task",
         entityId: id,
       });
