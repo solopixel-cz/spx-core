@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
   for (const subDoc of dueSubs.docs) {
     const sub = subDoc.data();
     if (sub.status !== "active" && sub.status !== "past_due") continue;
+    // Interní vizitky (obchodník/vlastní) se nefakturují.
+    if (sub.internal) continue;
 
     const clientSnap = await db.collection("clients").doc(sub.clientId).get();
     if (!clientSnap.exists || clientSnap.data()?.deletedAt) continue;
@@ -110,7 +112,7 @@ export async function GET(request: NextRequest) {
       type: "invoice.generated",
       title: "Nová faktura z předplatného",
       body: `${number} · ${amount.toLocaleString("cs-CZ")} Kč`,
-      href: `/fakturace/${invRef.id}`,
+      href: `/invoices/${invRef.id}`,
       entityType: "invoice",
       entityId: invRef.id,
     });
@@ -134,7 +136,7 @@ export async function GET(request: NextRequest) {
       type: "invoice.overdue",
       title: "Faktura po splatnosti",
       body: `${inv.number} nebyla zaplacena do splatnosti`,
-      href: `/fakturace/${invDoc.id}`,
+      href: `/invoices/${invDoc.id}`,
       entityType: "invoice",
       entityId: invDoc.id,
     });

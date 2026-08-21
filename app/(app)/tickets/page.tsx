@@ -38,6 +38,7 @@ export default async function TicketyPage() {
       priority: data.priority as string,
       status: data.status as string,
       assigneeUid: data.assigneeUid as string | undefined,
+      links: (data.links as string[] | undefined) ?? [],
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     };
   });

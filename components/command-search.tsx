@@ -95,7 +95,7 @@ export function CommandSearch({
                 {results.clients.map((c) => (
                   <Command.Item
                     key={`client-${c.id}`}
-                    onSelect={() => navigate(`/klienti/${c.id}`)}
+                    onSelect={() => navigate(`/clients/${c.id}`)}
                     className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent"
                   >
                     <Users className="h-4 w-4 text-muted-foreground" />
@@ -121,7 +121,7 @@ export function CommandSearch({
                 {results.leads.map((l) => (
                   <Command.Item
                     key={`lead-${l.id}`}
-                    onSelect={() => navigate("/leady")}
+                    onSelect={() => navigate("/leads")}
                     className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent"
                   >
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -147,7 +147,7 @@ export function CommandSearch({
                 {results.tickets.map((t) => (
                   <Command.Item
                     key={`ticket-${t.id}`}
-                    onSelect={() => navigate("/tickety")}
+                    onSelect={() => navigate("/tickets")}
                     className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent"
                   >
                     <TicketCheck className="h-4 w-4 text-muted-foreground" />
@@ -167,7 +167,7 @@ export function CommandSearch({
                 {results.prospects.map((p) => (
                   <Command.Item
                     key={`prospect-${p.id}`}
-                    onSelect={() => navigate("/prospekti")}
+                    onSelect={() => navigate("/prospects")}
                     className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent"
                   >
                     <BookUser className="h-4 w-4 text-muted-foreground" />

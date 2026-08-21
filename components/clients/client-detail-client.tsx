@@ -28,6 +28,13 @@ import {
 import { toast } from "sonner";
 import { ClientFormDialog } from "./client-form-dialog";
 import { InstancesTab } from "./instances-tab";
+import { DomainsTab, type DomainData } from "./domains-tab";
+import {
+  renewalStatus,
+  renewalLabel,
+  domainHref,
+} from "@/lib/domain-renewal";
+import { AlertTriangle } from "lucide-react";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
@@ -211,6 +218,7 @@ function StatTile({
 export function ClientDetailClient({
   client,
   instances,
+  domains = [],
   activities,
   subscription = null,
   invoices = [],
@@ -223,6 +231,7 @@ export function ClientDetailClient({
 }: {
   client: ClientData;
   instances: InstanceData[];
+  domains?: DomainData[];
   activities: ActivityData[];
   subscription?: SubData | null;
   invoices?: InvoiceData[];
@@ -252,6 +261,12 @@ export function ClientDetailClient({
   ).length;
   const overdueInvoices = invoices.filter((i) => i.status === "overdue").length;
   const primaryInstance = instances[0];
+
+  // Domény, kterým se blíží nebo prošlo obnovení (auto-renew se nepřipomíná).
+  const domainAlerts = domains
+    .map((d) => ({ d, s: renewalStatus(d.renewalAt) }))
+    .filter(({ d, s }) => !d.autoRenew && (s.level === "urgent" || s.level === "overdue"))
+    .sort((a, b) => (a.s.days ?? 0) - (b.s.days ?? 0));
 
   async function handleArchive() {
     if (!confirm("Opravdu archivovat tohoto klienta? Instance, tickety a předplatné budou archivovány/zrušeny.")) return;
@@ -357,7 +372,32 @@ export function ClientDetailClient({
               {primaryInstance.domain}
             </ContactChip>
           )}
+          {domains.map((d) => (
+            <ContactChip
+              key={d.id}
+              href={domainHref(d.name)}
+              icon={<Globe className="h-3.5 w-3.5 shrink-0" />}
+            >
+              {d.name}
+            </ContactChip>
+          ))}
         </div>
+
+        {/* Připomínka obnovení domény — nejnaléhavější napřed, tapnutí na záložku Domény */}
+        {domainAlerts.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setTab("domeny")}
+            className="mt-3 flex w-full items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
+              {domainAlerts.length === 1
+                ? `Obnovit doménu ${domainAlerts[0].d.name} — ${renewalLabel(domainAlerts[0].s)}`
+                : `${domainAlerts.length} domén potřebuje obnovit`}
+            </span>
+          </button>
+        )}
 
         {/* Akce */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
@@ -473,6 +513,7 @@ export function ClientDetailClient({
         <TabsList>
           <TabsTrigger value="prehled">Přehled</TabsTrigger>
           <TabsTrigger value="instance">Instance</TabsTrigger>
+          <TabsTrigger value="domeny">Domény</TabsTrigger>
           {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
           <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
           <TabsTrigger value="tickety">Tickety</TabsTrigger>
@@ -584,6 +625,14 @@ export function ClientDetailClient({
 
         <TabsContent value="instance" className="mt-5 md:mt-6">
           <InstancesTab clientId={client.id} instances={instances} />
+        </TabsContent>
+
+        <TabsContent value="domeny" className="mt-5 md:mt-6">
+          <DomainsTab
+            clientId={client.id}
+            domains={domains}
+            canManage={!isArchived}
+          />
         </TabsContent>
 
         {!isSales && (

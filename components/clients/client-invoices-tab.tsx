@@ -65,7 +65,7 @@ export function ClientInvoicesTab({
       <Button
         size="sm"
         nativeButton={false}
-        render={<Link href={`/fakturace/nova?clientId=${clientId}`} />}
+        render={<Link href={`/invoices/new?clientId=${clientId}`} />}
       >
         <Plus className="mr-1.5 h-4 w-4" />
         Vystavit fakturu
@@ -75,7 +75,7 @@ export function ClientInvoicesTab({
           size="sm"
           variant="outline"
           nativeButton={false}
-          render={<Link href={`/fakturace/nova?clientId=${clientId}&sub=1`} />}
+          render={<Link href={`/invoices/new?clientId=${clientId}&sub=1`} />}
         >
           <Repeat className="mr-1.5 h-4 w-4" />
           Z předplatného

@@ -51,6 +51,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Domains — vlastní domény klienta; read for authenticated, write via admin SDK
+    match /domains/{domainId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Leads — read for authenticated, stage update for authenticated (drag&drop)
     match /leads/{leadId} {
       allow read: if isAuth();

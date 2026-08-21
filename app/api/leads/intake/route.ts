@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       type: "lead.web",
       title: "Nová poptávka z webu",
       body: data.email ? `${data.name} · ${data.email}` : data.name,
-      href: "/leady",
+      href: "/leads",
       entityType: "lead",
       entityId: docRef.id,
     });

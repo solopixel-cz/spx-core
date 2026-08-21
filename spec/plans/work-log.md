@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-08-12 — ✅ Domény klienta + oprava cache/refreshe
+
+**Oprava cache/refreshe (service worker):**
+- `public/sw.js`: RSC/data-requesty Next.js (hlavička `RSC: 1` nebo `?_rsc=`) se nikdy necachují — spadaly do `stale-while-revalidate` a vracely stará data, takže `router.refresh()` i měkká navigace ukazovaly starý seznam a chtělo to ruční reload. VERSION bumpnuta na `spx-v2` (activate promaže staré cache).
+
+**Domény klienta (nová kolekce `domains`, 1:N):**
+- Schema `lib/schemas/domain.ts` (name, registrar, account, purchasedAt, renewalAt, autoRenew, note, renewalReminderSentAt); sekce v `data-model.md`, export v `schemas/index.ts`.
+- API `app/api/domains/route.ts` (GET ?clientId, POST) + `[id]/route.ts` (PATCH/DELETE) — admin SDK, sales jen vlastní klienty, log aktivity, `revalidatePath`. Datum jako yyyy-mm-dd → UTC půlnoc.
+- UI: `components/clients/domains-tab.tsx` (seznam, přidat/upravit/smazat, klikatelný odkaz na doménu, odznak stavu obnovení) + záložka „Domény" a klikatelné domény + amber upozornění na obnovení v hlavičce detailu (`client-detail-client.tsx`). Načtení domén v `klienti/[id]/page.tsx`.
+- Připomínky: helper `lib/domain-renewal.ts`; dashboard widget „Blížící se obnovení domén" (do 30 dnů, bez auto-renew); cron `app/api/cron/domain-renewals` (throttle 7 dnů přes `renewalReminderSentAt`, notifikace adminům), registrace ve `vercel.json` (7:00).
+- `firestore.rules` (match `domains`, read auth / write deny) + index `domains(clientId, createdAt desc)`. **Nutno nasadit:** `firebase deploy --only firestore`.
+- `npm run lint` (0 errors) + `npm run build` čisté.
+
 ## 2026-08-10 — ✅ Trvalé mazání faktur (jen admin)
 
 - `DELETE /api/invoices/[id]` (`requireRole admin`): smaže fakturu + navázané `invoiceEmails` a `commissions/{id}`(+`-reversal`) v batchi, zaloguje audit u klienta. Doplňuje dosavadní storno (které doklad zachovává).

@@ -24,6 +24,8 @@ export default async function UkolyPage() {
       status: data.status as string,
       recurrence: data.recurrence as string | undefined,
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+      doneAt: data.doneAt?.toDate?.()?.toISOString() ?? null,
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
     };
   });
 

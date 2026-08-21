@@ -111,8 +111,8 @@ export async function POST(request: Request) {
         cascaded = await cascadeArchiveClient(id, user.uid);
       }
 
-      revalidatePath("/prospekti");
-      revalidatePath("/klienti");
+      revalidatePath("/prospects");
+      revalidatePath("/clients");
       return NextResponse.json({ status: "ok", cascaded });
     }
 
@@ -129,8 +129,8 @@ export async function POST(request: Request) {
       } else {
         await restoreDocument(collection, id, user.uid, entityType);
       }
-      revalidatePath("/prospekti");
-      revalidatePath("/klienti");
+      revalidatePath("/prospects");
+      revalidatePath("/clients");
       return NextResponse.json({ status: "ok" });
     }
 

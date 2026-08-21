@@ -18,6 +18,8 @@ export const ticketSchema = z.object({
   ]),
   assigneeUid: z.string().optional(),
   attachments: z.array(z.string()),
+  // Externí odkazy k tiketu (např. fotky na Google Drive). Může jich být víc.
+  links: z.array(z.string().url()),
 });
 
 export type Ticket = z.infer<typeof ticketSchema>;
@@ -30,6 +32,7 @@ export const ticketFormSchema = z.object({
   description: z.string().min(1, "Popis je povinný"),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   assigneeUid: z.string().optional(),
+  links: z.array(z.string().url("Neplatný odkaz")).optional(),
 });
 
 export type TicketFormData = z.infer<typeof ticketFormSchema>;

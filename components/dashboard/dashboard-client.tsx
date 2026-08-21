@@ -16,6 +16,8 @@ import {
   UserPlus,
   Phone,
   CalendarClock,
+  ListChecks,
+  Globe,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -52,15 +54,6 @@ function timeAgo(dateStr: string | null): string {
   return `${days} d`;
 }
 
-interface OnboardingClient {
-  id: string;
-  name: string;
-  daysIn: number;
-  done: number;
-  total: number;
-  stale: boolean;
-}
-
 interface ActivityItem {
   id: string;
   actorUid: string;
@@ -84,6 +77,15 @@ interface UpcomingBill {
   clientName: string;
   nextInvoiceAt: string;
   amount: number;
+  overdue: boolean;
+}
+
+interface UpcomingDomainRenewal {
+  id: string;
+  clientId: string;
+  clientName: string;
+  domainName: string;
+  renewalAt: string;
   overdue: boolean;
 }
 
@@ -118,12 +120,14 @@ export function DashboardClient({
   paidThisMonth,
   invoicedThisMonth,
   chartSeries = [],
-  onboardingClients,
   recentActivity,
   myOpenTasks,
+  myTasksOverdue = 0,
+  myTasksDueToday = 0,
   overdueInvoices,
   followUps,
   upcomingBilling = [],
+  upcomingDomainRenewals = [],
   activeClients = 0,
   onboardingCount = 0,
   unpaidInvoices = 0,
@@ -134,12 +138,14 @@ export function DashboardClient({
   paidThisMonth: number;
   invoicedThisMonth: number;
   chartSeries?: ChartSeries[];
-  onboardingClients: OnboardingClient[];
   recentActivity: ActivityItem[];
   myOpenTasks: number;
+  myTasksOverdue?: number;
+  myTasksDueToday?: number;
   overdueInvoices: { count: number; sum: number };
   followUps: FollowUp[];
   upcomingBilling?: UpcomingBill[];
+  upcomingDomainRenewals?: UpcomingDomainRenewal[];
   activeClients?: number;
   onboardingCount?: number;
   unpaidInvoices?: number;
@@ -148,11 +154,11 @@ export function DashboardClient({
   const isSales = userRole === "sales";
 
   const quickActions = [
-    { label: "Lead", href: "/leady", icon: Briefcase },
-    { label: "Klient", href: "/klienti", icon: UserPlus },
-    ...(!isSales ? [{ label: "Faktura", href: "/fakturace/nova", icon: Receipt }] : []),
-    { label: "Ticket", href: "/tickety", icon: TicketCheck },
-    { label: "Úkol", href: "/ukoly", icon: CheckSquare },
+    { label: "Lead", href: "/leads", icon: Briefcase },
+    { label: "Klient", href: "/clients", icon: UserPlus },
+    ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
+    { label: "Ticket", href: "/tickets", icon: TicketCheck },
+    { label: "Úkol", href: "/tasks", icon: CheckSquare },
   ];
 
   return (
@@ -177,9 +183,43 @@ export function DashboardClient({
         }
       />
 
+      {/* 1. Moje úkoly — hlavní widget, první na co se dívám */}
+      <Link href="/tasks" className="block">
+        <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent transition-colors hover:border-primary/50">
+          <CardContent className="flex items-center gap-4 py-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <ListChecks className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-muted-foreground">Moje úkoly</p>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-heading text-4xl font-bold leading-none tabular-nums">
+                  {myOpenTasks}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {myOpenTasks === 1 ? "otevřený" : "otevřených"}
+                </span>
+                {myTasksOverdue > 0 && (
+                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
+                    {myTasksOverdue} po termínu
+                  </span>
+                )}
+                {myTasksDueToday > 0 && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {myTasksDueToday} dnes
+                  </span>
+                )}
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* 2. Akční upozornění: faktury po splatnosti + blížící se fakturace + follow-upy */}
       {(!isSales && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
-      followUps.length > 0 ? (
+      followUps.length > 0 ||
+      upcomingDomainRenewals.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
           {!isSales && upcomingBilling.length > 0 && (
             <Card className="h-full">
@@ -190,7 +230,7 @@ export function DashboardClient({
                     Blížící se fakturace
                   </CardTitle>
                   <Link
-                    href="/fakturace"
+                    href="/invoices"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Vše <ArrowRight className="h-3 w-3" />
@@ -200,7 +240,7 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingBilling.slice(0, 5).map((b) => (
-                    <Link key={b.id} href={`/fakturace/nova?clientId=${b.clientId}&sub=1`}>
+                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=1`}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">{b.clientName}</span>
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -235,7 +275,7 @@ export function DashboardClient({
             </Card>
           )}
           {!isSales && overdueInvoices.count > 0 && (
-            <Link href="/fakturace">
+            <Link href="/invoices">
               <Card className="h-full border-destructive/40 transition-colors hover:bg-destructive/5">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 text-destructive">
@@ -253,6 +293,53 @@ export function DashboardClient({
               </Card>
             </Link>
           )}
+          {upcomingDomainRenewals.length > 0 && (
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Blížící se obnovení domén
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {upcomingDomainRenewals.slice(0, 5).map((d) => (
+                    <Link key={d.id} href={`/clients/${d.clientId}`}>
+                      <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {d.domainName}
+                          <span className="text-muted-foreground"> · {d.clientName}</span>
+                        </span>
+                        <span
+                          className={cn(
+                            "w-16 shrink-0 text-right text-xs tabular-nums",
+                            d.overdue
+                              ? "font-medium text-red-600 dark:text-red-400"
+                              : "text-muted-foreground"
+                          )}
+                          suppressHydrationWarning
+                        >
+                          {d.overdue
+                            ? "po termínu"
+                            : new Date(d.renewalAt).toLocaleDateString("cs-CZ", {
+                                day: "numeric",
+                                month: "numeric",
+                              })}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                  {upcomingDomainRenewals.length > 5 && (
+                    <p className="px-1 pt-0.5 text-xs text-muted-foreground">
+                      … a dalších {upcomingDomainRenewals.length - 5}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {followUps.length > 0 && (
             <Card className="h-full">
               <CardHeader className="pb-2">
@@ -262,7 +349,7 @@ export function DashboardClient({
                     Dnešní follow-upy
                   </CardTitle>
                   <Link
-                    href="/prospekti"
+                    href="/prospects"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Vše <ArrowRight className="h-3 w-3" />
@@ -272,7 +359,7 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {followUps.slice(0, 5).map((f) => (
-                    <Link key={f.id} href="/prospekti">
+                    <Link key={f.id} href="/prospects">
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {f.name}
@@ -304,14 +391,14 @@ export function DashboardClient({
       {!isSales && (
         <div className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            <StatCard label="Aktivní klienti" value={activeClients} href="/klienti" />
-            <StatCard label="Onboarding" value={onboardingCount} href="/klienti" />
+            <StatCard label="Aktivní klienti" value={activeClients} href="/clients" />
+            <StatCard label="Onboarding" value={onboardingCount} href="/clients" />
             <StatCard label="MRR" value={formatCurrency(mrr)} />
             <StatCard
               label="Nezaplacené faktury"
               value={unpaidInvoices}
               accent={unpaidInvoices > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
-              href="/fakturace"
+              href="/invoices"
             />
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -321,7 +408,7 @@ export function DashboardClient({
               accent="text-emerald-600 dark:text-emerald-400"
             />
             <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
-            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leady" />
+            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leads" />
             <Card className="col-span-2 min-w-0 md:col-span-4">
               <CardContent className="min-w-0 pt-4">
                 <DashboardChart series={chartSeries} />
@@ -331,69 +418,8 @@ export function DashboardClient({
         </div>
       )}
 
-      {/* 4. Detail: vlevo pipeline + onboarding, vpravo aktivita + engagement */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {/* Moje úkoly */}
-          <Link href="/ukoly" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="pt-4">
-                <p className="text-xs text-muted-foreground">Moje úkoly</p>
-                <p className="mt-1 font-heading text-3xl font-bold tabular-nums">
-                  {myOpenTasks}
-                </p>
-                <p className="text-xs text-muted-foreground">otevřené</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Onboarding */}
-          {onboardingClients.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Onboarding</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {onboardingClients.map((c) => (
-                  <Link key={c.id} href={`/klienti/${c.id}`}>
-                    <Card
-                      className={cn(
-                        "h-full transition-colors hover:bg-muted/50",
-                        c.stale && "border-amber-300 dark:border-amber-700"
-                      )}
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">{c.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{c.daysIn} dní</span>
-                          <span
-                            className={cn(
-                              "font-medium",
-                              c.stale && "text-amber-600 dark:text-amber-400"
-                            )}
-                          >
-                            {c.done}/{c.total} úkolů
-                          </span>
-                        </div>
-                        {c.total > 0 && (
-                          <div className="mt-2 h-1.5 rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-primary transition-all"
-                              style={{ width: `${(c.done / c.total) * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Pravý sloupec: aktivita + engagement */}
-        <div className="space-y-6">
+      {/* 4. Poslední aktivita */}
+      <div className="space-y-6">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -401,7 +427,7 @@ export function DashboardClient({
                   Aktivita
                 </CardTitle>
                 <Link
-                  href="/aktivita"
+                  href="/activity"
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Vše <ArrowRight className="h-3 w-3" />
@@ -445,7 +471,6 @@ export function DashboardClient({
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   );
 }

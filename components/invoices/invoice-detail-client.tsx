@@ -98,7 +98,7 @@ export function InvoiceDetailClient({
       });
       if (!res.ok) throw new Error((await res.json()).error);
       toast.success("Faktura smazána");
-      router.push("/fakturace");
+      router.push("/invoices");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Smazání se nezdařilo");
       setBusy(null);
@@ -145,7 +145,7 @@ export function InvoiceDetailClient({
             variant="ghost"
             size="icon"
             nativeButton={false}
-            render={<Link href="/fakturace" />}
+            render={<Link href="/invoices" />}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -155,7 +155,7 @@ export function InvoiceDetailClient({
               <StatusBadge map={invoiceStatus} value={invoice.status} />
             </div>
             <Link
-              href={`/klienti/${invoice.clientId}`}
+              href={`/clients/${invoice.clientId}`}
               className="text-sm text-muted-foreground hover:underline"
             >
               {invoice.clientName}
@@ -186,7 +186,7 @@ export function InvoiceDetailClient({
               variant="outline"
               size="sm"
               nativeButton={false}
-              render={<Link href={`/fakturace/${invoice.id}/upravit`} />}
+              render={<Link href={`/invoices/${invoice.id}/edit`} />}
             >
               <Pencil className="mr-1 h-4 w-4" />
               Upravit

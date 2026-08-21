@@ -39,24 +39,24 @@ const navGroups: NavGroup[] = [
     title: "Přehled",
     items: [
       { label: "Dashboard", href: "/", icon: LayoutDashboard },
-      { label: "Aktivita", href: "/aktivita", icon: History },
+      { label: "Aktivita", href: "/activity", icon: History },
     ],
   },
   {
     title: "Obchod",
     items: [
-      { label: "Leady", href: "/leady", icon: Briefcase },
-      { label: "Oslovení", href: "/prospekti", icon: BookUser },
-      { label: "Klienti", href: "/klienti", icon: Users },
-      { label: "Moje vizitky", href: "/moje-vizitky", icon: CreditCard, roles: ["sales"] },
-      { label: "Podklady", href: "/podklady", icon: ClipboardList },
+      { label: "Leady", href: "/leads", icon: Briefcase },
+      { label: "Oslovení", href: "/prospects", icon: BookUser },
+      { label: "Klienti", href: "/clients", icon: Users },
+      { label: "Moje vizitky", href: "/my-cards", icon: CreditCard, roles: ["sales"] },
+      { label: "Podklady", href: "/submissions", icon: ClipboardList },
     ],
   },
   {
     title: "Provoz",
     items: [
-      { label: "Úkoly", href: "/ukoly", icon: CheckSquare },
-      { label: "Tickety", href: "/tickety", icon: TicketCheck },
+      { label: "Úkoly", href: "/tasks", icon: CheckSquare },
+      { label: "Tickety", href: "/tickets", icon: TicketCheck },
     ],
   },
   {
@@ -64,13 +64,13 @@ const navGroups: NavGroup[] = [
     items: [
       {
         label: "Fakturace",
-        href: "/fakturace",
+        href: "/invoices",
         icon: Receipt,
         roles: ["admin", "member"],
       },
       {
         label: "Provize",
-        href: "/provize",
+        href: "/commissions",
         icon: Percent,
         roles: ["admin", "member"],
       },
@@ -80,7 +80,7 @@ const navGroups: NavGroup[] = [
     items: [
       {
         label: "Nastavení",
-        href: "/nastaveni",
+        href: "/settings",
         icon: Settings,
         roles: ["admin", "member"],
       },

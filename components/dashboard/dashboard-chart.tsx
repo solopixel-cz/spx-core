@@ -9,6 +9,7 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
+  LabelList,
 } from "recharts";
 import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export function DashboardChart({ series }: { series: ChartSeries[] }) {
   const [selected, setSelected] = useState<string[]>(
     () => series.slice(0, 2).map((s) => s.key)
   );
-  const [chartType, setChartType] = useState<"bar" | "line">("bar");
+  const [chartType, setChartType] = useState<"bar" | "line">("line");
 
   if (series.length === 0) return null;
 
@@ -71,6 +72,15 @@ export function DashboardChart({ series }: { series: ChartSeries[] }) {
 
   const czkAxisFmt = (v: number) =>
     v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`;
+
+  // Kompaktní popisek hodnoty přímo v grafu (aby nebyl potřeba hover).
+  const labelFmt = (key: string, v: unknown) => {
+    if (typeof v !== "number") return "";
+    if (seriesByKey[key]?.unit === "czk") {
+      return v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`;
+    }
+    return v.toLocaleString("cs-CZ");
+  };
 
   return (
     <div className="space-y-3">
@@ -135,7 +145,7 @@ export function DashboardChart({ series }: { series: ChartSeries[] }) {
           </div>
         ) : (
           <ResponsiveContainer width="99%" height={220}>
-            <ComposedChart data={merged} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+            <ComposedChart data={merged} margin={{ top: 22, right: 8, left: 4, bottom: 0 }}>
               <XAxis
                 dataKey="month"
                 tickLine={false}
@@ -200,7 +210,15 @@ export function DashboardChart({ series }: { series: ChartSeries[] }) {
                     name={s.label}
                     fill={colorByKey[s.key]}
                     radius={[3, 3, 0, 0]}
-                  />
+                  >
+                    <LabelList
+                      dataKey={s.key}
+                      position="top"
+                      fontSize={9}
+                      fill={colorByKey[s.key]}
+                      formatter={(v: unknown) => labelFmt(s.key, v)}
+                    />
+                  </Bar>
                 ) : (
                   <Line
                     key={s.key}
@@ -209,8 +227,16 @@ export function DashboardChart({ series }: { series: ChartSeries[] }) {
                     name={s.label}
                     stroke={colorByKey[s.key]}
                     strokeWidth={2}
-                    dot={false}
-                  />
+                    dot={{ r: 2.5, fill: colorByKey[s.key], strokeWidth: 0 }}
+                  >
+                    <LabelList
+                      dataKey={s.key}
+                      position="top"
+                      fontSize={9}
+                      fill={colorByKey[s.key]}
+                      formatter={(v: unknown) => labelFmt(s.key, v)}
+                    />
+                  </Line>
                 )
               )}
             </ComposedChart>

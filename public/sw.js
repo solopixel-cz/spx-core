@@ -1,13 +1,13 @@
 // Service worker pro SPX Core PWA.
 // Strategie:
-//  - /_next/static + ikony/fonty: cache-first (immutable soubory)
+//  - /_next/static + ikony/fonty: cache-first (immutable, hashované soubory)
 //  - navigace (HTML): network-first s cache fallbackem (offline + rychlý start)
-//  - ostatní same-origin GET: stale-while-revalidate
-//  - /api a cizí originy se nikdy necachují
-const VERSION = "spx-v1";
+//  - vše ostatní (API, RSC data-requesty, dynamická data): SW NEZASAHUJE →
+//    normální síťový request. Pro živý CRM je jakékoli servírování starých dat
+//    nežádoucí, proto tu ZÁMĚRNĚ není žádná stale-while-revalidate větev.
+const VERSION = "spx-v3";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
-const RUNTIME_CACHE = `${VERSION}-runtime`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
@@ -94,6 +94,13 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
+  // Next.js RSC / data-requesty (router.refresh, měkká navigace, prefetch) mají
+  // hlavičku `RSC: 1` (příp. `?_rsc=`) a NEJSOU v módu "navigate". Nikdy je
+  // necachovat — jinak by se seznamy aktualizovaly až po ručním reloadu.
+  if (request.headers.get("RSC") === "1" || url.searchParams.has("_rsc")) {
+    return;
+  }
+
   // Immutable statika — cache-first
   if (isImmutable(url)) {
     event.respondWith(
@@ -134,20 +141,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Ostatní — stale-while-revalidate
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(request);
-      const network = fetch(request)
-        .then(async (response) => {
-          if (response.ok) {
-            const cache = await caches.open(RUNTIME_CACHE);
-            cache.put(request, response.clone());
-          }
-          return response;
-        })
-        .catch(() => undefined);
-      return cached ?? (await network) ?? Response.error();
-    })()
-  );
+  // Vše ostatní (dynamická data, API, RSC) — SW nezasahuje, request jde na síť
+  // normálně. Žádné cachování → žádná stará data.
 });

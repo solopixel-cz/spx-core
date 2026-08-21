@@ -45,3 +45,6 @@ bun.lock
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code temp scratchpad
+/scratchpad/
