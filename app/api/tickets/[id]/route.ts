@@ -19,6 +19,7 @@ export async function PATCH(
       type?: string;
       priority?: string;
       clientId?: string;
+      links?: string[];
     };
 
     const db = getAdminFirestore();
@@ -40,6 +41,7 @@ export async function PATCH(
     if (body.type) updates.type = body.type;
     if (body.priority) updates.priority = body.priority;
     if (body.clientId) updates.clientId = body.clientId;
+    if (body.links !== undefined) updates.links = body.links;
 
     await docRef.update(updates);
 

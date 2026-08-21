@@ -16,6 +16,7 @@ export default async function DashboardPage() {
     clientsSnap,
     usersSnap,
     prospectsSnap,
+    domainsSnap,
   ] = await Promise.all([
     db.collection("leads").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
     db.collection("clients").get(),
     db.collection("users").get(),
     db.collection("prospects").get(),
+    db.collection("domains").get(),
   ]);
 
   // Pipeline hodnota (aktivní leady s očekávanou hodnotou)
@@ -47,6 +49,7 @@ export default async function DashboardPage() {
   if (!isSales && invoicesSnap && subsSnap) {
     subsSnap.docs.forEach((doc) => {
       const d = doc.data();
+      if (d.internal) return; // interní vizitky negenerují příjem
       const price = d.priceMonthly as number;
       const cycle = d.billingCycle as string;
       const discount = (d.discountPercent as number) || 0;
@@ -83,35 +86,6 @@ export default async function DashboardPage() {
       }
     });
   }
-
-  // Onboarding clients (sales sees only own)
-  const onboardingClients = clientsSnap.docs
-    .filter((doc) => {
-      if (doc.data().deletedAt) return false;
-      if (doc.data().status !== "onboarding") return false;
-      if (isSales && doc.data().salesOwnerUid !== user.uid) return false;
-      return true;
-    })
-    .map((doc) => {
-      const d = doc.data();
-      const clientTasks = tasksSnap.docs.filter(
-        (t) => t.data().clientId === doc.id && t.data().checklistTemplateId
-      );
-      const done = clientTasks.filter((t) => t.data().status === "done").length;
-      const total = clientTasks.length;
-      const createdAt = d.createdAt?.toDate?.();
-      const serverNow = new Date();
-      const daysIn = createdAt ? Math.floor((serverNow.getTime() - createdAt.getTime()) / 86400000) : 0;
-      const lastDone = clientTasks
-        .filter((t) => t.data().status === "done")
-        .map((t) => t.data().updatedAt?.toDate?.()?.getTime() ?? 0)
-        .sort((a: number, b: number) => b - a)[0];
-      const stale = lastDone
-        ? serverNow.getTime() - lastDone > 7 * 86400000
-        : total > 0 && daysIn > 7;
-
-      return { id: doc.id, name: d.name as string, daysIn, done, total, stale: !!stale };
-    });
 
   // Počty klientů podle stavu (sales počítá jen vlastní)
   const visibleClients = clientsSnap.docs.filter(
@@ -212,7 +186,7 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
-      const href = et === "client" ? `/klienti/${d.entityId}` : et === "lead" ? "/leady" : et === "ticket" ? "/tickety" : et === "prospect" ? "/prospekti" : "/fakturace";
+      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/leads" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
       return {
         id: doc.id,
         actorUid: d.actorUid as string,
@@ -276,7 +250,8 @@ export default async function DashboardPage() {
         const s = doc.data();
         const due = s.nextInvoiceAt?.toDate?.() as Date | undefined;
         const client = clientById[s.clientId as string];
-        if (!due || !client || client.deleted) return null;
+        // Interní vizitky (obchodník/vlastní) se nefakturují → přeskoč.
+        if (!due || !client || client.deleted || s.internal) return null;
         const monthly = (s.priceMonthly as number) ?? 0;
         const base = s.billingCycle === "yearly" ? monthly * 12 : monthly;
         const discount = (s.discountPercent as number) ?? 0;
@@ -290,15 +265,66 @@ export default async function DashboardPage() {
           _due: due,
         };
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon)
+      // Interní vizitky se 100% slevou (částka 0 Kč) se nefakturují → nezobrazuj.
+      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon && x.amount > 0)
       .sort((a, b) => a.nextInvoiceAt.localeCompare(b.nextInvoiceAt))
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .map(({ _due, ...rest }) => rest);
   }
 
-  const myOpenTasks = tasksSnap.docs.filter(
-    (t) => t.data().assigneeUid === user.uid && t.data().status === "open"
-  ).length;
+  // Blížící se obnovení domén — domény s renewalAt do 30 dnů (vč. po termínu),
+  // bez auto-renew. Sales vidí jen domény svých klientů.
+  const domainClientById: Record<string, { name: string; deleted: boolean; owner?: string }> = {};
+  clientsSnap.docs.forEach((d) => {
+    domainClientById[d.id] = {
+      name: d.data().name as string,
+      deleted: !!d.data().deletedAt,
+      owner: d.data().salesOwnerUid as string | undefined,
+    };
+  });
+  const domainNowDate = new Date();
+  const domainHorizon = new Date(domainNowDate.getTime() + 30 * 86400000);
+  const domainStartToday = new Date(domainNowDate);
+  domainStartToday.setHours(0, 0, 0, 0);
+  const upcomingDomainRenewals = domainsSnap.docs
+    .map((doc) => {
+      const d = doc.data();
+      const due = d.renewalAt?.toDate?.() as Date | undefined;
+      const client = domainClientById[d.clientId as string];
+      if (!due || !client || client.deleted || d.autoRenew) return null;
+      if (isSales && client.owner !== user.uid) return null;
+      return {
+        id: doc.id,
+        clientId: d.clientId as string,
+        clientName: client.name,
+        domainName: d.name as string,
+        renewalAt: due.toISOString(),
+        overdue: due < domainStartToday,
+        _due: due,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= domainHorizon)
+    .sort((a, b) => a.renewalAt.localeCompare(b.renewalAt))
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .map(({ _due, ...rest }) => rest);
+
+  // Moje úkoly — celkem otevřené + rozpad po termínu / dnes (pro hero widget).
+  const taskStartToday = new Date();
+  taskStartToday.setHours(0, 0, 0, 0);
+  const taskEndToday = new Date();
+  taskEndToday.setHours(23, 59, 59, 999);
+  let myOpenTasks = 0;
+  let myTasksOverdue = 0;
+  let myTasksDueToday = 0;
+  tasksSnap.docs.forEach((t) => {
+    const d = t.data();
+    if (d.assigneeUid !== user.uid || d.status !== "open") return;
+    myOpenTasks++;
+    const due = d.dueAt?.toDate?.();
+    if (!due) return;
+    if (due < taskStartToday) myTasksOverdue++;
+    else if (due <= taskEndToday) myTasksDueToday++;
+  });
 
   return (
     <DashboardClient
@@ -307,12 +333,14 @@ export default async function DashboardPage() {
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}
       chartSeries={chartSeries}
-      onboardingClients={onboardingClients}
       recentActivity={recentActivity}
       myOpenTasks={myOpenTasks}
+      myTasksOverdue={myTasksOverdue}
+      myTasksDueToday={myTasksDueToday}
       overdueInvoices={overdueInvoices}
       followUps={followUps}
       upcomingBilling={upcomingBilling}
+      upcomingDomainRenewals={upcomingDomainRenewals}
       activeClients={activeClientsCount}
       onboardingCount={onboardingCount}
       unpaidInvoices={unpaidInvoicesCount}

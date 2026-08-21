@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -39,6 +40,7 @@ interface SubData {
   nextInvoiceAt: string | null;
   discountPercent?: number;
   discountNote?: string;
+  internal?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -76,6 +78,7 @@ export function SubscriptionCard({
           status: subscription.status as SubscriptionFormData["status"],
           discountPercent: subscription.discountPercent ?? 0,
           discountNote: subscription.discountNote ?? "",
+          internal: subscription.internal ?? false,
         }
       : {
           plan: "basic",
@@ -84,6 +87,7 @@ export function SubscriptionCard({
           status: "active",
           discountPercent: 0,
           discountNote: "",
+          internal: false,
         },
   });
 
@@ -191,6 +195,20 @@ export function SubscriptionCard({
                 </div>
               </div>
 
+              <label className="flex items-start gap-3 rounded-xl border p-3">
+                <Checkbox
+                  checked={!!watch("internal")}
+                  onCheckedChange={(v) => setValue("internal", v)}
+                  className="mt-0.5"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Interní vizitka (obchodník / vlastní)</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Nefakturuje se a nezobrazuje v „Blížící se fakturace“.
+                  </span>
+                </span>
+              </label>
+
               {isEdit && (
                 <div className="space-y-2">
                   <Label>Stav</Label>
@@ -279,9 +297,12 @@ export function SubscriptionCard({
           ) : null}
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Stav</dt>
-            <dd><Badge variant="outline">{statusLabels[subscription.status] ?? subscription.status}</Badge></dd>
+            <dd className="flex items-center gap-1.5">
+              {subscription.internal && <Badge variant="secondary">Interní</Badge>}
+              <Badge variant="outline">{statusLabels[subscription.status] ?? subscription.status}</Badge>
+            </dd>
           </div>
-          {subscription.nextInvoiceAt && (
+          {subscription.internal ? null : subscription.nextInvoiceAt && (
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Příští fakturace</dt>
               <dd>{new Date(subscription.nextInvoiceAt).toLocaleDateString("cs-CZ")}</dd>

@@ -19,7 +19,7 @@ export default async function UpravitFakturaPage({
   if (!doc.exists) notFound();
   const data = doc.data()!;
   // Upravovat lze jen koncept.
-  if (data.status !== "draft") redirect(`/fakturace/${id}`);
+  if (data.status !== "draft") redirect(`/invoices/${id}`);
 
   const clientsSnap = await db.collection("clients").get();
   const clients = clientsSnap.docs
@@ -57,7 +57,7 @@ export default async function UpravitFakturaPage({
           variant="ghost"
           size="icon"
           nativeButton={false}
-          render={<Link href={`/fakturace/${id}`} />}
+          render={<Link href={`/invoices/${id}`} />}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>

@@ -512,6 +512,7 @@ export function ProspektiPageClient({
         <CsvImportDialog
           open={importOpen}
           onOpenChange={setImportOpen}
+          users={users}
           onSuccess={() => {
             setImportOpen(false);
             router.refresh();

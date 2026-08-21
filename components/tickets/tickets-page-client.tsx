@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, Link2, X, ExternalLink } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -56,6 +56,7 @@ interface TicketRow {
   priority: string;
   status: string;
   assigneeUid?: string;
+  links: string[];
   createdAt: string | null;
 }
 
@@ -73,6 +74,13 @@ const priorityVariants: Record<string, "default" | "secondary" | "outline" | "de
 };
 const TICKET_STATUSES = ["open", "in_progress", "waiting_client", "resolved", "closed"];
 const ASSIGNEE_NONE = "__none__";
+
+/** Doplní https:// když chybí schéma, ať uživatel nemusí psát celý protokol. */
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
 
 export function TicketsPageClient({
   tickets,
@@ -116,12 +124,16 @@ export function TicketsPageClient({
     defaultValues: { type: "bug", priority: "medium" },
   });
 
+  // Odkazy k tiketu (např. fotky na Google Drive) — spravované mimo react-hook-form.
+  const [links, setLinks] = useState<string[]>([]);
+
   const clientItems = Object.fromEntries(clients.map((c) => [c.id, c.name]));
   const assigneeItems = { [ASSIGNEE_NONE]: "Nepřiřazeno", ...Object.fromEntries(users.map((u) => [u.id, u.displayName])) };
 
   function openCreate() {
     setEditingTicket(null);
     reset({ type: "bug", priority: "medium", title: "", description: "", clientId: undefined, assigneeUid: undefined });
+    setLinks([]);
     setDialogOpen(true);
   }
 
@@ -135,18 +147,34 @@ export function TicketsPageClient({
       description: ticket.description,
       assigneeUid: ticket.assigneeUid,
     });
+    setLinks(ticket.links ?? []);
     setSelectedTicket(null);
     setDialogOpen(true);
   }
 
   async function onSubmit(data: TicketFormData) {
+    // Normalizace + validace odkazů: doplnit protokol, zahodit prázdné, ověřit URL.
+    const normalizedLinks = links.map(normalizeUrl).filter(Boolean);
+    const invalid = normalizedLinks.find((l) => {
+      try {
+        new URL(l);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    if (invalid) {
+      toast.error(`Neplatný odkaz: ${invalid}`);
+      return;
+    }
+
     try {
       const res = await fetch(
         editingTicket ? `/api/tickets/${editingTicket.id}` : "/api/tickets",
         {
           method: editingTicket ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ ...data, links: normalizedLinks }),
         }
       );
       if (!res.ok) throw new Error();
@@ -271,6 +299,46 @@ export function TicketsPageClient({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Odkazy</Label>
+                {links.length > 0 && (
+                  <div className="space-y-2">
+                    {links.map((link, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Input
+                          value={link}
+                          onChange={(e) => {
+                            const next = [...links];
+                            next[i] = e.target.value;
+                            setLinks(next);
+                          }}
+                          placeholder="např. https://drive.google.com/..."
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
+                          aria-label="Odebrat odkaz"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLinks([...links, ""])}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Přidat odkaz
+                </Button>
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Ukládám..." : editingTicket ? "Uložit" : "Vytvořit"}
@@ -407,6 +475,26 @@ export function TicketsPageClient({
                 <Badge variant="secondary">{statusLabels[selectedTicket.status]}</Badge>
               </div>
               <p className="text-sm whitespace-pre-wrap">{selectedTicket.description}</p>
+              {selectedTicket.links.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Odkazy</p>
+                  <ul className="space-y-1">
+                    {selectedTicket.links.map((link, i) => (
+                      <li key={i}>
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-primary hover:underline break-all"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          {link}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <dl className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Klient</dt>

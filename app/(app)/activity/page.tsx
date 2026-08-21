@@ -49,11 +49,11 @@ export default async function AktivitaPage() {
       const d = doc.data();
       const et = d.entityType as string;
       const href =
-        et === "client" ? `/klienti/${d.entityId}`
-        : et === "lead" ? "/leady"
-        : et === "ticket" ? "/tickety"
-        : et === "prospect" ? "/prospekti"
-        : "/fakturace";
+        et === "client" ? `/clients/${d.entityId}`
+        : et === "lead" ? "/leads"
+        : et === "ticket" ? "/tickets"
+        : et === "prospect" ? "/prospects"
+        : "/invoices";
       return {
         id: doc.id,
         actorUid: d.actorUid as string,

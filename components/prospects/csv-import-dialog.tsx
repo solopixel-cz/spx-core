@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Upload } from "lucide-react";
+import type { UserOption } from "./prospects-page-client";
 
 type FieldKey = "name" | "company" | "email" | "phone" | "city" | "portalUrl" | "demoUrl" | "skip";
 
@@ -78,15 +79,18 @@ export function CsvImportDialog({
   open,
   onOpenChange,
   onSuccess,
+  users,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  users: UserOption[];
 }) {
   const [step, setStep] = useState<"upload" | "mapping" | "importing">("upload");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<FieldKey[]>([]);
+  const [ownerUid, setOwnerUid] = useState<string>("none");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
 
@@ -95,6 +99,7 @@ export function CsvImportDialog({
     setHeaders([]);
     setRows([]);
     setMapping([]);
+    setOwnerUid("none");
     setResult(null);
   }, []);
 
@@ -160,7 +165,10 @@ export function CsvImportDialog({
       const res = await fetch("/api/prospects/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: importRows }),
+        body: JSON.stringify({
+          rows: importRows,
+          ownerUid: ownerUid === "none" ? null : ownerUid,
+        }),
       });
 
       if (!res.ok) throw new Error();
@@ -183,7 +191,7 @@ export function CsvImportDialog({
         onOpenChange(o);
       }}
     >
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>CSV Import kontaktů</DialogTitle>
         </DialogHeader>
@@ -212,17 +220,46 @@ export function CsvImportDialog({
         )}
 
         {step === "mapping" && (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
+            {/* Owner assignment */}
+            <div className="space-y-2">
+              <Label htmlFor="import-owner" className="text-sm font-medium">
+                Vlastník importovaných kontaktů
+              </Label>
+              <Select
+                items={{
+                  none: "— Bez vlastníka (volní) —",
+                  ...Object.fromEntries(users.map((u) => [u.id, u.displayName])),
+                }}
+                value={ownerUid}
+                onValueChange={(val) => val && setOwnerUid(val)}
+              >
+                <SelectTrigger id="import-owner" className="w-full sm:w-80">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Bez vlastníka (volní) —</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.displayName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Přiřadí se všem kontaktům v tomto importu. Bez vlastníka zůstanou volné k zabrání.
+              </p>
+            </div>
+
             {/* Column mapping */}
             <div className="space-y-3">
               <p className="text-sm font-medium">Mapování sloupců</p>
               <div className="grid grid-cols-2 gap-2">
                 {headers.map((header, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[100px] truncate" title={header}>
+                  <div key={i} className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm text-muted-foreground w-24 shrink-0 truncate" title={header}>
                       {header}
                     </span>
                     <Select
+                      items={fieldLabels}
                       value={mapping[i]}
                       onValueChange={(val) => {
                         if (!val) return;
@@ -231,7 +268,7 @@ export function CsvImportDialog({
                         setMapping(next);
                       }}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-8 w-full min-w-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -255,7 +292,7 @@ export function CsvImportDialog({
                   <TableHeader>
                     <TableRow>
                       {headers.map((h, i) => (
-                        <TableHead key={i} className="text-xs whitespace-nowrap">
+                        <TableHead key={i} className="text-xs whitespace-nowrap max-w-[160px] truncate">
                           {mapping[i] !== "skip" ? fieldLabels[mapping[i]] : <span className="text-muted-foreground line-through">{h}</span>}
                         </TableHead>
                       ))}
@@ -267,7 +304,8 @@ export function CsvImportDialog({
                         {row.map((cell, ci) => (
                           <TableCell
                             key={ci}
-                            className={`text-xs whitespace-nowrap ${mapping[ci] === "skip" ? "text-muted-foreground" : ""}`}
+                            title={cell}
+                            className={`text-xs whitespace-nowrap max-w-[160px] truncate ${mapping[ci] === "skip" ? "text-muted-foreground" : ""}`}
                           >
                             {cell || "—"}
                           </TableCell>

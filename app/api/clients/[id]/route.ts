@@ -102,8 +102,8 @@ export async function PATCH(
       });
     }
 
-    revalidatePath("/klienti");
-    revalidatePath(`/klienti/${id}`);
+    revalidatePath("/clients");
+    revalidatePath(`/clients/${id}`);
     return NextResponse.json({ status: "ok" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

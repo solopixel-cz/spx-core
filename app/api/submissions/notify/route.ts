@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const proto = request.headers.get("x-forwarded-proto") ?? "https";
     const host =
       request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-    const podkladyUrl = host ? `${proto}://${host}/podklady` : "";
+    const podkladyUrl = host ? `${proto}://${host}/submissions` : "";
 
     const subject = `Nové podklady: ${name}`;
     const html =
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       type: "submission.filled",
       title: "Nové podklady",
       body: `${name} vyplnil formulář podkladů`,
-      href: "/podklady",
+      href: "/submissions",
     });
 
     return NextResponse.json({ ok: true });

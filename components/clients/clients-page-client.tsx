@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -70,7 +70,7 @@ const columns = [
     header: "Jméno",
     cell: (info) => (
       <Link
-        href={`/klienti/${info.row.original.id}`}
+        href={`/clients/${info.row.original.id}`}
         className="font-medium hover:underline"
       >
         {info.getValue()}
@@ -113,11 +113,46 @@ const columns = [
   }),
 ];
 
+const FILTER_STORAGE_KEY = "clients:filters";
+
 export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
   const router = useRouter();
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Obnov filtry z minulé návštěvy (přežije návrat z detailu klienta).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(FILTER_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { q?: string; status?: string };
+        if (saved.q) setGlobalFilter(saved.q);
+        if (saved.status && saved.status !== "all") {
+          setColumnFilters([{ id: "status", value: saved.status }]);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    setHydrated(true);
+  }, []);
+
+  // Ulož filtry při každé změně (až po prvotním obnovení).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      const status =
+        (columnFilters.find((f) => f.id === "status")?.value as string) ?? "all";
+      sessionStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify({ q: globalFilter, status })
+      );
+    } catch {
+      // ignore
+    }
+  }, [globalFilter, columnFilters, hydrated]);
 
   const table = useReactTable({
     data: clients,
@@ -191,7 +226,7 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
             return (
               <EntityCard
                 key={c.id}
-                href={`/klienti/${c.id}`}
+                href={`/clients/${c.id}`}
                 title={c.name}
                 badge={
                   <Badge variant={statusVariants[c.status] ?? "secondary"}>
