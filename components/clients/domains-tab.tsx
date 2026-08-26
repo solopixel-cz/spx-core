@@ -40,6 +40,7 @@ export interface DomainData {
   name: string;
   registrar?: string | null;
   account?: string | null;
+  hosting?: string | null;
   purchasedAt?: string | null;
   renewalAt?: string | null;
   autoRenew?: boolean;
@@ -96,6 +97,7 @@ function DomainFormDialog({
           name: domain.name,
           registrar: domain.registrar ?? "",
           account: domain.account ?? "",
+          hosting: domain.hosting ?? "",
           purchasedAt: toDateInput(domain.purchasedAt),
           renewalAt: toDateInput(domain.renewalAt),
           autoRenew: domain.autoRenew ?? false,
@@ -129,7 +131,7 @@ function DomainFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger render={trigger} />
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Upravit doménu" : "Nová doména"}</DialogTitle>
         </DialogHeader>
@@ -144,13 +146,18 @@ function DomainFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="registrar">Registrátor (u koho)</Label>
+              <Label htmlFor="registrar">Registrátor (kde koupeno)</Label>
               <Input id="registrar" placeholder="Wedos, Forpsi…" {...register("registrar")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account">Účet (pod čím vedeno)</Label>
-              <Input id="account" placeholder="e-mail / login" {...register("account")} />
+              <Label htmlFor="hosting">Hosting (kde běží)</Label>
+              <Input id="hosting" placeholder="Vercel, Wedos, Forpsi…" {...register("hosting")} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account">Účet (pod čím vedeno)</Label>
+            <Input id="account" placeholder="e-mail / login" {...register("account")} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -252,6 +259,7 @@ export function DomainsTab({
               <TableRow>
                 <TableHead>Doména</TableHead>
                 <TableHead>Registrátor</TableHead>
+                <TableHead>Hosting</TableHead>
                 <TableHead>Účet</TableHead>
                 <TableHead>Zakoupeno</TableHead>
                 <TableHead>Obnovit do</TableHead>
@@ -275,6 +283,7 @@ export function DomainsTab({
                       </a>
                     </TableCell>
                     <TableCell>{d.registrar || "—"}</TableCell>
+                    <TableCell>{d.hosting || "—"}</TableCell>
                     <TableCell>{d.account || "—"}</TableCell>
                     <TableCell>{fmtDate(d.purchasedAt)}</TableCell>
                     <TableCell>

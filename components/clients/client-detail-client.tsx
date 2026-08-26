@@ -66,10 +66,11 @@ interface ClientData {
 interface InstanceData {
   id: string;
   clientId: string;
+  type: string;
   advisorSlug: string;
+  hosting?: string;
   domain: string;
   status: string;
-  version: string;
   repoUrl?: string;
   deployUrl?: string;
   features: string[];
