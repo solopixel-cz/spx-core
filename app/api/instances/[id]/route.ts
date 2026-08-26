@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { instanceFormSchema } from "@/lib/schemas/instance";
+import { instanceFormPartialSchema } from "@/lib/schemas/instance";
 import { logActivity } from "@/lib/activity";
 
 // PATCH /api/instances/[id]
@@ -14,7 +14,7 @@ export async function PATCH(
     const user = await requireAuth();
     const { id } = await params;
     const body = await request.json();
-    const data = instanceFormSchema.partial().parse(body);
+    const data = instanceFormPartialSchema.parse(body);
 
     const db = getAdminFirestore();
     const docRef = db.collection("instances").doc(id);
@@ -39,6 +39,13 @@ export async function PATCH(
             .map((f: string) => f.trim())
             .filter(Boolean)
         : [];
+    }
+
+    // Přepnutí typu: vizitka drží slug, web drží hosting — druhé pole vyčistit.
+    if (data.type !== undefined) {
+      const isWeb = data.type === "web";
+      updates.advisorSlug = isWeb ? null : data.advisorSlug?.trim() || null;
+      updates.hosting = isWeb ? data.hosting || null : null;
     }
 
     if (data.repoUrl === "") updates.repoUrl = null;
