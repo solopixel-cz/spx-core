@@ -53,6 +53,7 @@ export async function PATCH(
     if (data.name !== undefined) updates.name = data.name.trim();
     if (data.registrar !== undefined) updates.registrar = data.registrar.trim() || null;
     if (data.account !== undefined) updates.account = data.account.trim() || null;
+    if (data.hosting !== undefined) updates.hosting = data.hosting.trim() || null;
     if (data.note !== undefined) updates.note = data.note.trim() || null;
     if (data.autoRenew !== undefined) updates.autoRenew = data.autoRenew;
 

@@ -46,15 +46,16 @@ Klienti (finanční poradci).
 ```
 
 ### `instances`
-DBC instance. Obvykle 1:1 ke klientovi, ale model umožňuje víc.
+Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisorSlug`), nebo **web** (`type: 'web'`, má `hosting`). Obvykle 1:1 ke klientovi, ale model umožňuje víc.
 
 ```ts
 {
   clientId: string
-  advisorSlug: string
-  domain: string             // např. jmeno.solopixel.cz
+  type: 'card' | 'web'       // 'card' = DBC vizitka (má slug), 'web' = klientský web (má hosting)
+  advisorSlug?: string       // povinný jen pro vizitku (type === 'card')
+  hosting?: string           // jen pro web: Vercel | Wedos | Forpsi | Netlify | Cloudflare
+  domain: string             // např. jmeno.solopixel.cz (vizitka) nebo vlastní doména (web)
   status: 'setup' | 'live' | 'maintenance' | 'offline'
-  version: string            // verze spx-dbc
   repoUrl?: string
   deployUrl?: string
   features: string[]         // zapnuté moduly (kalkulačky, AI chat, …)
@@ -71,6 +72,7 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
   name: string               // doména, např. jmeno.cz
   registrar?: string         // u koho zakoupena (Wedos, Forpsi, GoDaddy, …)
   account?: string           // pod jakým účtem je vedena
+  hosting?: string           // kde web/DNS běží (Vercel, Wedos, Forpsi, …) — odlišné od registrátora
   purchasedAt?: Timestamp     // kdy zakoupena
   renewalAt?: Timestamp       // datum obnovení/expirace — pohání připomínky
   autoRenew?: boolean         // automatické obnovení zapnuto (pak cron netlačí připomínku)

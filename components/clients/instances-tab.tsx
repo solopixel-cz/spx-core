@@ -34,21 +34,32 @@ import {
 import { ExternalLink, Plus, Pencil } from "lucide-react";
 import {
   instanceFormSchema,
+  hostingProviders,
   type InstanceFormData,
 } from "@/lib/schemas/instance";
 
 interface InstanceData {
   id: string;
   clientId: string;
+  type: string;
   advisorSlug: string;
+  hosting?: string;
   domain: string;
   status: string;
-  version: string;
   repoUrl?: string;
   deployUrl?: string;
   features: string[];
   notes?: string;
 }
+
+const typeLabels: Record<string, string> = {
+  card: "Vizitka",
+  web: "Web",
+};
+
+const hostingItems: Record<string, string> = Object.fromEntries(
+  hostingProviders.map((h) => [h, h])
+);
 
 const statusLabels: Record<string, string> = {
   setup: "Příprava",
@@ -86,22 +97,27 @@ function InstanceFormDialog({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<InstanceFormData>({
     resolver: zodResolver(instanceFormSchema),
     defaultValues: instance
       ? {
+          type: (instance.type as InstanceFormData["type"]) ?? "card",
           advisorSlug: instance.advisorSlug,
+          hosting: instance.hosting ?? "",
           domain: instance.domain,
           status: instance.status as InstanceFormData["status"],
-          version: instance.version,
           repoUrl: instance.repoUrl ?? "",
           deployUrl: instance.deployUrl ?? "",
           features: instance.features.join(", "),
           notes: instance.notes ?? "",
         }
-      : { status: "setup", version: "1.0.0" },
+      : { type: "card", status: "setup" },
   });
+
+  const type = watch("type");
+  const isWeb = type === "web";
 
   async function onSubmit(data: InstanceFormData) {
     try {
@@ -132,7 +148,7 @@ function InstanceFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger render={trigger} />
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Upravit instanci" : "Nová instance"}
@@ -140,6 +156,24 @@ function InstanceFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Typ</Label>
+              <Select
+                items={typeLabels}
+                value={type}
+                onValueChange={(val) => {
+                  if (val) setValue("type", val as InstanceFormData["type"]);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="card">Vizitka</SelectItem>
+                  <SelectItem value="web">Web</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="domain">Doména *</Label>
               <Input id="domain" {...register("domain")} />
@@ -149,6 +183,29 @@ function InstanceFormDialog({
                 </p>
               )}
             </div>
+          </div>
+
+          {isWeb ? (
+            <div className="space-y-2">
+              <Label>Hosting</Label>
+              <Select
+                items={hostingItems}
+                value={watch("hosting") ?? ""}
+                onValueChange={(val) => setValue("hosting", val ?? "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Vyberte hosting" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hostingProviders.map((h) => (
+                    <SelectItem key={h} value={h}>
+                      {h}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
             <div className="space-y-2">
               <Label htmlFor="advisorSlug">Slug *</Label>
               <Input id="advisorSlug" {...register("advisorSlug")} />
@@ -158,37 +215,27 @@ function InstanceFormDialog({
                 </p>
               )}
             </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="version">Verze *</Label>
-              <Input id="version" {...register("version")} />
-              {errors.version && (
-                <p className="text-sm text-destructive">
-                  {errors.version.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Stav</Label>
-              <Select
-                defaultValue={instance?.status ?? "setup"}
-                onValueChange={(val) =>
-                  setValue("status", val as InstanceFormData["status"])
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="setup">Příprava</SelectItem>
-                  <SelectItem value="live">Živá</SelectItem>
-                  <SelectItem value="maintenance">Údržba</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Stav</Label>
+            <Select
+              items={statusLabels}
+              value={watch("status")}
+              onValueChange={(val) => {
+                if (val) setValue("status", val as InstanceFormData["status"]);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="setup">Příprava</SelectItem>
+                <SelectItem value="live">Živá</SelectItem>
+                <SelectItem value="maintenance">Údržba</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -265,9 +312,9 @@ export function InstancesTab({
             <TableHeader>
               <TableRow>
                 <TableHead>Doména</TableHead>
-                <TableHead>Slug</TableHead>
+                <TableHead>Typ</TableHead>
+                <TableHead>Slug / Hosting</TableHead>
                 <TableHead>Stav</TableHead>
-                <TableHead>Verze</TableHead>
                 <TableHead>Features</TableHead>
                 <TableHead className="w-24">Akce</TableHead>
               </TableRow>
@@ -290,7 +337,16 @@ export function InstancesTab({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{inst.advisorSlug}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {typeLabels[inst.type] ?? "Vizitka"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {inst.type === "web"
+                      ? inst.hosting || "—"
+                      : inst.advisorSlug || "—"}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={statusVariants[inst.status] ?? "secondary"}
@@ -298,7 +354,6 @@ export function InstancesTab({
                       {statusLabels[inst.status] ?? inst.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{inst.version}</TableCell>
                   <TableCell>
                     {inst.features.length > 0
                       ? inst.features.join(", ")

@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       name: data.name.trim(),
       registrar: data.registrar?.trim() || null,
       account: data.account?.trim() || null,
+      hosting: data.hosting?.trim() || null,
       purchasedAt: purchasedAt ?? null,
       renewalAt: renewalAt ?? null,
       autoRenew: data.autoRenew ?? false,

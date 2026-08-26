@@ -7,6 +7,7 @@ export const domainSchema = z.object({
   name: z.string().min(1), // doména, např. jmeno.cz
   registrar: z.string().optional(), // u koho zakoupena (Wedos, Forpsi, …)
   account: z.string().optional(), // pod jakým účtem je vedena
+  hosting: z.string().optional(), // kde web/DNS běží (Vercel, Wedos, Forpsi, …) — odlišné od registrátora
   purchasedAt: timestampSchema.optional(), // kdy zakoupena
   renewalAt: timestampSchema.optional(), // datum obnovení/expirace — pohání připomínky
   autoRenew: z.boolean().optional(), // automatické obnovení zapnuto (netlačí připomínku)
@@ -21,6 +22,7 @@ export const domainFormSchema = z.object({
   name: z.string().min(1, "Doména je povinná"),
   registrar: z.string().optional(),
   account: z.string().optional(),
+  hosting: z.string().optional(),
   purchasedAt: z.string().optional(),
   renewalAt: z.string().optional(),
   autoRenew: z.boolean().optional(),

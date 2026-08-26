@@ -37,8 +37,6 @@ export const KANBAN_STAGES = [
   "new",
   "contacted",
   "demo",
-  "offer",
-  "contract",
   "onboarding",
 ] as const;
 
