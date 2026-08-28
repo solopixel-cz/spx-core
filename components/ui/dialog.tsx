@@ -53,7 +53,13 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Mobil: spodní drawer — plná šířka, vyjede zdola, zakulacený horní okraj.
+          "fixed inset-x-0 bottom-0 z-50 grid max-h-[92dvh] w-full gap-4 overflow-y-auto rounded-t-2xl rounded-b-none bg-popover p-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))] text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none",
+          // Přechod (slide zdola + fade) přes Base UI starting/ending style — stejně jako Sheet.
+          "transition duration-200 ease-out data-starting-style:translate-y-full data-starting-style:opacity-0 data-ending-style:translate-y-full data-ending-style:opacity-0",
+          // Desktop (sm+): klasický vycentrovaný modál se zjemněným zoomem.
+          "sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[85dvh] sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4",
+          "sm:data-starting-style:translate-y-[-50%] sm:data-starting-style:scale-95 sm:data-ending-style:translate-y-[-50%] sm:data-ending-style:scale-95",
           className
         )}
         {...props}
