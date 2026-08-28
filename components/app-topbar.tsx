@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { Menu, Search, LogOut, User, Loader2, RefreshCw } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
@@ -38,9 +38,19 @@ export function AppTopbar({
   photoURL: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { refresh, isRefreshing } = useRefreshControls();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Po přechodu na jinou stránku zavři mobilní menu (jinak přes celou šířku
+  // překryje obsah). Úprava stavu během renderu — stejný vzor jako jinde v appce.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setMenuOpen(false);
+  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -71,14 +81,17 @@ export function AppTopbar({
     <>
       <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         {/* Mobile menu */}
-        <Sheet>
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger
             render={<Button variant="ghost" size="icon" className="md:hidden" />}
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Menu</span>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent
+            side="left"
+            className="data-[side=left]:w-full data-[side=left]:max-w-none data-[side=left]:sm:max-w-none p-0"
+          >
             <SheetTitle className="flex h-16 items-center gap-2.5 border-b px-4 font-heading text-xl font-bold">
               <PixelLogo className="size-6 shrink-0" />
               SPX Core

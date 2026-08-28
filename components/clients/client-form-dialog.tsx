@@ -44,6 +44,7 @@ export function ClientFormDialog({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ClientFormData>({
     resolver: zodResolver(clientFormSchema),
@@ -148,38 +149,30 @@ export function ClientFormDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="advisorSlug">Advisor Slug *</Label>
-              <Input id="advisorSlug" {...register("advisorSlug")} />
-              {errors.advisorSlug && (
-                <p className="text-sm text-destructive">
-                  {errors.advisorSlug.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Stav</Label>
-              <Select
-                defaultValue={defaultValues?.status ?? "onboarding"}
-                onValueChange={(val) =>
-                  setValue(
-                    "status",
-                    val as ClientFormData["status"]
-                  )
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="onboarding">Onboarding</SelectItem>
-                  <SelectItem value="active">Aktivní</SelectItem>
-                  <SelectItem value="paused">Pozastavený</SelectItem>
-                  <SelectItem value="churned">Odešlý</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Stav</Label>
+            <Select
+              items={{
+                onboarding: "Onboarding",
+                active: "Aktivní",
+                paused: "Pozastavený",
+                churned: "Odešlý",
+              }}
+              value={watch("status")}
+              onValueChange={(val) => {
+                if (val) setValue("status", val as ClientFormData["status"]);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="onboarding">Onboarding</SelectItem>
+                <SelectItem value="active">Aktivní</SelectItem>
+                <SelectItem value="paused">Pozastavený</SelectItem>
+                <SelectItem value="churned">Odešlý</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

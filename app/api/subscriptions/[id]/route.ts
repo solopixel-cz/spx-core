@@ -14,11 +14,18 @@ export async function PATCH(
     const body = await request.json();
     const data = subscriptionFormSchema.partial().parse(body);
 
-    const db = getAdminFirestore();
-    await db.collection("subscriptions").doc(id).update({
-      ...data,
+    // Datumová pole chodí jako yyyy-mm-dd string — v DB musí být Timestamp
+    // (fakturační cron je čte přes .toDate()). Prázdné pole neměníme.
+    const { startedAt, nextInvoiceAt, ...rest } = data;
+    const updates: Record<string, unknown> = {
+      ...rest,
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+    if (startedAt) updates.startedAt = new Date(startedAt);
+    if (nextInvoiceAt) updates.nextInvoiceAt = new Date(nextInvoiceAt);
+
+    const db = getAdminFirestore();
+    await db.collection("subscriptions").doc(id).update(updates);
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {

@@ -32,7 +32,7 @@ export default async function ClientDetailPage({
     email: data.email as string,
     phone: data.phone as string | undefined,
     status: data.status as string,
-    advisorSlug: data.advisorSlug as string,
+    advisorSlug: (data.advisorSlug as string | undefined) ?? "",
     notes: data.notes as string | undefined,
     salesOwnerUid: (data.salesOwnerUid as string) ?? null,
     deletedAt: data.deletedAt?.toDate?.()?.toISOString() ?? null,

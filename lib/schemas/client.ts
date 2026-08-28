@@ -13,7 +13,7 @@ export const clientSchema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   status: z.enum(["onboarding", "active", "paused", "churned"]),
-  advisorSlug: z.string().min(1),
+  advisorSlug: z.string().optional(), // jen pro vizitku; klient může mít i jen web (řeší se přes instanci)
   salesOwnerUid: z.string().optional(),
   notes: z.string().optional(),
   leadId: z.string().optional(),
@@ -33,7 +33,7 @@ export const clientFormSchema = z.object({
   email: z.string().email("Zadejte platný e-mail"),
   phone: z.string().optional(),
   status: z.enum(["onboarding", "active", "paused", "churned"]),
-  advisorSlug: z.string().min(1, "Slug je povinný"),
+  advisorSlug: z.string().optional(),
   notes: z.string().optional(),
 });
 

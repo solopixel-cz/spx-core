@@ -318,42 +318,69 @@ export function InvoiceDetailClient({
             <CardTitle className="text-base">Položky</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Popis</TableHead>
-                  <TableHead className="w-16 text-right">Ks</TableHead>
-                  <TableHead className="w-32 text-right">Cena/ks</TableHead>
-                  <TableHead className="w-16 text-right">Sleva</TableHead>
-                  <TableHead className="w-32 text-right">Celkem</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoice.items.map((item, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{item.description}</TableCell>
-                    <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      {item.unitPrice.toLocaleString("cs-CZ")} Kč
+            {/* Desktop: tabulka */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Popis</TableHead>
+                    <TableHead className="w-16 text-right">Ks</TableHead>
+                    <TableHead className="w-32 text-right">Cena/ks</TableHead>
+                    <TableHead className="w-16 text-right">Sleva</TableHead>
+                    <TableHead className="w-32 text-right">Celkem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoice.items.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">
+                        {item.unitPrice.toLocaleString("cs-CZ")} Kč
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.discountPercent ? `${item.discountPercent} %` : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {invoiceLineTotal(item).toLocaleString("cs-CZ")} Kč
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-right font-medium">
+                      Celkem
                     </TableCell>
-                    <TableCell className="text-right">
-                      {item.discountPercent ? `${item.discountPercent} %` : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {invoiceLineTotal(item).toLocaleString("cs-CZ")} Kč
+                    <TableCell className="text-right font-bold">
+                      {invoice.amount.toLocaleString("cs-CZ")} Kč
                     </TableCell>
                   </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell colSpan={4} className="text-right font-medium">
-                    Celkem
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {invoice.amount.toLocaleString("cs-CZ")} Kč
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobil: stohovaný výpis */}
+            <div className="divide-y md:hidden">
+              {invoice.items.map((item, idx) => (
+                <div key={idx} className="py-3 first:pt-0">
+                  <div className="flex justify-between gap-3">
+                    <span className="font-medium">{item.description}</span>
+                    <span className="shrink-0 font-medium">
+                      {invoiceLineTotal(item).toLocaleString("cs-CZ")} Kč
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-sm text-muted-foreground">
+                    {item.quantity} ks × {item.unitPrice.toLocaleString("cs-CZ")} Kč
+                    {item.discountPercent
+                      ? ` · sleva ${item.discountPercent} %`
+                      : ""}
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between pt-3 font-semibold">
+                <span>Celkem</span>
+                <span>{invoice.amount.toLocaleString("cs-CZ")} Kč</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
