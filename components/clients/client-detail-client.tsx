@@ -168,14 +168,14 @@ function ContactChip({
         )}
       >
         {icon}
-        <span className="truncate">{children}</span>
+        <span className="min-w-0 truncate">{children}</span>
       </a>
     );
   }
   return (
     <span className={cn(base, "text-muted-foreground")}>
       {icon}
-      <span className="truncate">{children}</span>
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }
