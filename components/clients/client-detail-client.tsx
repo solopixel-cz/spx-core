@@ -168,14 +168,14 @@ function ContactChip({
         )}
       >
         {icon}
-        <span className="truncate">{children}</span>
+        <span className="min-w-0 truncate">{children}</span>
       </a>
     );
   }
   return (
     <span className={cn(base, "text-muted-foreground")}>
       {icon}
-      <span className="truncate">{children}</span>
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }
@@ -427,7 +427,6 @@ export function ClientDetailClient({
               email: client.email,
               phone: client.phone ?? "",
               status: client.status as "onboarding" | "active" | "paused" | "churned",
-              advisorSlug: client.advisorSlug,
               notes: client.notes ?? "",
             }}
           />
@@ -565,7 +564,7 @@ export function ClientDetailClient({
                 )}
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Advisor Slug</dt>
-                  <dd>{client.advisorSlug}</dd>
+                  <dd>{client.advisorSlug || "—"}</dd>
                 </div>
               </dl>
             </div>

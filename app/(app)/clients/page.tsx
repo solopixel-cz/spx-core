@@ -40,7 +40,7 @@ export default async function KlientiPage() {
       company: data.company,
       email: data.email,
       status: data.status,
-      advisorSlug: data.advisorSlug,
+      advisorSlug: data.advisorSlug ?? "",
       instanceCount: instanceCounts[doc.id] || 0,
       updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
     };

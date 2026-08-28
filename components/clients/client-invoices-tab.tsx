@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Check, X, Loader2, Plus, Repeat } from "lucide-react";
+import {
+  EntityCard,
+  EntityCardList,
+  EntityCardEmpty,
+} from "@/components/entity-card";
 
 interface InvoiceData {
   id: string;
@@ -106,15 +111,43 @@ export function ClientInvoicesTab({
     return (
       <div className="space-y-3">
         {actions}
-        <p className="text-muted-foreground">Žádné faktury</p>
+        <EntityCardEmpty>Žádné faktury</EntityCardEmpty>
       </div>
     );
   }
 
+  const invoiceActions = (inv: InvoiceData) =>
+    (inv.status === "sent" || inv.status === "overdue") && (
+      <>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => handleAction(inv.id, "paid")}
+          title="Zaplaceno"
+          disabled={actingId === inv.id}
+        >
+          {actingId === inv.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Check className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => handleAction(inv.id, "cancelled")}
+          title="Stornovat"
+          disabled={actingId === inv.id}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </>
+    );
+
   return (
     <div className="space-y-3">
       {actions}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="hidden overflow-x-auto rounded-md border md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -143,24 +176,59 @@ export function ClientInvoicesTab({
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="flex gap-1">
-                  {(inv.status === "sent" || inv.status === "overdue") && (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno" disabled={actingId === inv.id}>
-                        {actingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "cancelled")} title="Stornovat" disabled={actingId === inv.id}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
+                <div className="flex gap-1">{invoiceActions(inv)}</div>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       </div>
+
+      <EntityCardList>
+        {invoices.map((inv) => (
+          <EntityCard
+            key={inv.id}
+            href={`/invoices/${inv.id}`}
+            title={<span className="font-mono">{inv.number}</span>}
+            badge={
+              <Badge variant={statusVariants[inv.status] ?? "secondary"}>
+                {statusLabels[inv.status] ?? inv.status}
+              </Badge>
+            }
+          >
+            <dl className="mt-2 space-y-1 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Částka</dt>
+                <dd className="font-medium">
+                  {inv.amount.toLocaleString("cs-CZ")} Kč
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Vystaveno</dt>
+                <dd>
+                  {inv.issuedAt
+                    ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ")
+                    : "—"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Splatnost</dt>
+                <dd>
+                  {inv.dueAt
+                    ? new Date(inv.dueAt).toLocaleDateString("cs-CZ")
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+
+            {(inv.status === "sent" || inv.status === "overdue") && (
+              <div className="relative mt-3 flex gap-1">
+                {invoiceActions(inv)}
+              </div>
+            )}
+          </EntityCard>
+        ))}
+      </EntityCardList>
     </div>
   );
 }

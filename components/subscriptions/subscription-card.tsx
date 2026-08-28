@@ -50,6 +50,12 @@ const statusLabels: Record<string, string> = {
   cancelled: "Zrušeno",
 };
 
+/** yyyy-mm-dd z ISO řetězce pro <input type="date">. */
+function toDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
 export function SubscriptionCard({
   clientId,
   subscription,
@@ -79,6 +85,8 @@ export function SubscriptionCard({
           discountPercent: subscription.discountPercent ?? 0,
           discountNote: subscription.discountNote ?? "",
           internal: subscription.internal ?? false,
+          startedAt: toDateInput(subscription.startedAt),
+          nextInvoiceAt: toDateInput(subscription.nextInvoiceAt),
         }
       : {
           plan: "basic",
@@ -227,20 +235,24 @@ export function SubscriptionCard({
                 </div>
               )}
 
-              {!isEdit && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="startedAt">Platí od</Label>
-                    <Input id="startedAt" type="date" {...register("startedAt")} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startedAt">Platí od</Label>
+                  <Input id="startedAt" type="date" {...register("startedAt")} />
+                  {!isEdit && (
                     <p className="text-xs text-muted-foreground">Prázdné = dnes</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nextInvoiceAt">Příští fakturace</Label>
-                    <Input id="nextInvoiceAt" type="date" {...register("nextInvoiceAt")} />
-                    <p className="text-xs text-muted-foreground">Prázdné = dopočítá se</p>
-                  </div>
+                  )}
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="nextInvoiceAt">Příští fakturace</Label>
+                  <Input id="nextInvoiceAt" type="date" {...register("nextInvoiceAt")} />
+                  <p className="text-xs text-muted-foreground">
+                    {isEdit
+                      ? "Podle tohoto data se generují faktury"
+                      : "Prázdné = dopočítá se"}
+                  </p>
+                </div>
+              </div>
 
               {/* Živý náhled ceny */}
               <div className="rounded-xl border bg-muted/40 px-4 py-3">
