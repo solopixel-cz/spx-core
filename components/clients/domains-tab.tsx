@@ -26,6 +26,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ExternalLink, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import {
+  EntityCard,
+  EntityCardList,
+  EntityCardEmpty,
+} from "@/components/entity-card";
 import { domainFormSchema, type DomainFormData } from "@/lib/schemas/domain";
 import {
   renewalStatus,
@@ -210,6 +215,7 @@ export function DomainsTab({
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [mobileEditId, setMobileEditId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleDelete(d: DomainData) {
@@ -251,9 +257,10 @@ export function DomainsTab({
       </div>
 
       {domains.length === 0 ? (
-        <p className="text-muted-foreground">Žádné domény</p>
+        <EntityCardEmpty>Žádné domény</EntityCardEmpty>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <>
+        <div className="hidden overflow-x-auto rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -345,6 +352,101 @@ export function DomainsTab({
             </TableBody>
           </Table>
         </div>
+
+        <EntityCardList>
+          {domains.map((d) => {
+            const status = renewalStatus(d.renewalAt);
+            return (
+              <EntityCard
+                key={d.id}
+                title={
+                  <a
+                    href={domainHref(d.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative inline-flex items-center gap-1.5 hover:text-primary hover:underline"
+                  >
+                    {d.name}
+                    <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  </a>
+                }
+                badge={
+                  d.renewalAt ? (
+                    d.autoRenew ? (
+                      <Badge variant="secondary">auto</Badge>
+                    ) : status.level !== "ok" && status.level !== "none" ? (
+                      <Badge variant={renewalBadge[status.level]}>
+                        {renewalLabel(status)}
+                      </Badge>
+                    ) : null
+                  ) : null
+                }
+              >
+                <dl className="mt-2 space-y-1 text-sm">
+                  {d.registrar && (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Registrátor</dt>
+                      <dd className="truncate">{d.registrar}</dd>
+                    </div>
+                  )}
+                  {d.hosting && (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Hosting</dt>
+                      <dd className="truncate">{d.hosting}</dd>
+                    </div>
+                  )}
+                  {d.account && (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Účet</dt>
+                      <dd className="truncate">{d.account}</dd>
+                    </div>
+                  )}
+                  {d.renewalAt && (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Obnovit do</dt>
+                      <dd>{fmtDate(d.renewalAt)}</dd>
+                    </div>
+                  )}
+                </dl>
+
+                {canManage && (
+                  <div className="relative mt-3 flex gap-2">
+                    <DomainFormDialog
+                      clientId={clientId}
+                      domain={d}
+                      open={mobileEditId === d.id}
+                      onOpenChange={(open) => setMobileEditId(open ? d.id : null)}
+                      onSuccess={() => {
+                        setMobileEditId(null);
+                        router.refresh();
+                      }}
+                      trigger={
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Upravit
+                        </Button>
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={deletingId === d.id}
+                      onClick={() => handleDelete(d)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      {deletingId === d.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </EntityCard>
+            );
+          })}
+        </EntityCardList>
+        </>
       )}
     </div>
   );

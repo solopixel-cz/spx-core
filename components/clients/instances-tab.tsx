@@ -33,6 +33,11 @@ import {
 } from "@/components/ui/table";
 import { ExternalLink, Plus, Pencil } from "lucide-react";
 import {
+  EntityCard,
+  EntityCardList,
+  EntityCardEmpty,
+} from "@/components/entity-card";
+import {
   instanceFormSchema,
   hostingProviders,
   type InstanceFormData,
@@ -282,6 +287,7 @@ export function InstancesTab({
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [mobileEditId, setMobileEditId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -305,9 +311,10 @@ export function InstancesTab({
       </div>
 
       {instances.length === 0 ? (
-        <p className="text-muted-foreground">Žádné instance</p>
+        <EntityCardEmpty>Žádné instance</EntityCardEmpty>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <>
+        <div className="hidden overflow-x-auto rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -383,6 +390,81 @@ export function InstancesTab({
             </TableBody>
           </Table>
         </div>
+
+        <EntityCardList>
+          {instances.map((inst) => (
+            <EntityCard
+              key={inst.id}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {inst.domain}
+                  {inst.deployUrl && (
+                    <a
+                      href={inst.deployUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative text-muted-foreground hover:text-foreground"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
+              }
+              badge={
+                <Badge variant={statusVariants[inst.status] ?? "secondary"}>
+                  {statusLabels[inst.status] ?? inst.status}
+                </Badge>
+              }
+            >
+              <dl className="mt-2 space-y-1 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Typ</dt>
+                  <dd>{typeLabels[inst.type] ?? "Vizitka"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">
+                    {inst.type === "web" ? "Hosting" : "Slug"}
+                  </dt>
+                  <dd className="truncate">
+                    {inst.type === "web"
+                      ? inst.hosting || "—"
+                      : inst.advisorSlug || "—"}
+                  </dd>
+                </div>
+                {inst.features.length > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Features</dt>
+                    <dd className="truncate text-right">
+                      {inst.features.join(", ")}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+
+              <div className="relative mt-3">
+                <InstanceFormDialog
+                  clientId={clientId}
+                  instance={inst}
+                  open={mobileEditId === inst.id}
+                  onOpenChange={(open) =>
+                    setMobileEditId(open ? inst.id : null)
+                  }
+                  onSuccess={() => {
+                    setMobileEditId(null);
+                    router.refresh();
+                  }}
+                  trigger={
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Upravit
+                    </Button>
+                  }
+                />
+              </div>
+            </EntityCard>
+          ))}
+        </EntityCardList>
+        </>
       )}
     </div>
   );
