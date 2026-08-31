@@ -44,7 +44,6 @@ export interface InvoicePdfItem {
 
 export interface InvoicePdfClient {
   name: string;
-  company?: string | null;
   ico?: string | null;
   dic?: string | null;
   billingStreet?: string | null;
@@ -220,7 +219,6 @@ const styles = StyleSheet.create({
 
 function clientAddressLines(c: InvoicePdfClient): string[] {
   const lines: string[] = [];
-  if (c.company) lines.push(c.company);
   if (c.billingStreet) lines.push(c.billingStreet);
   const cityLine = [c.billingZip, c.billingCity].filter(Boolean).join(" ");
   if (cityLine) lines.push(cityLine);
