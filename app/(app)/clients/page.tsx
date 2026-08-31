@@ -8,7 +8,6 @@ interface ClientRow {
   company?: string;
   email: string;
   status: string;
-  advisorSlug: string;
   instanceCount: number;
   updatedAt: string | null;
 }
@@ -40,7 +39,6 @@ export default async function KlientiPage() {
       company: data.company,
       email: data.email,
       status: data.status,
-      advisorSlug: data.advisorSlug ?? "",
       instanceCount: instanceCounts[doc.id] || 0,
       updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
     };

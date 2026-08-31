@@ -44,7 +44,6 @@ interface ClientRow {
   company?: string;
   email: string;
   status: string;
-  advisorSlug: string;
   instanceCount: number;
   updatedAt: string | null;
 }
@@ -95,10 +94,6 @@ const columns = [
       if (!filterValue || filterValue === "all") return true;
       return row.original.status === filterValue;
     },
-  }),
-  columnHelper.accessor("advisorSlug", {
-    header: "Slug",
-    cell: (info) => info.getValue() || "—",
   }),
   columnHelper.accessor("instanceCount", {
     header: "Instance",
@@ -241,7 +236,6 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
                       {c.instanceCount}{" "}
                       {c.instanceCount === 1 ? "instance" : "instancí"}
                     </span>
-                    {c.advisorSlug && <span>{c.advisorSlug}</span>}
                     {c.updatedAt && (
                       <span>
                         {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}
