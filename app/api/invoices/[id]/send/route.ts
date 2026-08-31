@@ -138,7 +138,6 @@ export async function POST(
         company,
         client: {
           name: clientName,
-          company: client.company ?? null,
           ico: client.ico ?? null,
           dic: client.dic ?? null,
           billingStreet: client.billingStreet ?? null,
