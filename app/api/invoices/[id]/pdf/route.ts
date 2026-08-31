@@ -76,7 +76,6 @@ export async function GET(
       company,
       client: {
         name: (client.name as string) || "Klient",
-        company: client.company ?? null,
         ico: client.ico ?? null,
         dic: client.dic ?? null,
         billingStreet: client.billingStreet ?? null,
