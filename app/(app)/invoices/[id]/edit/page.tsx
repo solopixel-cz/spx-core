@@ -11,7 +11,7 @@ export default async function UpravitFakturaPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole("admin", "member");
+  await requireRole("admin");
   const { id } = await params;
   const db = getAdminFirestore();
 

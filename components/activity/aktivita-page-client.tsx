@@ -113,7 +113,7 @@ export function AktivitaPageClient({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const isSales = userRole === "sales";
+  const isAdmin = userRole === "admin";
 
   // Filter client-side
   let filtered = activities;
@@ -150,9 +150,9 @@ export function AktivitaPageClient({
     }
   }
 
-  const entityTypes = isSales
-    ? Object.entries(entityTypeLabels).filter(([k]) => k !== "invoice")
-    : Object.entries(entityTypeLabels);
+  const entityTypes = isAdmin
+    ? Object.entries(entityTypeLabels)
+    : Object.entries(entityTypeLabels).filter(([k]) => k !== "invoice");
 
   return (
     <div className="space-y-6">

@@ -17,21 +17,13 @@ function parseDate(value: string | undefined): Date | null | undefined {
 // GET /api/domains?clientId=xxx
 export async function GET(request: Request) {
   try {
-    const user = await requireAuth();
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get("clientId");
 
     const db = getAdminFirestore();
     if (!clientId) {
       return NextResponse.json({ error: "clientId je povinné" }, { status: 400 });
-    }
-
-    // Sales smí jen vlastní klienty
-    if (user.role === "sales") {
-      const clientDoc = await db.collection("clients").doc(clientId).get();
-      if (!clientDoc.exists || clientDoc.data()?.salesOwnerUid !== user.uid) {
-        return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
-      }
     }
 
     const snapshot = await db
@@ -72,9 +64,6 @@ export async function POST(request: Request) {
 
     const clientDoc = await db.collection("clients").doc(clientId).get();
     if (!clientDoc.exists) {
-      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
-    }
-    if (user.role === "sales" && clientDoc.data()?.salesOwnerUid !== user.uid) {
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 

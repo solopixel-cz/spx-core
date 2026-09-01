@@ -14,17 +14,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAuth();
+    await requireAuth();
     const { id } = await params;
     const db = getAdminFirestore();
     const doc = await db.collection("clients").doc(id).get();
 
     if (!doc.exists) {
-      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
-    }
-
-    // Sales can only view their own clients
-    if (user.role === "sales" && doc.data()?.salesOwnerUid !== user.uid) {
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 
@@ -61,18 +56,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 
-    // Sales can only edit their own clients
-    if (user.role === "sales" && existing.data()?.salesOwnerUid !== user.uid) {
-      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
-    }
-
     const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    // Handle salesOwnerUid change (admin/member only)
-    if (newSalesOwner !== undefined && user.role !== "sales") {
+    // Změna vlastníka klienta
+    if (newSalesOwner !== undefined) {
       updateData.salesOwnerUid = newSalesOwner || null;
       const oldOwner = existing.data()?.salesOwnerUid;
       if (newSalesOwner !== oldOwner) {
@@ -134,11 +124,6 @@ export async function POST(
     }
 
     const clientData = clientDoc.data()!;
-
-    // Sales can only send for their own clients
-    if (user.role === "sales" && clientData.salesOwnerUid !== user.uid) {
-      return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
-    }
 
     if (!clientData.email) {
       return NextResponse.json({ error: "Klient nemá e-mail" }, { status: 400 });

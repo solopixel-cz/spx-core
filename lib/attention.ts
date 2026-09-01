@@ -1,6 +1,5 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { UserRole } from "@/lib/auth";
-import { getSalesClientIds } from "@/lib/sales-clients";
 
 export interface AttentionItem {
   type: "invoice" | "ticket" | "lead" | "submission" | "task" | "prospect";
@@ -20,13 +19,12 @@ export async function getAttentionItems(
   const now = Date.now();
   const items: AttentionItem[] = [];
 
-  const isSales = role === "sales";
-  const ownedClientIds = await getSalesClientIds(uid, role);
+  const isAdmin = role === "admin";
 
   const fetches: Promise<void>[] = [];
 
-  // 1. Overdue invoices (not for sales)
-  if (!isSales) {
+  // 1. Overdue invoices (jen admin — finance)
+  if (isAdmin) {
     fetches.push(
       db
         .collection("invoices")
@@ -59,7 +57,6 @@ export async function getAttentionItems(
         snap.docs.forEach((doc) => {
           const d = doc.data();
           if (d.deletedAt) return;
-          if (ownedClientIds && !ownedClientIds.has(d.clientId as string)) return;
           const priority = d.priority as string;
           const updatedAt = d.updatedAt?.toDate?.() ?? d.createdAt?.toDate?.();
           const age = updatedAt ? Math.floor((now - updatedAt.getTime()) / DAY_MS) : 0;
@@ -91,7 +88,6 @@ export async function getAttentionItems(
           const d = doc.data();
           if (d.deletedAt) return;
           if (!activeStages.includes(d.stage)) return;
-          if (isSales && d.ownerUid !== uid) return;
           const updatedAt = d.updatedAt?.toDate?.();
           if (!updatedAt) return;
           const age = Math.floor((now - updatedAt.getTime()) / DAY_MS);
@@ -108,8 +104,8 @@ export async function getAttentionItems(
       })
   );
 
-  // 4. Unprocessed submissions older than 3 days (skip for sales — filtered via API)
-  if (!isSales) fetches.push(
+  // 4. Unprocessed submissions older than 3 days
+  fetches.push(
     db
       .collection("card-submissions")
       .get()
@@ -149,7 +145,6 @@ export async function getAttentionItems(
 
           if (d.checklistTemplateId) {
             // Onboarding úkoly — po termínu (zachované chování)
-            if (isSales && d.assigneeUid !== uid) return;
             if (dueAt >= new Date()) return;
             const age = Math.floor((now - dueAt.getTime()) / DAY_MS);
             items.push({
@@ -189,7 +184,6 @@ export async function getAttentionItems(
         snap.docs.forEach((doc) => {
           const d = doc.data();
           if (d.deletedAt) return;
-          if (isSales && d.ownerUid !== uid) return;
           if (!d.ownerUid) return; // skip unowned
           const nextFollowUp = d.nextFollowUpAt?.toDate?.();
           if (!nextFollowUp) return;
@@ -229,7 +223,6 @@ export async function getAttentionItems(
           if (pData.deletedAt) continue;
           // Only show for active prospects owned by this user (or all for admin)
           if (["converted", "not_interested", "unreachable"].includes(pData.status as string)) continue;
-          if (isSales && pData.ownerUid !== uid) continue;
           if (!pData.ownerUid) continue;
 
           const clickedAt = d.lastEventAt?.toDate?.() ?? d.sentAt?.toDate?.();

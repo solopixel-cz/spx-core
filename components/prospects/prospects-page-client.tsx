@@ -195,7 +195,7 @@ export function ProspektiPageClient({
     }
   }
 
-  const isAdminOrMember = userRole === "admin" || userRole === "member";
+  const isAdminOrMember = userRole === "admin" || userRole === "user";
 
   // Collect unique cities for filter
   const cities = [...new Set(prospects.map((p) => p.city).filter(Boolean))] as string[];

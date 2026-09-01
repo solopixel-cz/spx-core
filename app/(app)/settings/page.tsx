@@ -5,7 +5,6 @@ import {
   Users,
   FileText,
   Archive,
-  Percent,
   User,
   ClipboardList,
   Bell,
@@ -17,7 +16,7 @@ interface Tile {
   description: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles?: Array<"admin" | "member">;
+  roles?: Array<"admin" | "user">;
 }
 
 const tiles: Tile[] = [
@@ -63,12 +62,6 @@ const tiles: Tile[] = [
     icon: Archive,
   },
   {
-    label: "Provize",
-    description: "Přehled, vyplácení provizí a výchozí sazba",
-    href: "/commissions",
-    icon: Percent,
-  },
-  {
     label: "Můj profil",
     description: "Jméno, fotka, heslo a preference",
     href: "/profile",
@@ -81,7 +74,7 @@ export default async function NastaveniPage() {
 
   const visible = tiles.filter((t) => {
     if (!t.roles) return true;
-    return t.roles.includes(user.role as "admin" | "member");
+    return t.roles.includes(user.role);
   });
 
   return (

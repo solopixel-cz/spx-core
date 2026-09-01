@@ -11,7 +11,7 @@ function serializeTimestamp(val: unknown): string | null {
 }
 
 export default async function ProvizePage() {
-  const user = await requireRole("admin", "member");
+  const user = await requireRole("admin");
   const db = getAdminFirestore();
 
   const [commissionsSnap, usersSnap, clientsSnap, invoicesSnap, settingsSnap] = await Promise.all([

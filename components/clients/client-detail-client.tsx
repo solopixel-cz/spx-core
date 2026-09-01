@@ -226,7 +226,7 @@ export function ClientDetailClient({
   tasks = [],
   tickets = [],
   salesUsers = [],
-  userRole = "member" as "admin" | "member" | "sales",
+  userRole = "user" as "admin" | "user",
   currentUid = "",
   lastDelivery = null,
 }: {
@@ -239,12 +239,11 @@ export function ClientDetailClient({
   tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string; recurrence?: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
-  userRole?: "admin" | "member" | "sales";
+  userRole?: "admin" | "user";
   currentUid?: string;
   lastDelivery?: { id: string; sentAt: string | null; status: string } | null;
 }) {
-  const isSales = userRole === "sales";
-  const isAdminOrMember = !isSales;
+  const isAdmin = userRole === "admin";
   const isArchived = !!client.deletedAt;
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -317,7 +316,7 @@ export function ClientDetailClient({
               {client.deletedAt ? new Date(client.deletedAt).toLocaleDateString("cs-CZ") : ""}
             </p>
           </div>
-          {isAdminOrMember && (
+          {(
             <Button variant="outline" size="sm" onClick={handleRestore} disabled={acting}>
               {acting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Obnovit
@@ -454,7 +453,7 @@ export function ClientDetailClient({
               }
             />
           )}
-          {isAdminOrMember && !isArchived && (
+          {!isArchived && (
             <Button
               variant="ghost"
               size="sm"
@@ -481,7 +480,7 @@ export function ClientDetailClient({
           hint={primaryInstance?.domain ?? "Žádná instance"}
           onClick={() => setTab("instance")}
         />
-        {!isSales && (
+        {isAdmin && (
           <StatTile
             label="Faktury"
             value={unpaidInvoices}
@@ -514,7 +513,7 @@ export function ClientDetailClient({
           <TabsTrigger value="prehled">Přehled</TabsTrigger>
           <TabsTrigger value="instance">Instance</TabsTrigger>
           <TabsTrigger value="domeny">Domény</TabsTrigger>
-          {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
           <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
           <TabsTrigger value="tickety">Tickety</TabsTrigger>
           <TabsTrigger value="aktivita">Aktivita</TabsTrigger>
@@ -568,8 +567,8 @@ export function ClientDetailClient({
                 </div>
               </dl>
             </div>
-            {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
-            {!isSales && salesUsers.length > 0 && (
+            {isAdmin && <SubscriptionCard clientId={client.id} subscription={subscription} />}
+            {salesUsers.length > 0 && (
               <div className="rounded-2xl border bg-card p-4 shadow-xs">
                 <h3 className="font-semibold">Obchodní vlastník</h3>
                 <p className="mt-1 text-xs text-muted-foreground">Obchodník s nárokem na provize z faktur tohoto klienta.</p>
@@ -635,7 +634,7 @@ export function ClientDetailClient({
           />
         </TabsContent>
 
-        {!isSales && (
+        {isAdmin && (
           <TabsContent value="faktury" className="mt-5 md:mt-6">
             <ClientInvoicesTab
               invoices={invoices}

@@ -131,7 +131,7 @@ export function DashboardClient({
   activeClients = 0,
   onboardingCount = 0,
   unpaidInvoices = 0,
-  userRole = "member",
+  userRole = "user",
 }: {
   pipelineValue: number;
   mrr: number;
@@ -151,12 +151,12 @@ export function DashboardClient({
   unpaidInvoices?: number;
   userRole?: string;
 }) {
-  const isSales = userRole === "sales";
+  const isAdmin = userRole === "admin";
 
   const quickActions = [
     { label: "Lead", href: "/leads", icon: Briefcase },
     { label: "Klient", href: "/clients", icon: UserPlus },
-    ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
+    ...(isAdmin ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
     { label: "Ticket", href: "/tickets", icon: TicketCheck },
     { label: "Úkol", href: "/tasks", icon: CheckSquare },
   ];
@@ -217,11 +217,11 @@ export function DashboardClient({
       </Link>
 
       {/* 2. Akční upozornění: faktury po splatnosti + blížící se fakturace + follow-upy */}
-      {(!isSales && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
+      {(isAdmin && (overdueInvoices.count > 0 || upcomingBilling.length > 0)) ||
       followUps.length > 0 ||
       upcomingDomainRenewals.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
-          {!isSales && upcomingBilling.length > 0 && (
+          {isAdmin && upcomingBilling.length > 0 && (
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -274,7 +274,7 @@ export function DashboardClient({
               </CardContent>
             </Card>
           )}
-          {!isSales && overdueInvoices.count > 0 && (
+          {isAdmin && overdueInvoices.count > 0 && (
             <Link href="/invoices">
               <Card className="h-full border-destructive/40 transition-colors hover:bg-destructive/5">
                 <CardContent className="pt-4">
@@ -388,7 +388,7 @@ export function DashboardClient({
       ) : null}
 
       {/* 3. Přehled + finanční KPI — admin/member */}
-      {!isSales && (
+      {isAdmin && (
         <div className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <StatCard label="Aktivní klienti" value={activeClients} href="/clients" />

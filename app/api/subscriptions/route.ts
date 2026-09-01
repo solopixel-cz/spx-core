@@ -6,7 +6,7 @@ import { subscriptionFormSchema } from "@/lib/schemas/subscription";
 
 export async function GET(request: Request) {
   try {
-    await requireRole("admin", "member");
+    await requireRole("admin");
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get("clientId");
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireRole("admin", "member");
+    const user = await requireRole("admin");
     const body = await request.json();
     const { clientId, ...rest } = body as { clientId: string } & Record<string, unknown>;
     const data = subscriptionFormSchema.parse(rest);

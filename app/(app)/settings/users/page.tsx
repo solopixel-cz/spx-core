@@ -39,7 +39,7 @@ interface UserRow {
   id: string;
   email: string;
   displayName: string;
-  role: "admin" | "member" | "sales";
+  role: "admin" | "user";
   active: boolean;
   commissionRate?: number;
   senderEmail?: string;
@@ -49,7 +49,7 @@ interface UserRow {
 const addUserSchema = z.object({
   email: z.string().email("Zadejte platný e-mail"),
   displayName: z.string().min(1, "Zadejte jméno"),
-  role: z.enum(["admin", "member", "sales"]),
+  role: z.enum(["admin", "user"]),
 });
 
 type AddUserForm = z.infer<typeof addUserSchema>;
@@ -87,7 +87,7 @@ export default function UzivatelePage() {
     formState: { errors, isSubmitting },
   } = useForm<AddUserForm>({
     resolver: zodResolver(addUserSchema),
-    defaultValues: { role: "member" },
+    defaultValues: { role: "user" },
   });
 
   async function onAddUser(data: AddUserForm) {
@@ -156,7 +156,7 @@ export default function UzivatelePage() {
 
   async function handleChangeRole(
     userId: string,
-    newRole: "admin" | "member" | "sales"
+    newRole: "admin" | "user"
   ) {
     setActingKey(`${userId}-role`);
     try {
@@ -224,17 +224,17 @@ export default function UzivatelePage() {
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select
-                  defaultValue="member"
+                  items={{ user: "Uživatel", admin: "Administrátor" }}
+                  defaultValue="user"
                   onValueChange={(val) => {
-                    if (val) setValue("role", val as "admin" | "member" | "sales");
+                    if (val) setValue("role", val as "admin" | "user");
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="member">Člen</SelectItem>
-                    <SelectItem value="sales">Obchodník</SelectItem>
+                    <SelectItem value="user">Uživatel</SelectItem>
                     <SelectItem value="admin">Administrátor</SelectItem>
                   </SelectContent>
                 </Select>
@@ -268,10 +268,11 @@ export default function UzivatelePage() {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Select
+                    items={{ user: "Uživatel", admin: "Administrátor" }}
                     value={user.role}
                     disabled={actingKey === `${user.id}-role`}
                     onValueChange={(val) =>
-                      handleChangeRole(user.id, val as "admin" | "member" | "sales")
+                      handleChangeRole(user.id, val as "admin" | "user")
                     }
                   >
                     <SelectTrigger className="h-8 w-36">
@@ -279,8 +280,7 @@ export default function UzivatelePage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="member">Člen</SelectItem>
-                      <SelectItem value="sales">Obchodník</SelectItem>
+                      <SelectItem value="user">Uživatel</SelectItem>
                       <SelectItem value="admin">Administrátor</SelectItem>
                     </SelectContent>
                   </Select>

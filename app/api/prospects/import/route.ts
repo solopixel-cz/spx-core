@@ -16,7 +16,7 @@ interface ImportRow {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireRole("admin", "member");
+    const user = await requireRole("admin", "user");
     const body = await request.json();
     const rows = body.rows as ImportRow[];
 

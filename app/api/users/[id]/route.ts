@@ -14,7 +14,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = (await request.json()) as {
-      role?: "admin" | "member" | "sales";
+      role?: "admin" | "user";
       active?: boolean;
       commissionRate?: number | null;
       senderEmail?: string | null;

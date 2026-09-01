@@ -14,19 +14,13 @@ function parseDate(value: string | undefined): Date | null | undefined {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Ověří, že přihlášený smí sahat na doménu (sales jen vlastní klienty). */
-async function loadAuthorizedDomain(id: string, user: { uid: string; role: string }) {
+/** Načte doménu k editaci/smazání. */
+async function loadAuthorizedDomain(id: string) {
   const db = getAdminFirestore();
   const docRef = db.collection("domains").doc(id);
   const existing = await docRef.get();
   if (!existing.exists) return { error: 404 as const };
   const clientId = existing.data()?.clientId as string;
-  if (user.role === "sales") {
-    const clientDoc = await db.collection("clients").doc(clientId).get();
-    if (!clientDoc.exists || clientDoc.data()?.salesOwnerUid !== user.uid) {
-      return { error: 404 as const };
-    }
-  }
   return { docRef, existing, clientId };
 }
 
@@ -41,7 +35,7 @@ export async function PATCH(
     const body = await request.json();
     const data = domainFormSchema.partial().parse(body);
 
-    const res = await loadAuthorizedDomain(id, user);
+    const res = await loadAuthorizedDomain(id);
     if ("error" in res) {
       return NextResponse.json({ error: "Doména nenalezena" }, { status: 404 });
     }
@@ -97,7 +91,7 @@ export async function DELETE(
     const user = await requireAuth();
     const { id } = await params;
 
-    const res = await loadAuthorizedDomain(id, user);
+    const res = await loadAuthorizedDomain(id);
     if ("error" in res) {
       return NextResponse.json({ error: "Doména nenalezena" }, { status: 404 });
     }

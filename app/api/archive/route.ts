@@ -29,7 +29,7 @@ const entityTypeMap: Record<string, "client" | "lead" | "ticket" | "prospect"> =
 // GET /api/archive — list archived records
 export async function GET() {
   try {
-    await requireRole("admin", "member");
+    await requireRole("admin", "user");
     const db = getAdminFirestore();
 
     const results: Array<{
@@ -73,7 +73,7 @@ export async function GET() {
 // POST /api/archive — archive, restore, or permanently delete
 export async function POST(request: Request) {
   try {
-    const user = await requireRole("admin", "member");
+    const user = await requireRole("admin", "user");
     const body = await request.json();
     const { action, collection, id, reason } = body as {
       action: "archive" | "restore" | "delete";

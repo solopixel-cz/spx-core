@@ -9,15 +9,12 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireAuth();
-  const isSales = user.role === "sales";
+  const isAdmin = user.role === "admin";
   const { id } = await params;
   const db = getAdminFirestore();
 
   const doc = await db.collection("clients").doc(id).get();
   if (!doc.exists) notFound();
-
-  // Sales can only view their own clients
-  if (isSales && doc.data()?.salesOwnerUid !== user.uid) notFound();
 
   const data = doc.data()!;
   const client = {
@@ -60,12 +57,14 @@ export default async function ClientDetailPage({
         .orderBy("createdAt", "desc")
         .limit(50)
         .get(),
-      isSales ? Promise.resolve({ docs: [] }) : db.collection("subscriptions").where("clientId", "==", id).get(),
-      isSales ? Promise.resolve({ docs: [] }) : db
-        .collection("invoices")
-        .where("clientId", "==", id)
-        .orderBy("issuedAt", "desc")
-        .get(),
+      isAdmin ? db.collection("subscriptions").where("clientId", "==", id).get() : Promise.resolve({ docs: [] }),
+      isAdmin
+        ? db
+            .collection("invoices")
+            .where("clientId", "==", id)
+            .orderBy("issuedAt", "desc")
+            .get()
+        : Promise.resolve({ docs: [] }),
       db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("users").get(),

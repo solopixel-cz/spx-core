@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole("admin", "member");
+    await requireRole("admin");
     const { id } = await params;
     const body = await request.json();
     const data = subscriptionFormSchema.partial().parse(body);

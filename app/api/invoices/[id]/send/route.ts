@@ -33,7 +33,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole("admin", "member");
+    const user = await requireRole("admin");
     const { id } = await params;
 
     const db = getAdminFirestore();

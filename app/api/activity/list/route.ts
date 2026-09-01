@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { getSalesClientIds } from "@/lib/sales-clients";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -17,7 +16,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get("cursor");
     const limit = 50;
-    const isSales = user.role === "sales";
+    const isAdmin = user.role === "admin";
 
     const db = getAdminFirestore();
 
@@ -27,8 +26,6 @@ export async function GET(request: Request) {
     usersSnap.docs.forEach((doc) => {
       userMap[doc.id] = doc.data().displayName as string;
     });
-
-    const ownedClientIds = await getSalesClientIds(user.uid, user.role);
 
     let query = db.collection("activity").orderBy("createdAt", "desc");
 
@@ -48,13 +45,8 @@ export async function GET(request: Request) {
       .filter((doc) => {
         const d = doc.data();
         const et = d.entityType as string;
-        if (isSales) {
-          if (et === "invoice") return false;
-          // Filter client/ticket activities to own clients
-          if ((et === "client" || et === "ticket") && ownedClientIds) {
-            return ownedClientIds.has(d.entityId as string);
-          }
-        }
+        // Fakturační aktivitu vidí jen admin.
+        if (!isAdmin && et === "invoice") return false;
         return true;
       })
       .map((doc) => {

@@ -9,8 +9,6 @@ import {
   Briefcase,
   BookUser,
   Receipt,
-  Percent,
-  CreditCard,
   CheckSquare,
   TicketCheck,
   ClipboardList,
@@ -20,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PixelLogo } from "@/components/pixel-logo";
 
-type UserRole = "admin" | "member" | "sales";
+type UserRole = "admin" | "user";
 
 interface NavItem {
   label: string;
@@ -48,7 +46,6 @@ const navGroups: NavGroup[] = [
       { label: "Leady", href: "/leads", icon: Briefcase },
       { label: "Oslovení", href: "/prospects", icon: BookUser },
       { label: "Klienti", href: "/clients", icon: Users },
-      { label: "Moje vizitky", href: "/my-cards", icon: CreditCard, roles: ["sales"] },
       { label: "Podklady", href: "/submissions", icon: ClipboardList },
     ],
   },
@@ -66,13 +63,7 @@ const navGroups: NavGroup[] = [
         label: "Fakturace",
         href: "/invoices",
         icon: Receipt,
-        roles: ["admin", "member"],
-      },
-      {
-        label: "Provize",
-        href: "/commissions",
-        icon: Percent,
-        roles: ["admin", "member"],
+        roles: ["admin"],
       },
     ],
   },
@@ -82,7 +73,7 @@ const navGroups: NavGroup[] = [
         label: "Nastavení",
         href: "/settings",
         icon: Settings,
-        roles: ["admin", "member"],
+        roles: ["admin"],
       },
     ],
   },

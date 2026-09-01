@@ -12,8 +12,9 @@ function serializeTimestamp(val: unknown): string | null {
 }
 
 export default async function MojeVizitkyPage() {
+  // Provizní přehled je zatím parkovaný a není v menu; přístup jen admin.
   const user = await requireAuth();
-  if (user.role !== "sales") redirect("/");
+  if (user.role !== "admin") redirect("/");
 
   const db = getAdminFirestore();
 

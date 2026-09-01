@@ -8,7 +8,7 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireRole("admin", "member");
+  const user = await requireRole("admin");
   const isAdmin = user.role === "admin";
   const { id } = await params;
   const db = getAdminFirestore();

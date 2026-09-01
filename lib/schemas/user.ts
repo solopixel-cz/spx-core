@@ -5,7 +5,7 @@ export const userSchema = z.object({
   ...baseFields,
   email: z.string().email(),
   displayName: z.string().min(1),
-  role: z.enum(["admin", "member", "sales"]),
+  role: z.enum(["admin", "user"]),
   active: z.boolean(),
   commissionRate: z.number().min(0).max(1).optional(),
   photoURL: z.string().optional(),

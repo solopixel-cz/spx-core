@@ -5,7 +5,7 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 export default async function DashboardPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
-  const isSales = user.role === "sales";
+  const isAdmin = user.role === "admin";
 
   const [
     leadsSnap,
@@ -19,8 +19,8 @@ export default async function DashboardPage() {
     domainsSnap,
   ] = await Promise.all([
     db.collection("leads").get(),
-    isSales ? Promise.resolve(null) : db.collection("invoices").get(),
-    isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
+    isAdmin ? db.collection("invoices").get() : Promise.resolve(null),
+    isAdmin ? db.collection("subscriptions").where("status", "==", "active").get() : Promise.resolve(null),
     db.collection("tasks").get(),
     db.collection("activity").orderBy("createdAt", "desc").limit(6).get(),
     db.collection("clients").get(),
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
   let unpaidInvoicesCount = 0;
   const overdueInvoices = { count: 0, sum: 0 };
 
-  if (!isSales && invoicesSnap && subsSnap) {
+  if (isAdmin && invoicesSnap && subsSnap) {
     subsSnap.docs.forEach((doc) => {
       const d = doc.data();
       if (d.internal) return; // interní vizitky negenerují příjem
@@ -87,10 +87,8 @@ export default async function DashboardPage() {
     });
   }
 
-  // Počty klientů podle stavu (sales počítá jen vlastní)
-  const visibleClients = clientsSnap.docs.filter(
-    (d) => !d.data().deletedAt && (!isSales || d.data().salesOwnerUid === user.uid)
-  );
+  // Počty klientů podle stavu
+  const visibleClients = clientsSnap.docs.filter((d) => !d.data().deletedAt);
   const activeClientsCount = visibleClients.filter((d) => d.data().status === "active").length;
   const onboardingCount = visibleClients.filter((d) => d.data().status === "onboarding").length;
 
@@ -104,7 +102,7 @@ export default async function DashboardPage() {
     data: { month: string; value: number }[];
   };
   let chartSeries: ChartSeries[] = [];
-  if (!isSales && invoicesSnap) {
+  if (isAdmin && invoicesSnap) {
     const chartBase = new Date();
     const months = [] as { start: Date; end: Date; key: string }[];
     for (let i = 11; i >= 0; i--) {
@@ -165,21 +163,10 @@ export default async function DashboardPage() {
     userMap[doc.id] = doc.data().displayName as string;
   });
 
-  // Build sales owned client IDs
-  const salesClientIds = isSales
-    ? new Set(clientsSnap.docs.filter((d) => !d.data().deletedAt && d.data().salesOwnerUid === user.uid).map((d) => d.id))
-    : null;
-
-  // Recent activity (sales: filter client/ticket to own)
+  // Recent activity — fakturační aktivitu vidí jen admin.
   const recentActivity = activitySnap.docs
     .filter((doc) => {
-      if (isSales) {
-        const et = doc.data().entityType as string;
-        if (et === "invoice") return false;
-        if ((et === "client" || et === "ticket") && salesClientIds) {
-          return salesClientIds.has(doc.data().entityId as string);
-        }
-      }
+      if (!isAdmin && (doc.data().entityType as string) === "invoice") return false;
       return true;
     })
     .slice(0, 6)
@@ -207,7 +194,6 @@ export default async function DashboardPage() {
       const d = doc.data();
       if (d.deletedAt) return false;
       if (terminalProspectStatuses.includes(d.status as string)) return false;
-      if (isSales && d.ownerUid !== user.uid) return false;
       const due = d.nextFollowUpAt?.toDate?.();
       return due && due <= endOfToday;
     })
@@ -236,7 +222,7 @@ export default async function DashboardPage() {
     amount: number;
     overdue: boolean;
   }[] = [];
-  if (!isSales && subsSnap) {
+  if (isAdmin && subsSnap) {
     const clientById: Record<string, { name: string; deleted: boolean }> = {};
     clientsSnap.docs.forEach((d) => {
       clientById[d.id] = { name: d.data().name as string, deleted: !!d.data().deletedAt };
@@ -292,7 +278,6 @@ export default async function DashboardPage() {
       const due = d.renewalAt?.toDate?.() as Date | undefined;
       const client = domainClientById[d.clientId as string];
       if (!due || !client || client.deleted || d.autoRenew) return null;
-      if (isSales && client.owner !== user.uid) return null;
       return {
         id: doc.id,
         clientId: d.clientId as string,

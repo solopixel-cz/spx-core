@@ -345,7 +345,7 @@ export function ProspectDetailSheet({
 
   const owner = users.find((u) => u.id === prospect?.ownerUid);
   const isOwner = prospect?.ownerUid === currentUid;
-  const isAdminOrMember = userRole === "admin" || userRole === "member";
+  const isAdminOrMember = userRole === "admin" || userRole === "user";
   const canAct = isOwner || isAdminOrMember;
   const isTerminal = ["converted", "not_interested", "unreachable"].includes(prospect?.status ?? "");
 

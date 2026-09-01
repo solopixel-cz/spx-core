@@ -5,7 +5,7 @@ export default async function NastaveniLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireRole("admin", "member");
+  await requireRole("admin");
 
   return (
     <div className="space-y-6">

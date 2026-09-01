@@ -215,15 +215,6 @@ export async function POST(
       }
       const prospectData = doc.data()!;
 
-      // Only owner or admin/member can convert
-      if (
-        prospectData.ownerUid !== user.uid &&
-        user.role !== "admin" &&
-        user.role !== "member"
-      ) {
-        return NextResponse.json({ error: "Nemáte oprávnění" }, { status: 403 });
-      }
-
       // Create lead
       const leadData = leadFormSchema.parse({
         name: prospectData.name,

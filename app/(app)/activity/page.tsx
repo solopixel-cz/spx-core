@@ -1,7 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { AktivitaPageClient } from "@/components/activity/aktivita-page-client";
-import { getSalesClientIds } from "@/lib/sales-clients";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -14,7 +13,7 @@ function serializeTimestamp(val: unknown): string | null {
 export default async function AktivitaPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
-  const isSales = user.role === "sales";
+  const isAdmin = user.role === "admin";
 
   const [activitySnap, usersSnap] = await Promise.all([
     db.collection("activity").orderBy("createdAt", "desc").limit(50).get(),
@@ -31,17 +30,11 @@ export default async function AktivitaPage() {
     displayName: doc.data().displayName as string,
   }));
 
-  const ownedClientIds = await getSalesClientIds(user.uid, user.role);
-
   const activities = activitySnap.docs
     .filter((doc) => {
-      if (isSales) {
-        const d = doc.data();
-        const et = d.entityType as string;
-        if (et === "invoice") return false;
-        if ((et === "client" || et === "ticket") && ownedClientIds) {
-          return ownedClientIds.has(d.entityId as string);
-        }
+      // Fakturační aktivitu vidí jen admin.
+      if (!isAdmin && (doc.data().entityType as string) === "invoice") {
+        return false;
       }
       return true;
     })

@@ -13,14 +13,16 @@ service cloud.firestore {
       return isAuth() && request.auth.token.role == 'admin';
     }
 
-    // Helper: is user admin or member (not sales)?
-    function isAdminOrMember() {
-      return isAuth() && request.auth.token.role in ['admin', 'member'];
+    // Helper: má uživatel platnou roli (admin/user)?
+    // Účet bez přiřazené role nemá přístup. 'member'/'sales' jsou ponechány
+    // přechodně kvůli starším claimům — po migraci uživatelů je lze odebrat.
+    function isStaff() {
+      return isAuth() && request.auth.token.role in ['admin', 'user', 'member', 'sales'];
     }
 
-    // Users — read for authenticated, write for admin only
+    // Users — read for staff, write for admin only
     match /users/{userId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if isAdmin();
 
       // Push odběry — zapisují/čtou se jen přes admin SDK (route handlers).
@@ -39,103 +41,103 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
-    // Clients — admin/member reads all; sales reads only own (salesOwnerUid == uid)
+    // Clients — čtou všichni se platnou rolí; zápis přes admin SDK
     match /clients/{clientId} {
-      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesOwnerUid == request.auth.uid);
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Instances — read for authenticated, write denied (opens in later phases)
+    // Instances — read for staff, write via admin SDK
     match /instances/{instanceId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Domains — vlastní domény klienta; read for authenticated, write via admin SDK
+    // Domains — vlastní domény klienta; read for staff, write via admin SDK
     match /domains/{domainId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Leads — read for authenticated, stage update for authenticated (drag&drop)
+    // Leads — read for staff, stage update for staff (drag&drop)
     match /leads/{leadId} {
-      allow read: if isAuth();
-      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'updatedAt']);
+      allow read: if isStaff();
+      allow update: if isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'updatedAt']);
       allow create, delete: if false;
     }
 
-    // Subscriptions — read for admin/member only (not sales)
+    // Subscriptions — finance: jen admin
     match /subscriptions/{subId} {
-      allow read: if isAdminOrMember();
+      allow read: if isAdmin();
       allow write: if false;
     }
 
-    // Invoices — read for admin/member only (not sales)
+    // Invoices — finance: jen admin
     match /invoices/{invoiceId} {
-      allow read: if isAdminOrMember();
+      allow read: if isAdmin();
       allow write: if false;
     }
 
-    // Tasks — read for authenticated, status update for authenticated
+    // Tasks — read for staff, status update for staff
     match /tasks/{taskId} {
-      allow read: if isAuth();
-      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow read: if isStaff();
+      allow update: if isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
       allow create, delete: if false;
     }
 
-    // Tickets — read for authenticated, create/update for authenticated
+    // Tickets — read for staff, create/update for staff
     match /tickets/{ticketId} {
-      allow read: if isAuth();
-      allow create, update: if isAuth();
+      allow read: if isStaff();
+      allow create, update: if isStaff();
       allow delete: if false;
     }
 
-    // Templates — read for authenticated, write for admin
+    // Templates — read for staff, write for admin
     match /templates/{templateId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if isAdmin();
     }
 
-    // Prospects — read for authenticated, write via admin SDK (route handlers)
+    // Prospects — read for staff, write via admin SDK (route handlers)
     match /prospects/{prospectId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Activity — read for authenticated, append-only (no update/delete)
+    // Activity — read for staff, append-only (no update/delete)
     match /activity/{activityId} {
-      allow read: if isAuth();
-      allow create: if isAuth();
+      allow read: if isStaff();
+      allow create: if isStaff();
       allow update, delete: if false;
     }
 
-    // Commissions — sales reads own, admin/member reads all, write via admin SDK
+    // Commissions — finance: jen admin
     match /commissions/{commId} {
-      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesUid == request.auth.uid);
+      allow read: if isAdmin();
       allow write: if false;
     }
 
-    // Settings — read for authenticated, write for admin
+    // Settings — read for staff, write for admin
     match /settings/{settingId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if isAdmin();
     }
 
-    // Outreach emails — read for authenticated, write via admin SDK
+    // Outreach emails — read for staff, write via admin SDK
     match /outreachEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Delivery emails — read for authenticated, write via admin SDK
+    // Delivery emails — read for staff, write via admin SDK
     match /deliveryEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow write: if false;
     }
 
-    // Invoice emails — read for authenticated, write via admin SDK
+    // Invoice emails — finance: jen admin
     match /invoiceEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isAdmin();
       allow write: if false;
     }
 
@@ -151,7 +153,7 @@ service cloud.firestore {
     // server timestamp. Create/delete via admin SDK only.
     match /card-tokens/{token} {
       allow get: if true;
-      allow list: if isAuth();
+      allow list: if isStaff();
       allow update: if resource.data.get('usedAt', null) == null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedAt'])
         && request.resource.data.usedAt == request.time;
@@ -171,7 +173,7 @@ service cloud.firestore {
         && request.resource.data.basic.fullName.size() < 200
         && request.resource.data.basic.email is string
         && request.resource.data.basic.email.size() > 0;
-      allow read: if isAuth();
+      allow read: if isStaff();
       allow update, delete: if false;
     }
   }

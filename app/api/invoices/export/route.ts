@@ -33,7 +33,7 @@ function fmtDate(ts: FirebaseFirestore.Timestamp | undefined): string {
  */
 export async function GET(request: NextRequest) {
   try {
-    await requireRole("admin", "member");
+    await requireRole("admin");
     const { searchParams } = new URL(request.url);
     const fromStr = searchParams.get("from");
     const toStr = searchParams.get("to");

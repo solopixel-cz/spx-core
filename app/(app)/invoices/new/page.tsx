@@ -10,7 +10,7 @@ export default async function NovaFakturaPage({
 }: {
   searchParams: Promise<{ clientId?: string; sub?: string }>;
 }) {
-  await requireRole("admin", "member");
+  await requireRole("admin");
   const { clientId, sub } = await searchParams;
   const db = getAdminFirestore();
 

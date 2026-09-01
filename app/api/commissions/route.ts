@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -14,7 +14,7 @@ function serializeTimestamp(val: unknown): string | null {
 // GET /api/commissions — admin/member gets all, sales gets own
 export async function GET(request: Request) {
   try {
-    const user = await requireAuth();
+    await requireRole("admin");
     const { searchParams } = new URL(request.url);
     const salesUid = searchParams.get("salesUid");
     const status = searchParams.get("status");
@@ -22,10 +22,7 @@ export async function GET(request: Request) {
     const db = getAdminFirestore();
     let query: FirebaseFirestore.Query = db.collection("commissions");
 
-    // Sales can only see their own
-    if (user.role === "sales") {
-      query = query.where("salesUid", "==", user.uid);
-    } else if (salesUid) {
+    if (salesUid) {
       query = query.where("salesUid", "==", salesUid);
     }
 
@@ -60,13 +57,10 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/commissions — mark as paid (admin/member only)
+// POST /api/commissions — mark as paid (admin only)
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
-    if (user.role === "sales") {
-      return NextResponse.json({ error: "Nemáte oprávnění" }, { status: 403 });
-    }
+    await requireRole("admin");
 
     const body = await request.json();
     const { commissionIds, payoutNote } = body as {
