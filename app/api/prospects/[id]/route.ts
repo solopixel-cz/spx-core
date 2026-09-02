@@ -8,6 +8,36 @@ import { leadFormSchema } from "@/lib/schemas/lead";
 import { renderSubject, sendOutreachEmail } from "@/lib/email";
 import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail, DEFAULT_FOLLOWUP_SUBJECT } from "@/lib/email-templates/followup";
+import type { OutreachContent, OutreachFeature } from "@/lib/email-templates/outreach-content";
+import { MAX_OUTREACH_FEATURES } from "@/lib/email-templates/outreach-content";
+import { sanitizeRichHtml, stripHtml } from "@/lib/sanitize-html";
+
+/** Sanitizace editovatelného obsahu oslovení před uložením do DB. */
+function sanitizeOutreachContent(input: unknown): OutreachContent {
+  const oc = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+
+  const rawFeatures = Array.isArray(oc.features) ? oc.features : [];
+  const features: OutreachFeature[] = rawFeatures
+    .slice(0, MAX_OUTREACH_FEATURES)
+    .map((f) => {
+      const item = (f && typeof f === "object" ? f : {}) as Record<string, unknown>;
+      return {
+        title: stripHtml(String(item.title ?? "")).slice(0, 120),
+        desc: stripHtml(String(item.desc ?? "")).slice(0, 400),
+      };
+    })
+    .filter((f) => f.title || f.desc);
+
+  return {
+    greeting: stripHtml(String(oc.greeting ?? "")).slice(0, 200),
+    headline: stripHtml(String(oc.headline ?? "")).slice(0, 300),
+    ctaLabel: stripHtml(String(oc.ctaLabel ?? "")).slice(0, 120),
+    featuresHeading: stripHtml(String(oc.featuresHeading ?? "")).slice(0, 200),
+    features,
+    introHtml: sanitizeRichHtml(String(oc.introHtml ?? "")).slice(0, 8000),
+    closingHtml: sanitizeRichHtml(String(oc.closingHtml ?? "")).slice(0, 8000),
+  };
+}
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -55,7 +85,8 @@ export async function PATCH(
     await requireAuth();
     const { id } = await params;
     const body = await request.json();
-    const data = prospectFormSchema.partial().parse(body);
+    const { outreachContent, ...rest } = body as Record<string, unknown>;
+    const data = prospectFormSchema.partial().parse(rest);
 
     const db = getAdminFirestore();
     const docRef = db.collection("prospects").doc(id);
@@ -65,10 +96,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Prospekt nenalezen" }, { status: 404 });
     }
 
-    await docRef.update({
+    const update: Record<string, unknown> = {
       ...data,
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+    if (outreachContent !== undefined && outreachContent !== null) {
+      update.outreachContent = sanitizeOutreachContent(outreachContent);
+    }
+
+    await docRef.update(update);
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
@@ -332,12 +368,22 @@ export async function POST(
       const userData = userDoc.data();
       const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
       const senderEmail = (userData?.senderEmail as string) || user.email;
+      const senderPhone = (userData?.phone as string) || undefined;
+
+      // Editovatelný obsah oslovení (per-prospekt) — jinak výchozí.
+      const savedContent = prospectData.outreachContent as Partial<OutreachContent> | undefined;
 
       // Render and send
-      const jmeno = greeting || prospectData.name.split(" ")[0];
+      const jmeno = greeting || savedContent?.greeting || prospectData.name.split(" ")[0];
       const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
       const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
-      const { html, text } = renderOutreachEmail({ jmeno, odkaz });
+      const { html, text } = renderOutreachEmail({
+        jmeno,
+        odkaz,
+        content: savedContent,
+        senderName: (userData?.displayName as string) || senderName,
+        senderPhone,
+      });
 
       const result = await sendOutreachEmail({
         to: prospectData.email,
@@ -494,6 +540,62 @@ export async function POST(
         kind: "email",
         text: `Odeslán follow-up na ${prospectData.email}`,
         actorUid: user.uid,
+      });
+
+      return NextResponse.json({ status: "ok" });
+    }
+
+    if (action === "send_test_email") {
+      const toEmail = String(body.toEmail ?? "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+        return NextResponse.json({ error: "Zadejte platnou e-mailovou adresu" }, { status: 400 });
+      }
+      const template = body.template === "followup" ? "followup" : "outreach";
+      const greeting = body.greeting as string | undefined;
+
+      const doc = await prospectRef.get();
+      if (!doc.exists) {
+        return NextResponse.json({ error: "Prospekt nenalezen" }, { status: 404 });
+      }
+      const prospectData = doc.data()!;
+
+      // Sender info
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const userData = userDoc.data();
+      const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+      const senderEmail = (userData?.senderEmail as string) || user.email;
+      const senderPhone = (userData?.phone as string) || undefined;
+
+      const savedContent = prospectData.outreachContent as Partial<OutreachContent> | undefined;
+      const jmeno = greeting || savedContent?.greeting || prospectData.name.split(" ")[0];
+      const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
+
+      // Subject dle šablony + prefix [TEST]
+      const templateId = template === "followup" ? "followup-email" : "outreach-email";
+      const templateDoc = await db.collection("templates").doc(templateId).get();
+      const defaultSubject = template === "followup" ? DEFAULT_FOLLOWUP_SUBJECT : DEFAULT_OUTREACH_SUBJECT;
+      const subjectTemplate = (templateDoc.data()?.subject as string) || defaultSubject;
+      const renderedSubject = `[TEST] ${renderSubject(subjectTemplate, { jmeno, odkaz })}`;
+
+      const { html, text } =
+        template === "followup"
+          ? renderFollowupEmail({ jmeno, odkaz })
+          : renderOutreachEmail({
+              jmeno,
+              odkaz,
+              content: savedContent,
+              senderName: (userData?.displayName as string) || senderName,
+              senderPhone,
+            });
+
+      // Test — jen odeslat, žádný zápis do DB/aktivit, žádný cooldown.
+      await sendOutreachEmail({
+        to: toEmail,
+        senderName,
+        senderEmail,
+        subject: renderedSubject,
+        html,
+        text,
       });
 
       return NextResponse.json({ status: "ok" });

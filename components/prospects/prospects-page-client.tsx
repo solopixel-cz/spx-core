@@ -30,9 +30,10 @@ import {
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
+import type { OutreachContent } from "@/lib/email-templates/outreach-content";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Plus, Upload, Hand, Monitor, Phone } from "lucide-react";
-import { ProspectDetailSheet } from "./prospect-detail-sheet";
+import Link from "next/link";
 import { ProspectFormDialog } from "./prospect-form-dialog";
 import { CsvImportDialog } from "./csv-import-dialog";
 
@@ -57,6 +58,7 @@ export interface ProspectRow {
   wasCalled: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  outreachContent?: OutreachContent | null;
 }
 
 export interface UserOption {
@@ -93,7 +95,6 @@ export function ProspektiPageClient({
   const [statusFilter, setStatusFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [globalFilter, setGlobalFilter] = useState("");
-  const [selectedProspect, setSelectedProspect] = useState<ProspectRow | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -307,7 +308,7 @@ export function ProspektiPageClient({
             return (
               <EntityCard
                 key={prospect.id}
-                onClick={() => setSelectedProspect(prospect)}
+                onClick={() => router.push(`/prospects/${prospect.id}`)}
                 title={prospect.name}
                 badge={<StatusBadge map={prospectStatus} value={prospect.status} />}
                 subtitle={[prospect.company, prospect.city]
@@ -356,7 +357,10 @@ export function ProspektiPageClient({
                         variant="outline"
                         size="sm"
                         className="relative ml-auto"
-                        onClick={() => handleClaim(prospect.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClaim(prospect.id);
+                        }}
                         disabled={claiming === prospect.id}
                       >
                         <Hand className="mr-1 h-3 w-3" />
@@ -406,12 +410,12 @@ export function ProspektiPageClient({
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell>
-                      <button
-                        onClick={() => setSelectedProspect(prospect)}
+                      <Link
+                        href={`/prospects/${prospect.id}`}
                         className="font-medium hover:underline text-left"
                       >
                         {prospect.name}
-                      </button>
+                      </Link>
                     </TableCell>
                     <TableCell>{prospect.company || "—"}</TableCell>
                     <TableCell>{prospect.city || "—"}</TableCell>
@@ -483,19 +487,6 @@ export function ProspektiPageClient({
           </Button>
         </div>
       )}
-
-      {/* Detail Sheet */}
-      <ProspectDetailSheet
-        prospect={selectedProspect}
-        users={users}
-        currentUid={currentUid}
-        userRole={userRole}
-        onClose={() => setSelectedProspect(null)}
-        onUpdate={() => {
-          setSelectedProspect(null);
-          router.refresh();
-        }}
-      />
 
       {/* Create dialog */}
       <ProspectFormDialog
