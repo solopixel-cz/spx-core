@@ -14,6 +14,13 @@ export interface OutreachFeature {
   desc: string;
 }
 
+export interface OutreachReference {
+  /** Popisek odkazu (např. jméno poradce). */
+  label: string;
+  /** URL hotové vizitky. */
+  url: string;
+}
+
 export interface OutreachContent {
   /** Oslovení v 5. pádu — nahradí {{jmeno}} v předmětu i těle. */
   greeting: string;
@@ -27,11 +34,16 @@ export interface OutreachContent {
   featuresHeading: string;
   /** Body sekce — číslují se automaticky podle pořadí. */
   features: OutreachFeature[];
+  /** Úvodní text sekce s referenčními vizitkami (prostý text). */
+  referencesText: string;
+  /** Odkazy na hotové vizitky klientů (max 2). */
+  references: OutreachReference[];
   /** Závěrečný odstavec před podpisem (rich text). */
   closingHtml: string;
 }
 
 export const MAX_OUTREACH_FEATURES = 8;
+export const MAX_OUTREACH_REFERENCES = 2;
 
 export const DEFAULT_OUTREACH_CONTENT: OutreachContent = {
   greeting: "",
@@ -59,6 +71,9 @@ export const DEFAULT_OUTREACH_CONTENT: OutreachContent = {
       desc: "Klient zanechá číslo nebo si vybere termín schůzky.",
     },
   ],
+  referencesText:
+    "Nemusíte nám věřit na slovo — mrkněte na vizitky poradců, kteří je už naplno používají:",
+  references: [],
   closingHtml:
     "<p>Pokud vás to zaujme, ozvěte se — <strong>vaši vizitku máme hotovou do pár dní</strong>. Rád vám ji ukážu na míru vašemu poradenství.</p>",
 };
@@ -75,6 +90,11 @@ export function withOutreachDefaults(
         }))
       : DEFAULT_OUTREACH_CONTENT.features;
 
+  // Reference jsou volitelné — bez výchozích odkazů (jsou konkrétní pro kampaň).
+  const references = Array.isArray(content?.references)
+    ? content.references.map((r) => ({ label: r?.label ?? "", url: r?.url ?? "" }))
+    : [];
+
   return {
     greeting: content?.greeting?.trim() || DEFAULT_OUTREACH_CONTENT.greeting,
     headline: content?.headline?.trim() || DEFAULT_OUTREACH_CONTENT.headline,
@@ -83,6 +103,9 @@ export function withOutreachDefaults(
     featuresHeading:
       content?.featuresHeading?.trim() || DEFAULT_OUTREACH_CONTENT.featuresHeading,
     features,
+    referencesText:
+      content?.referencesText?.trim() || DEFAULT_OUTREACH_CONTENT.referencesText,
+    references,
     closingHtml: content?.closingHtml?.trim() || DEFAULT_OUTREACH_CONTENT.closingHtml,
   };
 }

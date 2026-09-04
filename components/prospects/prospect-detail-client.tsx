@@ -15,8 +15,10 @@ import {
   DEFAULT_OUTREACH_CONTENT,
   withOutreachDefaults,
   MAX_OUTREACH_FEATURES,
+  MAX_OUTREACH_REFERENCES,
   type OutreachContent,
   type OutreachFeature,
+  type OutreachReference,
 } from "@/lib/email-templates/outreach-content";
 import { RichTextEditor } from "./rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -136,6 +138,25 @@ export function ProspectDetailClient({
     setContent((prev) => ({
       ...prev,
       features: prev.features.filter((_, i) => i !== index),
+    }));
+  }
+  function updateReference(index: number, patch: Partial<OutreachReference>) {
+    setContent((prev) => ({
+      ...prev,
+      references: prev.references.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    }));
+  }
+  function addReference() {
+    setContent((prev) =>
+      prev.references.length >= MAX_OUTREACH_REFERENCES
+        ? prev
+        : { ...prev, references: [...prev.references, { label: "", url: "" }] }
+    );
+  }
+  function removeReference(index: number) {
+    setContent((prev) => ({
+      ...prev,
+      references: prev.references.filter((_, i) => i !== index),
     }));
   }
 
@@ -821,6 +842,66 @@ export function ProspectDetailClient({
                     )}
                   </div>
 
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Reference — hotové vizitky</Label>
+                      <Textarea
+                        value={content.referencesText}
+                        onChange={(e) => patchContent({ referencesText: e.target.value })}
+                        placeholder={DEFAULT_OUTREACH_CONTENT.referencesText}
+                        rows={2}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Odkazy na vizitky klientů, kteří je už používají (max{" "}
+                        {MAX_OUTREACH_REFERENCES}). Sekce se v e-mailu zobrazí jen když je vyplněný
+                        aspoň jeden odkaz.
+                      </p>
+                    </div>
+
+                    {content.references.map((r, i) => (
+                      <div key={i} className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Reference {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeReference(i)}
+                            title="Odebrat referenci"
+                            aria-label="Odebrat referenci"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <Input
+                          value={r.label}
+                          onChange={(e) => updateReference(i, { label: e.target.value })}
+                          placeholder="Popisek (např. Jan Novák)"
+                        />
+                        <Input
+                          value={r.url}
+                          onChange={(e) => updateReference(i, { url: e.target.value })}
+                          placeholder="https://vizitka.solopixel.cz/jan-novak"
+                          inputMode="url"
+                        />
+                      </div>
+                    ))}
+
+                    {content.references.length < MAX_OUTREACH_REFERENCES && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addReference}
+                        className="w-full"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Přidat referenci
+                      </Button>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Závěrečný text</Label>
                     <RichTextEditor
@@ -917,8 +998,8 @@ export function ProspectDetailClient({
               )}
             </div>
 
-            {/* Živý náhled šablony, která se odešle */}
-            <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6 lg:col-span-3">
+            {/* Živý náhled šablony, která se odešle — sticky přes výšku viewportu */}
+            <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6 lg:col-span-3 lg:sticky lg:top-6 lg:self-start">
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Předmět
@@ -942,8 +1023,7 @@ export function ProspectDetailClient({
                   <iframe
                     srcDoc={previewHtml}
                     sandbox=""
-                    className="w-full border-0"
-                    style={{ height: "640px" }}
+                    className="h-[70vh] w-full border-0 lg:h-[calc(100vh-11rem)]"
                     title="Náhled e-mailu"
                   />
                 </div>
