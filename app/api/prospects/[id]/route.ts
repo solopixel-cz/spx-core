@@ -8,8 +8,15 @@ import { leadFormSchema } from "@/lib/schemas/lead";
 import { renderSubject, sendOutreachEmail } from "@/lib/email";
 import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail, DEFAULT_FOLLOWUP_SUBJECT } from "@/lib/email-templates/followup";
-import type { OutreachContent, OutreachFeature } from "@/lib/email-templates/outreach-content";
-import { MAX_OUTREACH_FEATURES } from "@/lib/email-templates/outreach-content";
+import type {
+  OutreachContent,
+  OutreachFeature,
+  OutreachReference,
+} from "@/lib/email-templates/outreach-content";
+import {
+  MAX_OUTREACH_FEATURES,
+  MAX_OUTREACH_REFERENCES,
+} from "@/lib/email-templates/outreach-content";
 import { sanitizeRichHtml, stripHtml } from "@/lib/sanitize-html";
 
 /** Sanitizace editovatelného obsahu oslovení před uložením do DB. */
@@ -28,12 +35,26 @@ function sanitizeOutreachContent(input: unknown): OutreachContent {
     })
     .filter((f) => f.title || f.desc);
 
+  const rawRefs = Array.isArray(oc.references) ? oc.references : [];
+  const references: OutreachReference[] = rawRefs
+    .slice(0, MAX_OUTREACH_REFERENCES)
+    .map((r) => {
+      const item = (r && typeof r === "object" ? r : {}) as Record<string, unknown>;
+      return {
+        label: stripHtml(String(item.label ?? "")).slice(0, 120),
+        url: stripHtml(String(item.url ?? "")).slice(0, 500),
+      };
+    })
+    .filter((r) => r.url);
+
   return {
     greeting: stripHtml(String(oc.greeting ?? "")).slice(0, 200),
     headline: stripHtml(String(oc.headline ?? "")).slice(0, 300),
     ctaLabel: stripHtml(String(oc.ctaLabel ?? "")).slice(0, 120),
     featuresHeading: stripHtml(String(oc.featuresHeading ?? "")).slice(0, 200),
     features,
+    referencesText: stripHtml(String(oc.referencesText ?? "")).slice(0, 400),
+    references,
     introHtml: sanitizeRichHtml(String(oc.introHtml ?? "")).slice(0, 8000),
     closingHtml: sanitizeRichHtml(String(oc.closingHtml ?? "")).slice(0, 8000),
   };

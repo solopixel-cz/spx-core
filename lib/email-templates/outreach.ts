@@ -48,6 +48,35 @@ export function renderOutreachEmail(vars: {
   const senderPhoneEsc = escapeHtml(senderPhone);
   const senderPhoneTel = senderPhone.replace(/\s/g, "");
 
+  // Reference — hotové vizitky klientů (max 2, jen s platnou URL).
+  const normalizeUrl = (u: string) => {
+    const t = u.trim();
+    if (!t) return "";
+    return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  };
+  const validReferences = content.references
+    .map((r) => ({ label: r.label.trim(), url: normalizeUrl(r.url) }))
+    .filter((r) => r.url)
+    .slice(0, 2);
+  // Ikona „otevřít v novém okně" (external-link) jako inline SVG.
+  const extLinkIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-left:6px;"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/></svg>`;
+  const referencesBlock =
+    validReferences.length > 0
+      ? `<tr>
+                        <td class="px" style="padding:0 48px 32px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
+                            <div style="background:#F8FAFC; border-radius:12px; padding:20px 24px; border-left:3px solid #5DEAD4;">
+                                <p style="margin:0 0 14px 0; font-size:14px; line-height:22px; color:#475569; text-align:center;">${escapeHtml(content.referencesText)}</p>
+                                <div style="text-align:center; margin-top:4px;">${validReferences
+                                  .map(
+                                    (r) =>
+                                      `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; margin:0 4px 8px 4px; padding:9px 16px; background:#FFFFFF; border:1px solid #5DEAD4; border-radius:8px; color:#0F766E; text-decoration:none; font-size:14px; font-weight:700;">${escapeHtml(r.label || "Otevřít vizitku")}${extLinkIcon}</a>`
+                                  )
+                                  .join("")}</div>
+                            </div>
+                        </td>
+                    </tr>`
+      : "";
+
   const featuresHeading = escapeHtml(content.featuresHeading);
   const featureRows = content.features
     .map((f, i) => {
@@ -133,6 +162,7 @@ export function renderOutreachEmail(vars: {
                             </div>
                         </td>
                     </tr>
+                    ${referencesBlock}
                     <tr>
                         <td class="px" style="padding:0 48px 32px 48px; font-family:'Montserrat', Helvetica, Arial, sans-serif;">
                             <div class="content" style="margin:0 0 12px 0; font-size:16px; line-height:26px; color:#334155;">${closingHtml}</div>
@@ -174,7 +204,11 @@ ${content.featuresHeading}
 ${content.features.map((f, i) => `${i + 1}. ${f.title} — ${f.desc}`).join("\n")}
 
 Tip: otevřete vizitku na mobilu — tak ji uvidí i váš klient.
-
+${
+  validReferences.length > 0
+    ? `\n${content.referencesText}\n${validReferences.map((r) => `- ${r.label || "Vizitka"}: ${r.url}`).join("\n")}\n`
+    : ""
+}
 ${closingText}
 
 ${STATIC_SENDER_EMAIL} · ${senderPhone}
