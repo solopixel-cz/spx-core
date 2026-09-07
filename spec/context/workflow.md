@@ -28,6 +28,7 @@ U doc/context změn: konzistence → křížové odkazy → zastaralé reference
 ## Konvence
 
 - **Commit formát:** `type: [changelog] popis` — stejné jako spx-dbc (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`).
+- **Verzování (SemVer, `package.json`):** `feat:` → minor, `fix:` → patch, breaking → major; `chore/docs/refactor` verzi nemění. Bump je součást commitu dané změny. Verze + git SHA + datum buildu se zobrazuje dole v menu (`components/app-version.tsx` ← `next.config.ts` env `NEXT_PUBLIC_APP_VERSION`/`_GIT_SHA`/`_BUILD_DATE`).
 - **Chráněné větve:** `main`, `devel` — nikdy nepushovat bez schválení.
 - **Progress recording:** do progress souboru feature, jinak `spec/plans/work-log.md`. Nikdy do `~/.claude/plans/`.
 - **Session naming:** bez ikony za běhu, `✅ Téma – Shrnutí` po dokončení, `⚠️` blokováno, `↪️` předání.
