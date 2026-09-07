@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Pencil,
@@ -308,6 +310,11 @@ export function ClientDetailClient({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[{ label: "Klienti", href: "/clients" }, { label: client.name }]}
+      />
+      <BackButton href="/clients" className="-ml-2" />
+
       {/* Archived banner */}
       {isArchived && (
         <div className="flex items-center justify-between rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950">

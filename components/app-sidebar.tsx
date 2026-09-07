@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelLogo } from "@/components/pixel-logo";
+import { AppVersion } from "@/components/app-version";
 
 type UserRole = "admin" | "member" | "sales";
 
@@ -159,14 +160,22 @@ export function AppSidebar({ role }: { role: UserRole }) {
       <nav className="flex-1 overflow-y-auto p-4">
         <SidebarNav role={role} />
       </nav>
+      <div className="border-t px-1 py-1">
+        <AppVersion />
+      </div>
     </aside>
   );
 }
 
 export function MobileSidebar({ role }: { role: UserRole }) {
   return (
-    <nav className="p-3">
-      <SidebarNav role={role} />
-    </nav>
+    <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
+      <nav className="flex-1 overflow-y-auto p-3">
+        <SidebarNav role={role} />
+      </nav>
+      <div className="border-t px-1 py-1">
+        <AppVersion />
+      </div>
+    </div>
   );
 }
