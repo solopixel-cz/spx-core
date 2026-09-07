@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { prospectStatus, prospectChannel, prospectResult, outreachEmailStatus } from "@/lib/status";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
-  ArrowLeft,
   ArrowRightLeft,
   Phone,
   ThumbsDown,
@@ -507,16 +505,13 @@ export function ProspectDetailClient({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[{ label: "Oslovení", href: "/prospects" }, { label: prospect.name }]}
+      />
+
       {/* Hlavička s návratem */}
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={<Link href="/prospects" />}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <BackButton href="/prospects" className="shrink-0" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-xl font-bold tracking-tight md:text-2xl">

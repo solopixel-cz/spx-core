@@ -1,8 +1,7 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 
 export default async function NovaFakturaPage({
@@ -62,10 +61,11 @@ export default async function NovaFakturaPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[{ label: "Faktury", href: "/invoices" }, { label: "Nová faktura" }]}
+      />
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/invoices" />}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <BackButton href="/invoices" className="shrink-0" />
         <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Nová faktura</h1>
       </div>
       <InvoiceForm clients={clients} defaultClientId={clientId} defaultItems={defaultItems} />

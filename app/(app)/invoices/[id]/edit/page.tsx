@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 
 export default async function UpravitFakturaPage({
@@ -52,15 +51,15 @@ export default async function UpravitFakturaPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Faktury", href: "/invoices" },
+          { label: (data.number as string) ?? "Faktura", href: `/invoices/${id}` },
+          { label: "Upravit" },
+        ]}
+      />
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={<Link href={`/invoices/${id}`} />}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <BackButton href={`/invoices/${id}`} className="shrink-0" />
         <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Upravit fakturu</h1>
       </div>
       <InvoiceForm clients={clients} invoice={invoice} />
