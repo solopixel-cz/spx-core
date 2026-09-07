@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { personalizeTemplate, SAMPLE_VARS } from "@/lib/marketing/personalize";
 import { Send } from "lucide-react";
 
 interface TemplateOption {
@@ -198,7 +199,9 @@ export function NewCampaignClient({
           {previewSubject !== null && (
             <p className="text-sm">
               <span className="text-muted-foreground">Předmět: </span>
-              <span className="font-medium">{previewSubject || "— bez předmětu —"}</span>
+              <span className="font-medium">
+                {personalizeTemplate(previewSubject, SAMPLE_VARS) || "— bez předmětu —"}
+              </span>
             </p>
           )}
 
@@ -242,7 +245,7 @@ export function NewCampaignClient({
           {templateId ? (
             <div className="overflow-hidden rounded border bg-[#f1f5f9]">
               <iframe
-                srcDoc={previewHtml}
+                srcDoc={personalizeTemplate(previewHtml, SAMPLE_VARS)}
                 sandbox=""
                 className="h-[70vh] w-full border-0 lg:h-[calc(100vh-12rem)]"
                 title="Náhled e-mailu"

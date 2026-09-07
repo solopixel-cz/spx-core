@@ -9,7 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { Save, Trash2 } from "lucide-react";
+import {
+  personalizeTemplate,
+  SAMPLE_VARS,
+  TEMPLATE_PLACEHOLDERS,
+} from "@/lib/marketing/personalize";
+import { Save, Trash2, Copy } from "lucide-react";
 
 export interface EmailTemplateData {
   id: string;
@@ -27,7 +32,7 @@ const DEFAULT_HTML = `<!doctype html>
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
             <tr>
               <td style="padding:32px;">
-                <h1 style="margin:0 0 12px;font-size:22px;color:#0f172a;">Nadpis</h1>
+                <h1 style="margin:0 0 12px;font-size:22px;color:#0f172a;">Dobrý den, {{jmeno}}</h1>
                 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">
                   Text e-mailu…
                 </p>
@@ -57,6 +62,9 @@ export function TemplateEditorClient({
   const [html, setHtml] = useState(template?.html ?? DEFAULT_HTML);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
 
   async function handleSave() {
     if (!name.trim()) {
@@ -93,6 +101,30 @@ export function TemplateEditorClient({
     }
   }
 
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const res = await fetch("/api/email-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${name.trim() || "Šablona"} (kopie)`,
+          subject: subject.trim(),
+          html,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.success("Šablona zduplikována");
+      router.push(`/email-marketing/${data.id}`);
+      router.refresh();
+    } catch {
+      toast.error("Nepodařilo se duplikovat");
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   async function handleDelete() {
     if (!isEdit) return;
     if (!confirm("Smazat tuto šablonu?")) return;
@@ -112,7 +144,32 @@ export function TemplateEditorClient({
     }
   }
 
+  async function handleTest() {
+    setSendingTest(true);
+    try {
+      const res = await fetch("/api/email-templates/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testEmail: testEmail.trim(), subject, html }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error);
+      }
+      toast.success(`Testovací e-mail odeslán na ${testEmail.trim()}`);
+    } catch (e) {
+      toast.error(e instanceof Error && e.message ? e.message : "Test se nepodařilo odeslat");
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
+  const busy = saving || deleting || duplicating;
   const title = isEdit ? template!.name : "Nová šablona";
+
+  // Náhled a předmět s ukázkovými daty (aby placeholdery nebyly vidět doslova)
+  const previewHtml = personalizeTemplate(html, SAMPLE_VARS);
+  const previewSubject = personalizeTemplate(subject, SAMPLE_VARS);
 
   return (
     <div className="space-y-6">
@@ -132,12 +189,18 @@ export function TemplateEditorClient({
         </div>
         <div className="flex gap-2">
           {isEdit && (
-            <Button variant="outline" onClick={handleDelete} disabled={deleting || saving}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Smazat
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplikovat
+              </Button>
+              <Button variant="outline" onClick={handleDelete} disabled={busy}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Smazat
+              </Button>
+            </>
           )}
-          <Button onClick={handleSave} disabled={saving || deleting || !name.trim()}>
+          <Button onClick={handleSave} disabled={busy || !name.trim()}>
             <Save className="mr-2 h-4 w-4" />
             {saving ? "Ukládám..." : "Uložit"}
           </Button>
@@ -177,27 +240,78 @@ export function TemplateEditorClient({
               value={html}
               onChange={(e) => setHtml(e.target.value)}
               spellCheck={false}
-              rows={22}
+              rows={20}
               className="font-mono text-xs leading-relaxed"
             />
-            <p className="text-xs text-muted-foreground">
-              Vlastní HTML šablony. Náhled vpravo se aktualizuje živě.
+          </div>
+
+          {/* Nápověda proměnných */}
+          <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Proměnné — vlož do předmětu nebo HTML, při odeslání se nahradí:
             </p>
+            <ul className="space-y-0.5">
+              {TEMPLATE_PLACEHOLDERS.map((p) => (
+                <li key={p.token} className="text-xs text-muted-foreground">
+                  <code className="rounded bg-background px-1 py-0.5 font-mono">
+                    {p.token}
+                  </code>{" "}
+                  — {p.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Test-send */}
+          <div className="space-y-2 rounded-lg border border-dashed p-3">
+            <Label className="text-xs">Testovací e-mail</Label>
+            <p className="text-xs text-muted-foreground">
+              Odešle aktuální obsah (i neuložený) s ukázkovými daty.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="test@příklad.cz"
+              />
+              <Button
+                variant="outline"
+                onClick={handleTest}
+                disabled={
+                  sendingTest ||
+                  busy ||
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail.trim())
+                }
+              >
+                {sendingTest ? "Odesílám..." : "Odeslat test"}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Živý náhled */}
+        {/* Živý náhled (s ukázkovými daty) */}
         <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6 lg:sticky lg:top-6 lg:self-start">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Náhled
-          </p>
-          <div className="overflow-hidden rounded border bg-[#f1f5f9]">
-            <iframe
-              srcDoc={html}
-              sandbox=""
-              className="h-[70vh] w-full border-0 lg:h-[calc(100vh-12rem)]"
-              title="Náhled e-mailu"
-            />
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Předmět
+            </p>
+            <p className="text-sm font-medium">
+              {previewSubject || <span className="text-muted-foreground">— bez předmětu —</span>}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Náhled <span className="normal-case font-normal">(ukázková data)</span>
+            </p>
+            <div className="overflow-hidden rounded border bg-[#f1f5f9]">
+              <iframe
+                srcDoc={previewHtml}
+                sandbox=""
+                className="h-[70vh] w-full border-0 lg:h-[calc(100vh-14rem)]"
+                title="Náhled e-mailu"
+              />
+            </div>
           </div>
         </div>
       </div>

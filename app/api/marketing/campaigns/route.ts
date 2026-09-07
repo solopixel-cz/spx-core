@@ -5,6 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { campaignCreateSchema } from "@/lib/schemas/campaign";
 import { sendTransactionalEmail } from "@/lib/email";
 import { statusOrder } from "@/lib/schemas/email-status";
+import { firstName } from "@/lib/marketing/personalize";
+import { composeMarketingEmail, type CompanyInfo } from "@/lib/marketing/compose";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -12,15 +14,6 @@ function serializeTimestamp(val: unknown): string | null {
     return (val as { toDate: () => Date }).toDate().toISOString();
   }
   return null;
-}
-
-const firstName = (name: string) => (name || "").split(" ")[0] || name || "";
-
-/** Nahradí jednoduché placeholdery v HTML/předmětu (personalizace). */
-function personalize(text: string, vars: { jmeno: string; email: string }): string {
-  return text
-    .replace(/\{\{jmeno\}\}/g, vars.jmeno)
-    .replace(/\{\{email\}\}/g, vars.email);
 }
 
 interface Recipient {
@@ -106,15 +99,28 @@ export async function POST(request: Request) {
     const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
     const senderEmail = (userData?.senderEmail as string) || user.email;
 
-    // Testovací odeslání — bez záznamu, jeden e-mail
+    // Identifikace odesílatele (patička) + báze URL pro odhlašovací odkaz
+    const companyDoc = await db.collection("settings").doc("company").get();
+    const company = (companyDoc.data() ?? {}) as CompanyInfo;
+    const baseUrl = new URL(request.url).origin;
+
+    // Testovací odeslání — bez záznamu, jeden e-mail (s patičkou i plain-textem)
     if (data.testEmail) {
       const jmeno = firstName(data.testEmail.split("@")[0]);
+      const composed = composeMarketingEmail({
+        html: tplHtml,
+        subject: tplSubject,
+        vars: { jmeno, email: data.testEmail },
+        unsubscribeUrl: `${baseUrl}/unsubscribe/ukazka`,
+        company,
+      });
       await sendTransactionalEmail({
         to: data.testEmail,
         senderName,
         senderEmail,
-        subject: `[TEST] ${personalize(tplSubject, { jmeno, email: data.testEmail })}`,
-        html: personalize(tplHtml, { jmeno, email: data.testEmail }),
+        subject: `[TEST] ${composed.subject}`,
+        html: composed.html,
+        text: composed.text,
       });
       return NextResponse.json({ status: "ok", test: true });
     }
@@ -165,6 +171,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Vyřadit odhlášené (marketingUnsubscribes, doc id = e-mail malými písmeny)
+    const unsubSnap = await db.collection("marketingUnsubscribes").get();
+    const unsubscribed = new Set(unsubSnap.docs.map((d) => d.id));
+    const skippedUnsubscribed = recipients.filter((r) =>
+      unsubscribed.has(r.email.toLowerCase())
+    ).length;
+    const targets = recipients.filter((r) => !unsubscribed.has(r.email.toLowerCase()));
+
+    if (targets.length === 0) {
+      return NextResponse.json(
+        { error: "Všichni příjemci ze seznamu jsou odhlášení z odběru" },
+        { status: 400 }
+      );
+    }
+
     // Založit kampaň (sending)
     const campaignRef = await db.collection("campaigns").add({
       name: data.name?.trim() || `${tplName} → ${listName}`,
@@ -174,7 +195,8 @@ export async function POST(request: Request) {
       listName,
       subject: tplSubject,
       status: "sending",
-      totalRecipients: recipients.length,
+      totalRecipients: targets.length,
+      skippedUnsubscribed,
       sentCount: 0,
       failedCount: 0,
       sentAt: null,
@@ -187,17 +209,27 @@ export async function POST(request: Request) {
     let sentCount = 0;
     let failedCount = 0;
     const CHUNK = 15;
-    for (let i = 0; i < recipients.length; i += CHUNK) {
-      const chunk = recipients.slice(i, i + CHUNK);
+    for (let i = 0; i < targets.length; i += CHUNK) {
+      const chunk = targets.slice(i, i + CHUNK);
       const results = await Promise.allSettled(
         chunk.map(async (r) => {
           const jmeno = firstName(r.name);
+          // Per-příjemce token pro odhlašovací odkaz v patičce
+          const unsubToken = crypto.randomUUID();
+          const composed = composeMarketingEmail({
+            html: tplHtml,
+            subject: tplSubject,
+            vars: { jmeno, email: r.email },
+            unsubscribeUrl: `${baseUrl}/unsubscribe/${unsubToken}`,
+            company,
+          });
           const result = await sendTransactionalEmail({
             to: r.email,
             senderName,
             senderEmail,
-            subject: personalize(tplSubject, { jmeno, email: r.email }),
-            html: personalize(tplHtml, { jmeno, email: r.email }),
+            subject: composed.subject,
+            html: composed.html,
+            text: composed.text,
           });
           await db.collection("campaignEmails").add({
             campaignId: campaignRef.id,
@@ -206,7 +238,8 @@ export async function POST(request: Request) {
             contactId: r.id,
             senderUid: user.uid,
             resendId: result?.id || "",
-            subject: personalize(tplSubject, { jmeno, email: r.email }),
+            unsubToken,
+            subject: composed.subject,
             status: "sent",
             sentAt: FieldValue.serverTimestamp(),
             lastEventAt: null,
@@ -219,7 +252,7 @@ export async function POST(request: Request) {
     }
 
     await campaignRef.update({
-      status: failedCount === recipients.length ? "failed" : "sent",
+      status: failedCount === targets.length ? "failed" : "sent",
       sentCount,
       failedCount,
       sentAt: FieldValue.serverTimestamp(),
@@ -230,7 +263,8 @@ export async function POST(request: Request) {
       id: campaignRef.id,
       sent: sentCount,
       failed: failedCount,
-      total: recipients.length,
+      total: targets.length,
+      skippedUnsubscribed,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

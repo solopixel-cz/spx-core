@@ -119,6 +119,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Odhlášení z marketingu — zápis přes admin SDK (veřejná unsubscribe route)
+    match /marketingUnsubscribes/{email} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Prospects — read for authenticated, write via admin SDK (route handlers)
     match /prospects/{prospectId} {
       allow read: if isAuth();

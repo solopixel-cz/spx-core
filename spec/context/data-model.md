@@ -289,6 +289,20 @@ Marketingová kampaň = odeslání zvolené `emailTemplates` na zvolený `market
 - **Statistiky:** webhook `/api/webhooks/resend` aktualizuje `campaignEmails.status` dle `resendId` (opened/clicked/…); přehled i detail počítají otevření/prokliky agregací z `campaignEmails` (bez čítačů).
 - **UI:** tab „Kampaně" + `/email-marketing/campaigns/new` (výběr šablony+seznamu, náhled, test, odeslání) a `/email-marketing/campaigns/[id]` (statistiky + příjemci).
 - Odesílá se po dávkách přímo v route handleru (MVP) — u velmi velkých seznamů zvážit frontu/batch API.
+- **Compliance/doručitelnost:** ke každému e-mailu se přidává **patička** (identifikace odesílatele z `settings/company` + odhlašovací odkaz) a **plain-text** varianta (`lib/marketing/compose.ts`). Každý `campaignEmails` má per-příjemce `unsubToken`; odkaz vede na veřejnou stránku `/unsubscribe/[token]` (potvrzení POSTem, ne GET — kvůli e-mailovým skenerům).
+
+### `marketingUnsubscribes`
+Odhlášení z marketingu. Doc ID = e-mail malými písmeny. Odeslání kampaně tyto adresy přeskočí.
+
+```ts
+{
+  email: string
+  campaignId?: string; contactType?: string; contactId?: string
+  unsubscribedAt: Timestamp
+}
+```
+
+- **API:** veřejné `POST /api/marketing/unsubscribe` `{ token }` — dohledá e-mail podle `campaignEmails.unsubToken` a založí odhlášení. Veřejná stránka `/unsubscribe/[token]` (mimo `(app)`, bez auth).
 
 ### `activity`
 Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na detailu klienta/leadu.
