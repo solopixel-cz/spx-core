@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { StatusBadge } from "@/components/status-badge";
+import { clientStatus } from "@/lib/status";
 import { Plus, Trash2, X } from "lucide-react";
 
 interface Member {
@@ -23,6 +25,7 @@ interface Member {
   name: string;
   email: string | null;
   category: string | null;
+  status: string | null;
 }
 
 const typeLabels: Record<Member["type"], string> = {
@@ -45,6 +48,8 @@ export function ListDetailClient({
   const [candidates, setCandidates] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  // Zdroj kontaktů pro přidávání — primárně klienti ("Kontakty"), volitelně prospekti ("Oslovení")
+  const [source, setSource] = useState<Member["type"]>("client");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -141,14 +146,15 @@ export function ListDetailClient({
     }
   }
 
-  // Kategorie pro filtr
-  const categories = [...new Set(candidates.map((c) => c.category).filter(Boolean))].sort(
-    (a, b) => a!.localeCompare(b!, "cs")
-  ) as string[];
+  // Kategorie pro filtr — jen z aktuálního zdroje
+  const categories = [
+    ...new Set(candidates.filter((c) => c.type === source).map((c) => c.category).filter(Boolean)),
+  ].sort((a, b) => a!.localeCompare(b!, "cs")) as string[];
 
   // Filtrovaní kandidáti (bez už přidaných)
   const q = search.trim().toLowerCase();
   const filtered = candidates.filter((c) => {
+    if (c.type !== source) return false;
     if (memberKeys.has(key(c))) return false;
     if (categoryFilter !== "all" && c.category !== categoryFilter) return false;
     if (q && !(c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)))
@@ -210,6 +216,9 @@ export function ListDetailClient({
                   <Badge variant="outline" className="shrink-0">
                     {typeLabels[m.type]}
                   </Badge>
+                  {m.status && (
+                    <StatusBadge map={clientStatus} value={m.status} className="shrink-0" />
+                  )}
                   {m.category && (
                     <Badge variant="secondary" className="shrink-0">
                       {m.category}
@@ -234,6 +243,33 @@ export function ListDetailClient({
         {/* Přidat kontakty */}
         <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6">
           <h2 className="font-semibold">Přidat kontakty</h2>
+
+          {/* Zdroj: primárně Kontakty (klienti), volitelně Oslovení (prospekti) */}
+          <div className="inline-flex rounded-lg border p-0.5">
+            {(
+              [
+                ["client", "Kontakty"],
+                ["prospect", "Oslovení"],
+              ] as [Member["type"], string][]
+            ).map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => {
+                  setSource(val);
+                  setCategoryFilter("all");
+                }}
+                className={
+                  source === val
+                    ? "rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
+                    : "rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Input
               value={search}
@@ -278,6 +314,9 @@ export function ListDetailClient({
                   <Badge variant="outline" className="shrink-0">
                     {typeLabels[c.type]}
                   </Badge>
+                  {c.status && (
+                    <StatusBadge map={clientStatus} value={c.status} className="shrink-0" />
+                  )}
                   {c.category && (
                     <Badge variant="secondary" className="shrink-0">
                       {c.category}
