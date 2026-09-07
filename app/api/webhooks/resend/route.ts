@@ -67,6 +67,17 @@ async function findEmailByResendId(resendId: string) {
     return { doc: invoiceSnap.docs[0], collection: "invoiceEmails" as const };
   }
 
+  // Try campaignEmails (email marketing) — jen aktualizace statusu, bez aktivit
+  const campaignSnap = await db
+    .collection("campaignEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!campaignSnap.empty) {
+    return { doc: campaignSnap.docs[0], collection: "campaignEmails" as const };
+  }
+
   return null;
 }
 

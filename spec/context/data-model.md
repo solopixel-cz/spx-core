@@ -228,6 +228,68 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
 - **API:** `GET /api/prospect-categories` vrací sjednocené (výchozí + uložené), deduplikované a seřazené; `POST` vytvoří novou (dedup case-insensitive, idempotentní).
 - Na prospektu se ukládá jen `category` jako string (bez join) — číselník slouží jako řízený seznam a zdroj napovídání.
 
+### `emailTemplates`
+Vlastní HTML šablony pro **email marketing** (menu „Email marketing"). Na rozdíl od transakčních `templates/*` (jen předmět) jde o plnohodnotné HTML, které si admin/member vytváří a spravuje ručně. MVP: seznam + tvorba/editace přes HTML editor s živým náhledem.
+
+```ts
+{
+  name: string               // interní název (v seznamu, ne v e-mailu)
+  subject?: string           // předmět e-mailu
+  html: string               // HTML šablony (max 200 000 znaků)
+  deletedAt?: Timestamp      // rezervováno pro archivaci (MVP maže natvrdo)
+}
+```
+
+- **API:** `GET/POST /api/email-templates`, `GET/PATCH/DELETE /api/email-templates/[id]` — vše přes Admin SDK, jen `admin`/`member`.
+- **UI:** `/email-marketing` má taby **Přehled · Šablony · Seznamy**. Šablony: `/email-marketing/new` (tvorba), `/email-marketing/[id]` (editace), náhled = sandboxovaný `<iframe srcDoc>`.
+- Zamýšlené rozšíření: kategorie/složky šablon, odesílání kampaní, proměnné/personalizace, statistiky.
+
+### `marketingLists`
+Marketingové seznamy kontaktů — pojmenované skupiny příjemců (odkazy na existující `prospects` a `clients`), komu se pošle zvolená šablona.
+
+```ts
+{
+  name: string
+  description?: string
+  prospectIds: string[]      // členové z kolekce prospects
+  clientIds: string[]        // členové z kolekce clients
+  deletedAt?: Timestamp
+}
+```
+
+- **API:** `GET/POST /api/marketing/lists`, `GET/PATCH/DELETE /api/marketing/lists/[id]` (PATCH mění název/popis i členy). `GET /api/marketing/contacts` vrací sjednocené kandidáty (prospekti + klienti: `{type,id,name,email,category}`). Vše Admin SDK, jen `admin`/`member`.
+- **Kategorie:** segmentace přes `category` na kontaktu — sdílený číselník s oslovením (`prospectCategories`). Prospekti kategorii mají; u klientů je plánované doplnění.
+- **UI:** tab „Seznamy" na `/email-marketing`; detail `/email-marketing/lists/[id]` (členové + picker prospektů/klientů s hledáním a filtrem kategorie).
+
+### `campaigns` + `campaignEmails`
+Marketingová kampaň = odeslání zvolené `emailTemplates` na zvolený `marketingLists`. Per příjemce vzniká záznam v `campaignEmails` (tracking přes Resend webhook, stejně jako `outreachEmails`).
+
+```ts
+// campaigns
+{
+  name: string
+  templateId: string; templateName?: string
+  listId: string; listName?: string
+  subject?: string
+  status: 'sending' | 'sent' | 'failed'
+  totalRecipients: number; sentCount: number; failedCount: number
+  sentAt?: Timestamp
+}
+// campaignEmails
+{
+  campaignId: string
+  toEmail: string; contactType: 'prospect' | 'client'; contactId: string
+  resendId: string; subject: string
+  status: 'sent'|'delivered'|'opened'|'clicked'|'bounced'|'complained'
+  sentAt: Timestamp; lastEventAt: Timestamp|null
+}
+```
+
+- **API:** `GET/POST /api/marketing/campaigns` (POST odešle — `testEmail` = jen test bez záznamu; jinak `templateId`+`listId` → rozešle všem příjemcům s e-mailem, dedup dle e-mailu, personalizace `{{jmeno}}`/`{{email}}`). `GET /api/marketing/campaigns/[id]` = detail + agregované statistiky + příjemci.
+- **Statistiky:** webhook `/api/webhooks/resend` aktualizuje `campaignEmails.status` dle `resendId` (opened/clicked/…); přehled i detail počítají otevření/prokliky agregací z `campaignEmails` (bez čítačů).
+- **UI:** tab „Kampaně" + `/email-marketing/campaigns/new` (výběr šablony+seznamu, náhled, test, odeslání) a `/email-marketing/campaigns/[id]` (statistiky + příjemci).
+- Odesílá se po dávkách přímo v route handleru (MVP) — u velmi velkých seznamů zvážit frontu/batch API.
+
 ### `activity`
 Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na detailu klienta/leadu.
 
