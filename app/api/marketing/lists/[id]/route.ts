@@ -21,6 +21,7 @@ interface Member {
   name: string;
   email: string | null;
   category: string | null;
+  status: string | null;
 }
 
 /** Rozřeší ID členů na jména/e-maily/kategorie z prospektů a klientů. */
@@ -48,6 +49,7 @@ async function resolveMembers(
       name: (d.name as string) ?? "",
       email: (d.email as string) ?? null,
       category: (d.category as string) ?? null,
+      status: type === "client" ? ((d.status as string) ?? null) : null,
     });
   }
   members.sort((a, b) => a.name.localeCompare(b.name, "cs"));
