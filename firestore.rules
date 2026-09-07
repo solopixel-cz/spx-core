@@ -96,6 +96,35 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Email marketing templates — vlastní HTML šablony; read for authenticated,
+    // write via admin SDK (route handlers, jen admin/member)
+    match /emailTemplates/{templateId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Marketing seznamy kontaktů — read for authenticated, write via admin SDK
+    match /marketingLists/{listId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Marketingové kampaně + jejich e-maily — read for authenticated, write via admin SDK
+    match /campaigns/{campaignId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+    match /campaignEmails/{emailId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Odhlášení z marketingu — zápis přes admin SDK (veřejná unsubscribe route)
+    match /marketingUnsubscribes/{email} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Prospects — read for authenticated, write via admin SDK (route handlers)
     match /prospects/{prospectId} {
       allow read: if isAuth();
