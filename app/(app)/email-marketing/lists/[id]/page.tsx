@@ -9,6 +9,7 @@ interface Member {
   name: string;
   email: string | null;
   category: string | null;
+  status: string | null;
 }
 
 export default async function MarketingListDetailPage({
@@ -37,12 +38,14 @@ export default async function MarketingListDetailPage({
     for (const m of docs) {
       if (!m.exists || m.data()?.deletedAt) continue;
       const md = m.data()!;
+      const type = m.ref.parent.id === "prospects" ? "prospect" : "client";
       members.push({
-        type: m.ref.parent.id === "prospects" ? "prospect" : "client",
+        type,
         id: m.id,
         name: (md.name as string) ?? "",
         email: (md.email as string) ?? null,
         category: (md.category as string) ?? null,
+        status: type === "client" ? ((md.status as string) ?? null) : null,
       });
     }
     members.sort((a, b) => a.name.localeCompare(b.name, "cs"));
