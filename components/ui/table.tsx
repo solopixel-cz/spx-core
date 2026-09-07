@@ -1,8 +1,17 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
+
+/**
+ * Prvky uvnitř řádku, na které klik NESMÍ spustit navigaci řádku
+ * (tlačítka, odkazy, formulářová pole, checkboxy, menu). Díky tomu není
+ * potřeba ruční `stopPropagation` na vnořených akcích.
+ */
+const ROW_INTERACTIVE_SELECTOR =
+  'a, button, input, select, textarea, label, [role="checkbox"], [role="menuitem"], [role="menu"], [data-no-row-nav]'
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
@@ -52,14 +61,42 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow({
+  className,
+  href,
+  onRowClick,
+  onClick,
+  ...props
+}: React.ComponentProps<"tr"> & {
+  /** Když je vyplněné, klik na řádek přejde na tuto interní cestu (detail). */
+  href?: string
+  /** Alternativa k href — vlastní akce na klik řádku (např. otevření detailu v Sheetu). */
+  onRowClick?: () => void
+}) {
+  const router = useRouter()
+  const clickable = !!href || !!onRowClick
+
+  function activate(target: EventTarget | null) {
+    // Klik na vnořený interaktivní prvek řeší on sám — řádek neaktivujeme.
+    if (target instanceof Element && target.closest(ROW_INTERACTIVE_SELECTOR)) return
+    // Když uživatel označuje text v řádku, nenavigujeme.
+    if (typeof window !== "undefined" && window.getSelection()?.toString()) return
+    if (onRowClick) onRowClick()
+    else if (href) router.push(href)
+  }
+
   return (
     <tr
       data-slot="table-row"
       className={cn(
         "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        clickable && "cursor-pointer",
         className
       )}
+      onClick={(e) => {
+        onClick?.(e)
+        if (clickable && !e.defaultPrevented) activate(e.target)
+      }}
       {...props}
     />
   )

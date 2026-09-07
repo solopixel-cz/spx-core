@@ -161,7 +161,7 @@ export function ClientInvoicesTab({
         </TableHeader>
         <TableBody>
           {invoices.map((inv) => (
-            <TableRow key={inv.id}>
+            <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
               <TableCell className="font-mono">{inv.number}</TableCell>
               <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
               <TableCell>

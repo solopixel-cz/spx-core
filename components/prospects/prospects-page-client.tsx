@@ -442,7 +442,7 @@ export function ProspektiPageClient({
                   new Date(prospect.nextFollowUpAt) < new Date();
 
                 return (
-                  <TableRow key={prospect.id}>
+                  <TableRow key={prospect.id} href={`/prospects/${prospect.id}`}>
                     <TableCell>
                       <Link
                         href={`/prospects/${prospect.id}`}
