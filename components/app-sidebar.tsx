@@ -14,6 +14,7 @@ import {
   CheckSquare,
   TicketCheck,
   ClipboardList,
+  Mails,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -48,6 +49,12 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Leady", href: "/leads", icon: Briefcase },
       { label: "Oslovení", href: "/prospects", icon: BookUser },
+      {
+        label: "Email marketing",
+        href: "/email-marketing",
+        icon: Mails,
+        roles: ["admin", "member"],
+      },
       { label: "Klienti", href: "/clients", icon: Users },
       { label: "Moje vizitky", href: "/my-cards", icon: CreditCard, roles: ["sales"] },
       { label: "Podklady", href: "/submissions", icon: ClipboardList },
