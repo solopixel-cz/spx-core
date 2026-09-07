@@ -263,7 +263,7 @@ export default function ProfilPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={profile.displayName}>
+      <PageHeader title={profile.displayName} backHref="/settings">
         <p className="text-sm text-muted-foreground">{roleLabels[profile.role] ?? profile.role}</p>
       </PageHeader>
 

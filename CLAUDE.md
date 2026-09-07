@@ -42,6 +42,7 @@ Stavba aplikace probíhá po fázích — prompty ve [`spec/prompts/`](spec/prom
 - **Progress recording:** do progress souboru feature, jinak `spec/plans/work-log.md`. Nikdy do `~/.claude/plans/`.
 - **Commit workflow:** ukázat diff → schválení → commit. Nikdy nepushovat na chráněné větve (`main`, `devel`).
 - **Commit formát:** `type: [changelog] popis` (viz `spec/context/workflow.md`).
+- **Verzování:** SemVer v `package.json` (`version`). Každý `feat:` → **minor**, `fix:` → **patch**, breaking → **major**. Verzi povyšuj ve **stejném commitu** jako danou změnu (`chore/docs/refactor` verzi nemění). Verze + build info se zobrazuje dole v menu (`components/app-version.tsx`, hodnoty z `next.config.ts`).
 - **Datový model:** zdroj pravdy je `spec/context/data-model.md` — změny nejdřív tam.
 - **Lokální vývoj:** proti reálnému Firebase projektu (`.env.local`). Destruktivní operace (hromadné mazání, migrace) jen po domluvě. Změny `firestore.rules` / indexů nasazovat přes `firebase deploy --only firestore`.
 

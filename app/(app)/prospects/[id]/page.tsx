@@ -63,6 +63,7 @@ export default async function ProspectDetailPage({
     email: (d.email as string) ?? null,
     phone: (d.phone as string) ?? null,
     city: (d.city as string) ?? null,
+    category: (d.category as string) ?? null,
     portalUrl: (d.portalUrl as string) ?? null,
     demoUrl: (d.demoUrl as string) ?? null,
     status: d.status as string,

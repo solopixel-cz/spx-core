@@ -278,7 +278,7 @@ export function ClientsPageClient({ clients }: { clients: ClientRow[] }) {
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} href={`/clients/${row.original.id}`}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
