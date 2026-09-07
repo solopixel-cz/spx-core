@@ -8,6 +8,7 @@ interface Candidate {
   name: string;
   email: string | null;
   category: string | null;
+  status: string | null; // stav klienta (active/paused/…); u prospektů null
 }
 
 /**
@@ -35,6 +36,7 @@ export async function GET() {
         name: (d.name as string) ?? "",
         email: (d.email as string) ?? null,
         category: (d.category as string) ?? null,
+        status: null,
       });
     });
 
@@ -47,6 +49,7 @@ export async function GET() {
         name: (d.name as string) ?? "",
         email: (d.email as string) ?? null,
         category: (d.category as string) ?? null,
+        status: (d.status as string) ?? null,
       });
     });
 
