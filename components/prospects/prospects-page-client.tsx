@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,6 +45,7 @@ export interface ProspectRow {
   email: string | null;
   phone: string | null;
   city: string | null;
+  category: string | null;
   portalUrl: string | null;
   demoUrl: string | null;
   status: string;
@@ -94,6 +96,7 @@ export function ProspektiPageClient({
   const [tab, setTab] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [globalFilter, setGlobalFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -128,6 +131,11 @@ export function ProspektiPageClient({
   // Owner filter
   if (ownerFilter !== "all") {
     filtered = filtered.filter((p) => p.ownerUid === ownerFilter);
+  }
+
+  // Category filter
+  if (categoryFilter !== "all") {
+    filtered = filtered.filter((p) => p.category === categoryFilter);
   }
 
   // Text filter
@@ -201,6 +209,11 @@ export function ProspektiPageClient({
   // Collect unique cities for filter
   const cities = [...new Set(prospects.map((p) => p.city).filter(Boolean))] as string[];
 
+  // Collect unique categories for filter
+  const categories = [...new Set(prospects.map((p) => p.category).filter(Boolean))].sort((a, b) =>
+    a!.localeCompare(b!, "cs")
+  ) as string[];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -267,6 +280,26 @@ export function ProspektiPageClient({
             ))}
           </SelectContent>
         </Select>
+        {categories.length > 0 && (
+          <Select
+            items={{
+              all: "Všechny kategorie",
+              ...Object.fromEntries(categories.map((c) => [c, c])),
+            }}
+            value={categoryFilter}
+            onValueChange={(val) => val && setCategoryFilter(val)}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Kategorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Všechny kategorie</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {cities.length > 0 && (
           <Select
             items={{
@@ -311,7 +344,7 @@ export function ProspektiPageClient({
                 onClick={() => router.push(`/prospects/${prospect.id}`)}
                 title={prospect.name}
                 badge={<StatusBadge map={prospectStatus} value={prospect.status} />}
-                subtitle={[prospect.company, prospect.city]
+                subtitle={[prospect.company, prospect.city, prospect.category]
                   .filter(Boolean)
                   .join(" · ")}
                 meta={
@@ -383,6 +416,7 @@ export function ProspektiPageClient({
               <TableHead>Jméno</TableHead>
               <TableHead>Firma</TableHead>
               <TableHead>Město</TableHead>
+              <TableHead>Kategorie</TableHead>
               <TableHead>Stav</TableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
@@ -396,7 +430,7 @@ export function ProspektiPageClient({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={12} className="text-center text-muted-foreground">
                   Žádné kontakty k oslovení
                 </TableCell>
               </TableRow>
@@ -408,7 +442,7 @@ export function ProspektiPageClient({
                   new Date(prospect.nextFollowUpAt) < new Date();
 
                 return (
-                  <TableRow key={prospect.id}>
+                  <TableRow key={prospect.id} href={`/prospects/${prospect.id}`}>
                     <TableCell>
                       <Link
                         href={`/prospects/${prospect.id}`}
@@ -419,6 +453,13 @@ export function ProspektiPageClient({
                     </TableCell>
                     <TableCell>{prospect.company || "—"}</TableCell>
                     <TableCell>{prospect.city || "—"}</TableCell>
+                    <TableCell>
+                      {prospect.category ? (
+                        <Badge variant="outline">{prospect.category}</Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <StatusBadge map={prospectStatus} value={prospect.status} />
                     </TableCell>

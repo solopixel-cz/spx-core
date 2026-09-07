@@ -1,6 +1,29 @@
 import type { NextConfig } from "next";
+import { createRequire } from "node:module";
+import { execSync } from "node:child_process";
+
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json") as { version: string };
+
+/** Krátký git SHA buildu — na Vercelu z env, lokálně z gitu, jinak "dev". */
+function buildSha(): string {
+  if (process.env.VERCEL_GIT_COMMIT_SHA) {
+    return process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
+  }
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "dev";
+  }
+}
 
 const nextConfig: NextConfig = {
+  // Verze + build info dostupné v UI (patička menu). Inlinuje se do klienta při buildu.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_GIT_SHA: buildSha(),
+    NEXT_PUBLIC_BUILD_DATE: new Date().toISOString().slice(0, 10),
+  },
   // Kořen workspace explicitně = tato složka. Jinak Next.js kvůli druhému
   // lockfile v ~/ (home) chybně zvolí root a rozbije se Turbopack/RSC manifest
   // („Manifest file is empty", „Could not find … global-error.js").

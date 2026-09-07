@@ -63,6 +63,7 @@ export async function GET(request: Request) {
         email: d.email ?? null,
         phone: d.phone ?? null,
         city: d.city ?? null,
+        category: d.category ?? null,
         portalUrl: d.portalUrl ?? null,
         demoUrl: d.demoUrl ?? null,
         status: d.status,
@@ -133,6 +134,7 @@ export async function POST(request: Request) {
     const docRef = await db.collection("prospects").add({
       ...data,
       email: data.email || null,
+      category: data.category || null,
       portalUrl: data.portalUrl || null,
       demoUrl: data.demoUrl || null,
       status: "new",

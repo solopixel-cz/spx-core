@@ -294,7 +294,7 @@ export function InvoicesPageClient({
               </TableRow>
             ) : (
               filtered.map((inv) => (
-                <TableRow key={inv.id}>
+                <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
                   <TableCell className="font-mono">
                     <Link href={`/invoices/${inv.id}`} className="hover:underline">
                       {inv.number}

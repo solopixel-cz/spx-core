@@ -11,24 +11,72 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategorySelect } from "./category-select";
+
+/** Existující kontakt pro režim editace (podmnožina ProspectRow). */
+export interface ProspectEditValues {
+  id: string;
+  name: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  category?: string | null;
+  portalUrl?: string | null;
+  demoUrl?: string | null;
+}
+
+/** Uložené hodnoty předané zpět přes onSuccess (ať volající může sesynchronizovat stav). */
+export interface ProspectSavedValues {
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  city: string;
+  category: string;
+  portalUrl: string;
+  demoUrl: string;
+}
 
 export function ProspectFormDialog({
   open,
   onOpenChange,
   onSuccess,
+  prospect,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (saved?: ProspectSavedValues) => void;
+  /** Když je předán, dialog edituje existující kontakt (PATCH), jinak vytváří nový (POST). */
+  prospect?: ProspectEditValues;
 }) {
+  const isEdit = !!prospect;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
+  const [category, setCategory] = useState("");
   const [portalUrl, setPortalUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
+
+  // Při otevření napln stav (edit = z kontaktu, create = prázdné) — úprava stavu
+  // během renderu při přechodu zavřeno→otevřeno (React sanctioned pattern).
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setName(prospect?.name ?? "");
+      setCompany(prospect?.company ?? "");
+      setEmail(prospect?.email ?? "");
+      setPhone(prospect?.phone ?? "");
+      setCity(prospect?.city ?? "");
+      setCategory(prospect?.category ?? "");
+      setPortalUrl(prospect?.portalUrl ?? "");
+      setDemoUrl(prospect?.demoUrl ?? "");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,32 +84,61 @@ export function ProspectFormDialog({
     setSaving(true);
 
     try {
-      const res = await fetch("/api/prospects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          company: company.trim() || undefined,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          city: city.trim() || undefined,
-          portalUrl: portalUrl.trim() || undefined,
-          demoUrl: demoUrl.trim() || undefined,
-        }),
-      });
+      const saved: ProspectSavedValues = {
+        name: name.trim(),
+        company: company.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        city: city.trim(),
+        category: category.trim(),
+        portalUrl: portalUrl.trim(),
+        demoUrl: demoUrl.trim(),
+      };
 
-      if (res.status === 409) {
+      // Edit posílá i prázdné hodnoty (umožní pole vyprázdnit); create prázdné vynechá.
+      const body = isEdit
+        ? saved
+        : {
+            name: saved.name,
+            company: saved.company || undefined,
+            email: saved.email || undefined,
+            phone: saved.phone || undefined,
+            city: saved.city || undefined,
+            category: saved.category || undefined,
+            portalUrl: saved.portalUrl || undefined,
+            demoUrl: saved.demoUrl || undefined,
+          };
+
+      const res = await fetch(
+        isEdit ? `/api/prospects/${prospect!.id}` : "/api/prospects",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!isEdit && res.status === 409) {
         const data = await res.json();
         toast.error(data.error || "Kontakt již existuje");
         return;
       }
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error);
+      }
 
-      toast.success("Kontakt vytvořen");
-      resetForm();
-      onSuccess();
-    } catch {
-      toast.error("Nepodařilo se vytvořit kontakt");
+      toast.success(isEdit ? "Kontakt uložen" : "Kontakt vytvořen");
+      if (!isEdit) resetForm();
+      onSuccess(saved);
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : isEdit
+            ? "Nepodařilo se uložit kontakt"
+            : "Nepodařilo se vytvořit kontakt"
+      );
     } finally {
       setSaving(false);
     }
@@ -73,6 +150,7 @@ export function ProspectFormDialog({
     setEmail("");
     setPhone("");
     setCity("");
+    setCategory("");
     setPortalUrl("");
     setDemoUrl("");
   }
@@ -81,7 +159,7 @@ export function ProspectFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Přidat kontakt</DialogTitle>
+          <DialogTitle>{isEdit ? "Upravit kontakt" : "Přidat kontakt"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -120,13 +198,19 @@ export function ProspectFormDialog({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="prospect-city">Město</Label>
-            <Input
-              id="prospect-city"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="prospect-city">Město</Label>
+              <Input
+                id="prospect-city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Kategorie</Label>
+              <CategorySelect value={category} onChange={setCategory} />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="prospect-url">URL profilu</Label>
@@ -147,7 +231,7 @@ export function ProspectFormDialog({
             />
           </div>
           <Button type="submit" disabled={saving || !name.trim()} className="w-full">
-            {saving ? "Ukládám..." : "Vytvořit"}
+            {saving ? "Ukládám..." : isEdit ? "Uložit" : "Vytvořit"}
           </Button>
         </form>
       </DialogContent>

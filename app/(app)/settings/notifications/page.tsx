@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BackButton } from "@/components/back-button";
 import { PushToggle } from "@/components/notifications/push-toggle";
 
 export default async function NotifikacePage() {
@@ -7,12 +8,15 @@ export default async function NotifikacePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold">Notifikace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upozornění na nové poptávky z webu, vyplněné podklady a další události.
-          Uvnitř aplikace je vždycky uvidíš u zvonku nahoře.
-        </p>
+      <div className="flex items-start gap-2">
+        <BackButton href="/settings" className="-ml-2 shrink-0" />
+        <div>
+          <h1 className="font-heading text-2xl font-bold">Notifikace</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upozornění na nové poptávky z webu, vyplněné podklady a další události.
+            Uvnitř aplikace je vždycky uvidíš u zvonku nahoře.
+          </p>
+        </div>
       </div>
 
       <Card>

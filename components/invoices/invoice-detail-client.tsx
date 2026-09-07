@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Send, Pencil, Loader2, FileText, Trash2 } from "lucide-react";
+import { Check, X, Send, Pencil, Loader2, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,16 +141,12 @@ export function InvoiceDetailClient({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[{ label: "Faktury", href: "/invoices" }, { label: invoice.number }]}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            nativeButton={false}
-            render={<Link href="/invoices" />}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <BackButton href="/invoices" className="shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-mono text-xl font-bold">{invoice.number}</h1>

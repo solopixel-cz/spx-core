@@ -19,6 +19,7 @@ export const prospectSchema = z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   city: z.string().optional(),
+  category: z.string().optional(),
   portalUrl: z.string().optional(),
   demoUrl: z.string().optional(),
   status: z.enum(prospectStatusValues),
@@ -39,6 +40,7 @@ export const prospectFormSchema = z.object({
   email: z.string().email("Zadejte platný e-mail").or(z.literal("")).optional(),
   phone: z.string().optional(),
   city: z.string().optional(),
+  category: z.string().optional(),
   portalUrl: z.string().url("Zadejte platnou URL").or(z.literal("")).optional(),
   demoUrl: z.string().url("Zadejte platnou URL").or(z.literal("")).optional(),
 });
