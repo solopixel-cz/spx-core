@@ -194,6 +194,7 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
   email?: string
   phone?: string
   city?: string
+  category?: string          // kategorie kontaktu (Řemeslník, Finanční poradce…) — viz `prospectCategories`
   portalUrl?: string         // odkaz na profil na portálu
   demoUrl?: string           // odkaz na demo vizitku (Vercel) pro tohoto prospekta
   status: 'new' | 'contacted' | 'responding' | 'not_interested' | 'unreachable' | 'converted'
@@ -212,7 +213,20 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
 - **Konverze:** akce „Převést na lead" → vytvoří `lead` (source=`outreach`, ownerUid z prospekta), prospect.status=`converted` + `leadId`.
+- **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
+
+### `prospectCategories`
+Číselník kategorií kontaktů pro oslovení (Řemeslník, Realitní makléř, Finanční poradce, Obchodník, Osobnost…). Uživatelem vytvořené kategorie se ukládají sem; výchozí sada je definována konstantou v kódu a nabízí se vždy (i bez zápisu).
+
+```ts
+{
+  name: string               // název kategorie (unikátní, case-insensitive)
+}
+```
+
+- **API:** `GET /api/prospect-categories` vrací sjednocené (výchozí + uložené), deduplikované a seřazené; `POST` vytvoří novou (dedup case-insensitive, idempotentní).
+- Na prospektu se ukládá jen `category` jako string (bez join) — číselník slouží jako řízený seznam a zdroj napovídání.
 
 ### `activity`
 Append-only log akcí (poznámka, změna stavu, e-mail, hovor). Zobrazuje se na detailu klienta/leadu.

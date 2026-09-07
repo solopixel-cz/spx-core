@@ -121,6 +121,10 @@ export async function PATCH(
       ...data,
       updatedAt: FieldValue.serverTimestamp(),
     };
+    // Prázdná kategorie = bez kategorie → null (konzistentní se seznamem).
+    if ("category" in data) {
+      update.category = data.category || null;
+    }
     if (outreachContent !== undefined && outreachContent !== null) {
       update.outreachContent = sanitizeOutreachContent(outreachContent);
     }

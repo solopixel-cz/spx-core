@@ -52,9 +52,14 @@ import {
   Archive,
   Hand,
   Plus,
+  Pencil,
   Trash2,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
+import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { CategorySelect } from "./category-select";
+import { ProspectFormDialog } from "./prospect-form-dialog";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
 
 interface ActivityData {
@@ -91,6 +96,7 @@ export function ProspectDetailClient({
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [acting, setActing] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<"not_interested" | "unreachable">("not_interested");
   const [statusNote, setStatusNote] = useState("");
@@ -105,6 +111,7 @@ export function ProspectDetailClient({
     })
   );
   const [cardUrl, setCardUrl] = useState(prospect.demoUrl || "");
+  const [category, setCategory] = useState(prospect.category || "");
   const [subjects, setSubjects] = useState<Record<EmailKind, string | null>>({
     outreach: null,
     followup: null,
@@ -341,6 +348,24 @@ export function ProspectDetailClient({
     }
   }
 
+  // Kategorie kontaktu se ukládá hned po výběru (sdílená mezi taby Informace a Oslovení).
+  async function saveCategory(next: string) {
+    const prev = category;
+    setCategory(next);
+    try {
+      const res = await fetch(`/api/prospects/${prospect.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: next }),
+      });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch {
+      setCategory(prev);
+      toast.error("Nepodařilo se uložit kategorii");
+    }
+  }
+
   // Uloží odkaz na vizitku + (u oslovení) editovaný obsah. Vyhodí chybu při neúspěchu.
   async function saveDraft() {
     const body: Record<string, unknown> = { demoUrl: cardUrl.trim() };
@@ -511,6 +536,17 @@ export function ProspectDetailClient({
             <p className="text-sm text-muted-foreground">{prospect.company}</p>
           )}
         </div>
+        {canAct && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditOpen(true)}
+            className="ml-auto shrink-0"
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Upravit
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
@@ -605,6 +641,22 @@ export function ProspectDetailClient({
                     </div>
                   )}
                 </dl>
+
+                <Separator className="my-4" />
+                <div className="space-y-1.5">
+                  <p className="text-sm text-muted-foreground">Kategorie</p>
+                  {canAct ? (
+                    <CategorySelect
+                      value={category}
+                      onChange={saveCategory}
+                      disabled={acting}
+                    />
+                  ) : category ? (
+                    <Badge variant="outline">{category}</Badge>
+                  ) : (
+                    <span className="text-sm">—</span>
+                  )}
+                </div>
 
                 {canClaim && (
                   <>
@@ -748,6 +800,19 @@ export function ProspectDetailClient({
                 <p className="text-xs text-muted-foreground">
                   Hotová vizitka pro tento kontakt — kam vede tlačítko v e-mailu.
                   {!cardUrl && ` Zatím prázdné → použije se výchozí ${DEFAULT_CARD_URL}`}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Kategorie kontaktu</Label>
+                <CategorySelect
+                  value={category}
+                  onChange={saveCategory}
+                  disabled={!canAct || acting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Typ oslovovaného kontaktu (např. Řemeslník, Finanční poradce). Ukládá se
+                  ihned.
                 </p>
               </div>
 
@@ -1122,6 +1187,22 @@ export function ProspectDetailClient({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog */}
+      <ProspectFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        prospect={prospect}
+        onSuccess={(saved) => {
+          setEditOpen(false);
+          // Sesynchronizuj lokální stav editovaný na detailu (jinak by zůstal starý).
+          if (saved) {
+            setCategory(saved.category);
+            setCardUrl(saved.demoUrl);
+          }
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
