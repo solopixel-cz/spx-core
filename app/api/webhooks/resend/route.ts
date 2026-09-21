@@ -67,6 +67,17 @@ async function findEmailByResendId(resendId: string) {
     return { doc: invoiceSnap.docs[0], collection: "invoiceEmails" as const };
   }
 
+  // Try previewEmails (náhled vizitky ke schválení, odeslané z detailu klienta)
+  const previewSnap = await db
+    .collection("previewEmails")
+    .where("resendId", "==", resendId)
+    .limit(1)
+    .get();
+
+  if (!previewSnap.empty) {
+    return { doc: previewSnap.docs[0], collection: "previewEmails" as const };
+  }
+
   // Try campaignEmails (email marketing) — jen aktualizace statusu, bez aktivit
   const campaignSnap = await db
     .collection("campaignEmails")
@@ -307,6 +318,43 @@ export async function POST(request: Request) {
         entityId: clientId,
         kind: "system",
         text: "E-mail s formulářem podkladů se nepodařilo doručit",
+        actorUid: senderUid,
+      });
+    }
+  } else if (collection === "previewEmails") {
+    // previewEmails — náhled vizitky ke schválení, log activity on client
+    const clientId = emailData.clientId as string;
+
+    if (newStatus === "opened" && statusChanged) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient otevřel e-mail s náhledem vizitky",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "clicked" && statusChanged) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "Klient kliknul na náhled vizitky ✨",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced" && isFalseBounce) {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "⚠️ Nahlášen bounce po otevření – pravděpodobně falešný (bezpečnostní skener pošty), e-mail nejspíš dorazil",
+        actorUid: senderUid,
+      });
+    } else if (newStatus === "bounced") {
+      await logActivity({
+        entityType: "client",
+        entityId: clientId,
+        kind: "system",
+        text: "E-mail s náhledem vizitky se nepodařilo doručit",
         actorUid: senderUid,
       });
     }

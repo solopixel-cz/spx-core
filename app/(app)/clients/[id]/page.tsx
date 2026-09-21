@@ -41,7 +41,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, domains, activity, subscription, invoices in parallel
-  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap] =
+  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap, templatesSnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -75,6 +75,10 @@ export default async function ClientDetailPage({
         .orderBy("sentAt", "desc")
         .limit(1)
         .get(),
+      // Email-marketingové šablony pro dialog „Poslat e-mail" (jen admin/member).
+      isSales
+        ? Promise.resolve({ docs: [] })
+        : db.collection("emailTemplates").orderBy("updatedAt", "desc").get(),
     ]);
 
   const instances = instancesSnap.docs.filter((d) => !d.data().deletedAt).map((d) => ({
@@ -177,6 +181,14 @@ export default async function ClientDetailPage({
     .filter((d) => d.data().active)
     .map((d) => ({ id: d.id, displayName: d.data().displayName as string }));
 
+  const emailTemplates = templatesSnap.docs
+    .filter((d) => !d.data().deletedAt)
+    .map((d) => ({
+      id: d.id,
+      name: d.data().name as string,
+      subject: (d.data().subject as string | undefined) ?? null,
+    }));
+
   const lastDeliveryDoc = deliverySnap.docs[0];
   const lastDelivery = lastDeliveryDoc
     ? {
@@ -200,6 +212,7 @@ export default async function ClientDetailPage({
       userRole={user.role}
       currentUid={user.uid}
       lastDelivery={lastDelivery}
+      emailTemplates={emailTemplates}
     />
   );
 }
