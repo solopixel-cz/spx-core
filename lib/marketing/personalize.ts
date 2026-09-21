@@ -6,6 +6,8 @@
 export interface TemplateVars {
   jmeno: string;
   email: string;
+  /** Volitelný odkaz — např. náhled vizitky ke schválení (různý pro každé odeslání). */
+  odkaz?: string;
 }
 
 /** Podporované placeholdery + popis a ukázková hodnota (pro náhled). */
@@ -16,19 +18,22 @@ export const TEMPLATE_PLACEHOLDERS: {
 }[] = [
   { token: "{{jmeno}}", label: "Křestní jméno kontaktu", sample: "Jan" },
   { token: "{{email}}", label: "E-mail kontaktu", sample: "jan.novak@email.cz" },
+  { token: "{{odkaz}}", label: "Odkaz (např. náhled vizitky)", sample: "https://nahled.solopixel.cz" },
 ];
 
 /** Ukázková data pro náhled a test. */
 export const SAMPLE_VARS: TemplateVars = {
   jmeno: "Jan",
   email: "jan.novak@email.cz",
+  odkaz: "https://nahled.solopixel.cz",
 };
 
 /** Nahradí placeholdery v textu (předmět i HTML). */
 export function personalizeTemplate(text: string, vars: TemplateVars): string {
   return text
     .replace(/\{\{jmeno\}\}/g, vars.jmeno)
-    .replace(/\{\{email\}\}/g, vars.email);
+    .replace(/\{\{email\}\}/g, vars.email)
+    .replace(/\{\{odkaz\}\}/g, vars.odkaz ?? "");
 }
 
 /** Křestní jméno z celého jména. */

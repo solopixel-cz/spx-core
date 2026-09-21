@@ -285,7 +285,7 @@ Marketingová kampaň = odeslání zvolené `emailTemplates` na zvolený `market
 }
 ```
 
-- **API:** `GET/POST /api/marketing/campaigns` (POST odešle — `testEmail` = jen test bez záznamu; jinak `templateId`+`listId` → rozešle všem příjemcům s e-mailem, dedup dle e-mailu, personalizace `{{jmeno}}`/`{{email}}`). `GET /api/marketing/campaigns/[id]` = detail + agregované statistiky + příjemci.
+- **API:** `GET/POST /api/marketing/campaigns` (POST odešle — `testEmail` = jen test bez záznamu; jinak `templateId`+`listId` → rozešle všem příjemcům s e-mailem, dedup dle e-mailu, personalizace `{{jmeno}}`/`{{email}}`/`{{odkaz}}` — `{{odkaz}}` je v kampaních prázdné, plní se jen při odeslání jedné šablony z detailu klienta, viz `previewEmails`). `GET /api/marketing/campaigns/[id]` = detail + agregované statistiky + příjemci.
 - **Statistiky:** webhook `/api/webhooks/resend` aktualizuje `campaignEmails.status` dle `resendId` (opened/clicked/…); přehled i detail počítají otevření/prokliky agregací z `campaignEmails` (bez čítačů).
 - **UI:** tab „Kampaně" + `/email-marketing/campaigns/new` (výběr šablony+seznamu, náhled, test, odeslání) a `/email-marketing/campaigns/[id]` (statistiky + příjemci).
 - Odesílá se po dávkách přímo v route handleru (MVP) — u velmi velkých seznamů zvážit frontu/batch API.
@@ -494,6 +494,29 @@ Odeslané e-maily s předáním hotové vizitky klientovi — stav doručení p�
 ```
 
 Webhook `POST /api/webhooks/resend` hledá `resendId` v `outreachEmails` i `deliveryEmails`. U delivery loguje aktivitu na klienta (otevřel vizitku / kliknul / nedoručitelné).
+
+### `previewEmails`
+Odeslané e-maily s **náhledem vizitky ke schválení** — z detailu klienta se pošle vybraná email-marketingová šablona (`emailTemplates`) s proměnným odkazem na náhled (Vercel preview). Stav doručení přes stejný Resend webhook. Na rozdíl od `deliveryEmails` (předání hotové live vizitky) jde o fázi PŘED schválením; odkaz je pro každé odeslání jiný a nezveřejněný.
+
+```ts
+{
+  clientId: string
+  templateId: string           // která emailTemplates šablona
+  templateName: string
+  toEmail: string
+  senderUid: string
+  resendId: string             // ID z Resend API — klíč pro webhook párování
+  subject: string
+  odkaz?: string               // odkaz na náhled (nahradí {{odkaz}} v šabloně)
+  status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  sentAt: Timestamp
+  lastEventAt: Timestamp | null
+}
+```
+
+- **Odeslání:** akce `send_marketing_email` na `POST /api/clients/[id]` `{ templateId, odkaz, greeting }`. Šablona se personalizuje `{{jmeno}}`/`{{email}}`/`{{odkaz}}` a posílá se **transakčně** (`sendTransactionalEmail`, plain-text přes `htmlToText`) — bez marketingové odhlašovací patičky (jde o 1:1 e-mail klientovi o jeho vlastní vizitce). Jen `admin`/`member`.
+- **UI:** tlačítko „Poslat e-mail" v detailu klienta (`components/clients/marketing-email-dialog.tsx`) — výběr šablony, pole na odkaz (předvyplněné z `instance.deployUrl`), náhled v sandboxovaném `<iframe>`.
+- Webhook `findEmailByResendId` hledá `resendId` i v `previewEmails`; eventy loguje aktivitu na klienta (otevřel náhled / kliknul / nedoručitelné).
 
 ### `invoiceEmails`
 Odeslané faktury e-mailem klientovi — stav doručení přes stejný Resend webhook (fáze 31A). E-mail posílá CRM (ne Fakturoid), aby fungoval tracking otevření/kliknutí.

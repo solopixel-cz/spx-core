@@ -2,6 +2,18 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-21 — Poslat email-marketingovou šablonu z detailu klienta (náhled vizitky ke schválení)
+
+**Cíl:** V detailu klienta poslat vybranou `emailTemplates` šablonu jednomu klientovi s proměnným odkazem na náhled vizitky (Vercel preview) — primárně ke schválení hotové vizitky.
+
+- **Personalizace** (`lib/marketing/personalize.ts`): přidán placeholder `{{odkaz}}` (`TemplateVars.odkaz?`, `personalizeTemplate`, `TEMPLATE_PLACEHOLDERS`, `SAMPLE_VARS`). V kampaních zůstává prázdný.
+- **API** (`app/api/clients/[id]/route.ts`): nová akce `send_marketing_email` `{ templateId, odkaz, greeting }` — načte šablonu, personalizuje `{{jmeno}}`/`{{email}}`/`{{odkaz}}`, pošle **transakčně** (bez marketingové odhlašovací patičky, plain-text přes `htmlToText`), zapíše `previewEmails` + aktivitu. Sender blok sjednocen pro obě akce. Jen admin/member.
+- **Nová kolekce `previewEmails`** — tracking náhledových e-mailů (viz `data-model.md`).
+- **Webhook** (`app/api/webhooks/resend/route.ts`): `findEmailByResendId` hledá i v `previewEmails`; eventy loguje na klienta (otevřel náhled / kliknul / nedoručitelné, vč. false-bounce logiky).
+- **UI:** `components/clients/marketing-email-dialog.tsx` — dialog „Poslat e-mail" (výběr šablony, odkaz předvyplněný z `instance.deployUrl`, náhled v sandbox `<iframe>`, validace URL a povinného odkazu když šablona `{{odkaz}}` používá). Zapojeno v `client-detail-client.tsx`; `page.tsx` dotahuje seznam šablon (jen non-sales).
+- **Šablona:** `scripts/seed-preview-template.ts` — idempotentní seed „Vizitka k náhledu — ke schválení" do `emailTemplates` (pevné doc ID, `{{jmeno}}`/`{{odkaz}}`, SoloPixel branding). Spouští uživatel proti reálnému Firebase.
+- Verze 1.3.0 → **1.4.0** (feat). Lint + build čisté. **Zbývá:** spustit seed skript + ověřit odeslání v prohlížeči.
+
 ## 2026-08-12 — ✅ Domény klienta + oprava cache/refreshe
 
 **Oprava cache/refreshe (service worker):**
