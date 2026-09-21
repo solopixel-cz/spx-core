@@ -7,6 +7,8 @@ import { clientFormSchema } from "@/lib/schemas/client";
 import { logActivity } from "@/lib/activity";
 import { renderSubject, sendTransactionalEmail } from "@/lib/email";
 import { renderDeliveryEmail, DEFAULT_DELIVERY_SUBJECT } from "@/lib/email-templates/delivery";
+import { personalizeTemplate, firstName } from "@/lib/marketing/personalize";
+import { htmlToText } from "@/lib/marketing/compose";
 
 // GET /api/clients/[id]
 export async function GET(
@@ -122,7 +124,7 @@ export async function POST(
     const body = await request.json();
     const action = body.action as string;
 
-    if (action !== "send_card") {
+    if (action !== "send_card" && action !== "send_marketing_email") {
       return NextResponse.json({ error: "Neznámá akce" }, { status: 400 });
     }
 
@@ -144,6 +146,80 @@ export async function POST(
       return NextResponse.json({ error: "Klient nemá e-mail" }, { status: 400 });
     }
 
+    // Get sender info (sdílené pro obě akce)
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    const userData = userDoc.data();
+    const senderName =
+      (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
+    const senderEmail = (userData?.senderEmail as string) || user.email;
+
+    // ── Akce: poslat email-marketingovou šablonu klientovi (např. náhled vizitky ke schválení) ──
+    if (action === "send_marketing_email") {
+      const templateId = (body.templateId as string | undefined)?.trim();
+      const odkaz = (body.odkaz as string | undefined)?.trim() || "";
+      const greeting = (body.greeting as string | undefined)?.trim();
+
+      if (!templateId) {
+        return NextResponse.json({ error: "Vyberte šablonu" }, { status: 400 });
+      }
+      if (odkaz && !/^https?:\/\//i.test(odkaz)) {
+        return NextResponse.json({ error: "Odkaz musí být platná URL (http/https)" }, { status: 400 });
+      }
+
+      const tplDoc = await db.collection("emailTemplates").doc(templateId).get();
+      if (!tplDoc.exists || tplDoc.data()?.deletedAt) {
+        return NextResponse.json({ error: "Šablona nenalezena" }, { status: 404 });
+      }
+      const tpl = tplDoc.data()!;
+      const tplName = tpl.name as string;
+      const tplHtml = (tpl.html as string) ?? "";
+      const tplSubject = (tpl.subject as string) || tplName || "SoloPixel";
+
+      // Personalizace {{jmeno}}/{{email}}/{{odkaz}} — transakčně (bez marketingové patičky).
+      const jmeno = greeting || firstName(clientData.name as string);
+      const vars = { jmeno, email: clientData.email as string, odkaz };
+      const renderedSubject = personalizeTemplate(tplSubject, vars);
+      const html = personalizeTemplate(tplHtml, vars);
+      const text = htmlToText(html);
+
+      const result = await sendTransactionalEmail({
+        to: clientData.email,
+        senderName,
+        senderEmail,
+        subject: renderedSubject,
+        html,
+        text,
+      });
+
+      await db.collection("previewEmails").add({
+        clientId: id,
+        templateId,
+        templateName: tplName,
+        toEmail: clientData.email,
+        senderUid: user.uid,
+        resendId: result?.id || "",
+        subject: renderedSubject,
+        odkaz: odkaz || null,
+        status: "sent",
+        sentAt: FieldValue.serverTimestamp(),
+        lastEventAt: null,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdBy: user.uid,
+      });
+
+      await logActivity({
+        entityType: "client",
+        entityId: id,
+        kind: "email",
+        text: `Odeslán e-mail „${tplName}" na ${clientData.email}`,
+        actorUid: user.uid,
+      });
+
+      return NextResponse.json({ status: "ok" });
+    }
+
+    // ── Akce: send_card (předání hotové vizitky) ──
     // Resolve instance
     const instanceId = body.instanceId as string | undefined;
     let instance: { id: string; domain: string; status: string };
@@ -174,12 +250,6 @@ export async function POST(
     // Load subject template
     const templateDoc = await db.collection("templates").doc("delivery-email").get();
     const subjectTemplate = (templateDoc.data()?.subject as string) || DEFAULT_DELIVERY_SUBJECT;
-
-    // Get sender info
-    const userDoc = await db.collection("users").doc(user.uid).get();
-    const userData = userDoc.data();
-    const senderName = (userData?.senderName as string) || (userData?.displayName as string) || "SoloPixel";
-    const senderEmail = (userData?.senderEmail as string) || user.email;
 
     // Render and send
     const greeting = body.greeting as string | undefined;
