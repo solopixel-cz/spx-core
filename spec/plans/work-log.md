@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-22 — Ochrana proti omylnému odeslání (formulář podkladů, předání vizitky)
+
+**Problém:** Tlačítka odesílající e-mail v detailu klienta šla omylem odeslat na jeden klik (zejména „Poslat znovu" u formuláře podkladů odeslalo hned, bez potvrzení) → náhodné duplicitní odeslání.
+
+- **`card-form-button.tsx`:** odeslání (i „Poslat znovu") nově jen přes **potvrzovací modál** — klik na lištové tlačítko sám o sobě nic neodešle. U opětovného odeslání amber varování, že formulář už byl poslán. Rozlišené texty první odeslání vs. znovu.
+- **Pojistka proti dvojkliku:** `inFlight` ref (ne jen `disabled` state, který se aktualizuje až při re-renderu) v `card-form-button.tsx`, `delivery-dialog.tsx` i `marketing-email-dialog.tsx` — druhý (i rychlý) klik na „Odeslat" se ignoruje, dokud request běží.
+- `delivery-dialog.tsx` už byl za modálem + potvrzení opětovného předání; doplněna jen dvojklik-pojistka.
+- Verze 1.4.0 → **1.4.1** (fix). Lint + build čisté.
+
 ## 2026-09-21 — Poslat email-marketingovou šablonu z detailu klienta (náhled vizitky ke schválení)
 
 **Cíl:** V detailu klienta poslat vybranou `emailTemplates` šablonu jednomu klientovi s proměnným odkazem na náhled vizitky (Vercel preview) — primárně ke schválení hotové vizitky.
