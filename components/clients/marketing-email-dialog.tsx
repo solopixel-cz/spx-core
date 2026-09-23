@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export function MarketingEmailDialog({
   const [odkaz, setOdkaz] = useState(defaultLink);
   const [greeting, setGreeting] = useState(firstName(clientName));
   const [sending, setSending] = useState(false);
+  const inFlight = useRef(false);
 
   // HTML vybrané šablony se dotahuje on-demand kvůli náhledu.
   const [templateHtml, setTemplateHtml] = useState("");
@@ -116,6 +117,8 @@ export function MarketingEmailDialog({
     !loadingHtml;
 
   async function handleSend() {
+    if (inFlight.current) return; // pojistka proti dvojkliku (i rychlému, před re-renderem)
+    inFlight.current = true;
     setSending(true);
     try {
       const res = await fetch(`/api/clients/${clientId}`, {
@@ -139,6 +142,7 @@ export function MarketingEmailDialog({
     } catch {
       toast.error("Nepodařilo se odeslat e-mail");
     } finally {
+      inFlight.current = false;
       setSending(false);
     }
   }
