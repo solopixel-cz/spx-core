@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ export function DeliveryDialog({
   const [setInstanceLive, setSetInstanceLive] = useState(true);
   const [sending, setSending] = useState(false);
   const [confirmed, setConfirmed] = useState(!lastDelivery);
+  const inFlight = useRef(false);
 
   const selectedInstance = instances.find((i) => i.id === selectedInstanceId);
   const odkaz = selectedInstance ? `https://${selectedInstance.domain}` : "";
@@ -74,6 +75,8 @@ export function DeliveryDialog({
       return;
     }
 
+    if (inFlight.current) return; // pojistka proti dvojkliku (i rychlému, před re-renderem)
+    inFlight.current = true;
     setSending(true);
     try {
       const res = await fetch(`/api/clients/${clientId}`, {
@@ -99,6 +102,7 @@ export function DeliveryDialog({
     } catch {
       toast.error("Nepodařilo se odeslat e-mail");
     } finally {
+      inFlight.current = false;
       setSending(false);
     }
   }

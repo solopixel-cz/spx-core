@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Copy, Send } from "lucide-react";
+import { Copy, Send, Loader2 } from "lucide-react";
 import { buildCardFormUrl } from "@/lib/card-form-url";
 
 export function CardFormButton({
@@ -26,6 +26,10 @@ export function CardFormButton({
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [existingToken, setExistingToken] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const inFlight = useRef(false);
+
+  const isResend = !!existingToken;
 
   useEffect(() => {
     fetch(`/api/card-tokens?clientId=${clientId}`)
@@ -38,6 +42,8 @@ export function CardFormButton({
   }, [clientId]);
 
   async function handleGenerate() {
+    if (inFlight.current) return; // pojistka proti dvojkliku (i rychlému, před re-renderem)
+    inFlight.current = true;
     setLoading(true);
     try {
       const res = await fetch("/api/card-tokens", {
@@ -57,6 +63,7 @@ export function CardFormButton({
       };
       setUrl(buildCardFormUrl(token));
       setExistingToken(token);
+      setConfirmOpen(false);
       setDialogOpen(true);
       if (emailSent) {
         toast.success(`Formulář odeslán na ${clientEmail}`);
@@ -64,12 +71,13 @@ export function CardFormButton({
         toast.warning(
           emailError
             ? `Odkaz vytvořen, ale e-mail se nepodařilo odeslat: ${emailError}`
-            : "Odkaz vytvořen, e-mail se nepodařilo odeslat — pošlete ho ručně"
+            : "Odkaz vytvořen, e-mail se nepodařilo odeslat, pošlete ho ručně"
         );
       }
     } catch {
       toast.error("Nepodařilo se vygenerovat odkaz");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }
@@ -88,6 +96,11 @@ export function CardFormButton({
     }
   }
 
+  function openConfirm() {
+    if (loading) return;
+    setConfirmOpen(true);
+  }
+
   return (
     <>
       <div className="flex gap-2">
@@ -100,24 +113,68 @@ export function CardFormButton({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleGenerate}
+            onClick={openConfirm}
             disabled={loading}
           >
             <Send className="mr-2 h-3 w-3" />
-            {loading ? "Generuji..." : "Poslat formulář podkladů"}
+            Poslat formulář podkladů
           </Button>
         )}
         {existingToken && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleGenerate}
+            onClick={openConfirm}
             disabled={loading}
           >
-            {loading ? "..." : "Poslat znovu"}
+            Poslat znovu
           </Button>
         )}
       </div>
+
+      {/* Potvrzovací modál — klik na lištové tlačítko sám o sobě nic neodešle */}
+      <Dialog open={confirmOpen} onOpenChange={(o) => !loading && setConfirmOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isResend ? "Poslat formulář znovu?" : "Odeslat formulář podkladů?"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {isResend && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-700 dark:bg-amber-950">
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  Formulář už byl tomuto klientovi odeslán.
+                </p>
+                <p className="mt-1 text-amber-700 dark:text-amber-400">
+                  Opětovné odeslání vytvoří nový odkaz a pošle další e-mail.
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground">
+              E-mail s odkazem na formulář podkladů se odešle na{" "}
+              <span className="font-medium text-foreground">{clientEmail}</span>.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmOpen(false)}
+                disabled={loading}
+              >
+                Zrušit
+              </Button>
+              <Button onClick={handleGenerate} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                {loading ? "Odesílám..." : isResend ? "Poslat znovu" : "Odeslat"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
