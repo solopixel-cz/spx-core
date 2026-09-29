@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { archivedQuery, isArchiveView, type ArchiveSearchParams } from "@/lib/archive-view";
 import { ProspektiPageClient } from "@/components/prospects/prospects-page-client";
 
 function serializeTimestamp(val: unknown): string | null {
@@ -10,16 +11,19 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-export default async function ProspektiPage() {
+export default async function ProspektiPage({ searchParams }: { searchParams: ArchiveSearchParams }) {
   const user = await requireAuth();
   const db = getAdminFirestore();
+  const archived = await isArchiveView(searchParams, user.role);
 
   const pageLimit = 50;
   const [prospectsSnap, usersSnap, emailsSnap, callsSnap] = await Promise.all([
-    db.collection("prospects")
-      .orderBy("createdAt", "desc")
-      .limit(pageLimit * 2)
-      .get(),
+    archived
+      ? archivedQuery(db, "prospects").get() // archiv bez stránkování
+      : db.collection("prospects")
+          .orderBy("createdAt", "desc")
+          .limit(pageLimit * 2)
+          .get(),
     db.collection("users").get(),
     db.collection("outreachEmails").get(),
     db.collection("activity")
@@ -48,9 +52,9 @@ export default async function ProspektiPage() {
     calledProspectIds.add(doc.data().entityId as string);
   });
 
-  const nonDeletedDocs = prospectsSnap.docs.filter((d) => !d.data().deletedAt);
-  const prospectDocs = nonDeletedDocs.slice(0, pageLimit);
-  const initialHasMore = nonDeletedDocs.length > pageLimit;
+  const listDocs = prospectsSnap.docs.filter((d) => !!d.data().deletedAt === archived);
+  const prospectDocs = archived ? listDocs : listDocs.slice(0, pageLimit);
+  const initialHasMore = !archived && listDocs.length > pageLimit;
 
   const prospects = prospectDocs.map((doc) => {
     const d = doc.data();
@@ -76,8 +80,11 @@ export default async function ProspektiPage() {
       wasCalled: !!d.wasCalled || calledProspectIds.has(doc.id),
       createdAt: serializeTimestamp(d.createdAt),
       updatedAt: serializeTimestamp(d.updatedAt),
+      deletedAt: serializeTimestamp(d.deletedAt),
     };
   });
+
+  if (archived) prospects.sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
 
   const users = usersSnap.docs.map((doc) => ({
     id: doc.id,
@@ -92,6 +99,7 @@ export default async function ProspektiPage() {
       users={users}
       currentUid={user.uid}
       userRole={user.role}
+      archived={archived}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,13 @@ import {
   EntityCardList,
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
+import { ArchiveNotice, ArchiveToggle } from "@/components/archive-toggle";
+import {
+  BulkArchiveBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+} from "@/components/bulk-archive-bar";
+import { useRowSelection } from "@/lib/hooks/use-row-selection";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
 import type { OutreachContent } from "@/lib/email-templates/outreach-content";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -60,6 +67,7 @@ export interface ProspectRow {
   wasCalled: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  deletedAt?: string | null;
   outreachContent?: OutreachContent | null;
 }
 
@@ -84,12 +92,15 @@ export function ProspektiPageClient({
   users,
   currentUid,
   userRole,
+  archived = false,
 }: {
   initialProspects: ProspectRow[];
   initialHasMore?: boolean;
   users: UserOption[];
   currentUid: string;
   userRole: string;
+  /** Tabulka archivovaných kontaktů (`?archived=1`) — detail archivovaného kontaktu neexistuje, řádky se neotevírají. */
+  archived?: boolean;
 }) {
   const router = useRouter();
   const [prospects, setProspects] = useState(initialProspects);
@@ -205,6 +216,8 @@ export function ProspektiPageClient({
   }
 
   const isAdminOrMember = userRole === "admin" || userRole === "member";
+  const visibleIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
+  const selection = useRowSelection(visibleIds, archived ? "prospects:archive" : "prospects");
 
   // Collect unique cities for filter
   const cities = [...new Set(prospects.map((p) => p.city).filter(Boolean))] as string[];
@@ -217,24 +230,30 @@ export function ProspektiPageClient({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Oslovení"
+        title={archived ? "Archiv oslovení" : "Oslovení"}
         action={
           <div className="flex gap-2">
-            {isAdminOrMember && (
+            {isAdminOrMember && <ArchiveToggle archived={archived} />}
+            {isAdminOrMember && !archived && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 CSV Import
               </Button>
             )}
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Přidat kontakt
-            </Button>
+            {!archived && (
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Přidat kontakt
+              </Button>
+            )}
           </div>
         }
       />
 
+      {archived && <ArchiveNotice count={prospects.length} />}
+
       {/* Tabs */}
+      {!archived && (
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="free">Volní</TabsTrigger>
@@ -242,6 +261,7 @@ export function ProspektiPageClient({
           <TabsTrigger value="all">Všichni</TabsTrigger>
         </TabsList>
       </Tabs>
+      )}
 
       {/* Filters */}
       <FilterBar>
@@ -325,7 +345,7 @@ export function ProspektiPageClient({
       {/* Mobil: karty */}
       <EntityCardList>
         {filtered.length === 0 ? (
-          <EntityCardEmpty>Žádné kontakty k oslovení</EntityCardEmpty>
+          <EntityCardEmpty>{archived ? "Archiv je prázdný" : "Žádné kontakty k oslovení"}</EntityCardEmpty>
         ) : (
           filtered.map((prospect) => {
             const owner = users.find((u) => u.id === prospect.ownerUid);
@@ -333,6 +353,7 @@ export function ProspektiPageClient({
               prospect.nextFollowUpAt &&
               new Date(prospect.nextFollowUpAt) < new Date();
             const canClaim =
+              !archived &&
               !prospect.ownerUid &&
               !["converted", "not_interested", "unreachable"].includes(
                 prospect.status
@@ -341,7 +362,8 @@ export function ProspektiPageClient({
             return (
               <EntityCard
                 key={prospect.id}
-                onClick={() => router.push(`/prospects/${prospect.id}`)}
+                onClick={archived ? undefined : () => router.push(`/prospects/${prospect.id}`)}
+                leading={isAdminOrMember ? <RowCheckbox selection={selection} id={prospect.id} /> : undefined}
                 title={prospect.name}
                 badge={<StatusBadge map={prospectStatus} value={prospect.status} />}
                 subtitle={[prospect.company, prospect.city, prospect.category]
@@ -413,6 +435,11 @@ export function ProspektiPageClient({
         <Table>
           <TableHeader>
             <TableRow>
+              {isAdminOrMember && (
+                <TableHead className="w-12">
+                  <SelectAllCheckbox selection={selection} />
+                </TableHead>
+              )}
               <TableHead>Jméno</TableHead>
               <TableHead>Firma</TableHead>
               <TableHead>Město</TableHead>
@@ -422,7 +449,7 @@ export function ProspektiPageClient({
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead>Vlastník</TableHead>
-              <TableHead>Poslední kontakt</TableHead>
+              <TableHead>{archived ? "Archivováno" : "Poslední kontakt"}</TableHead>
               <TableHead>Follow-up</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>
@@ -430,7 +457,7 @@ export function ProspektiPageClient({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground">
+                <TableCell colSpan={isAdminOrMember ? 13 : 12} className="text-center text-muted-foreground">
                   Žádné kontakty k oslovení
                 </TableCell>
               </TableRow>
@@ -442,14 +469,27 @@ export function ProspektiPageClient({
                   new Date(prospect.nextFollowUpAt) < new Date();
 
                 return (
-                  <TableRow key={prospect.id} href={`/prospects/${prospect.id}`}>
+                  <TableRow
+                    key={prospect.id}
+                    href={archived ? undefined : `/prospects/${prospect.id}`}
+                    data-state={selection.isSelected(prospect.id) ? "selected" : undefined}
+                  >
+                    {isAdminOrMember && (
+                      <TableCell>
+                        <RowCheckbox selection={selection} id={prospect.id} />
+                      </TableCell>
+                    )}
                     <TableCell>
-                      <Link
-                        href={`/prospects/${prospect.id}`}
-                        className="font-medium hover:underline text-left"
-                      >
-                        {prospect.name}
-                      </Link>
+                      {archived ? (
+                        <span className="font-medium">{prospect.name}</span>
+                      ) : (
+                        <Link
+                          href={`/prospects/${prospect.id}`}
+                          className="font-medium hover:underline text-left"
+                        >
+                          {prospect.name}
+                        </Link>
+                      )}
                     </TableCell>
                     <TableCell>{prospect.company || "—"}</TableCell>
                     <TableCell>{prospect.city || "—"}</TableCell>
@@ -493,14 +533,14 @@ export function ProspektiPageClient({
                       )}
                     </TableCell>
                     <TableCell>{owner?.displayName ?? "—"}</TableCell>
-                    <TableCell>{formatDateTime(prospect.lastTouchAt)}</TableCell>
+                    <TableCell>{formatDateTime(archived ? prospect.deletedAt ?? null : prospect.lastTouchAt)}</TableCell>
                     <TableCell>
                       <span className={isFollowUpOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
                         {formatDate(prospect.nextFollowUpAt)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {!prospect.ownerUid && !["converted", "not_interested", "unreachable"].includes(prospect.status) && (
+                      {!archived && !prospect.ownerUid && !["converted", "not_interested", "unreachable"].includes(prospect.status) && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -519,6 +559,16 @@ export function ProspektiPageClient({
           </TableBody>
         </Table>
       </div>
+
+      {isAdminOrMember && (
+        <BulkArchiveBar
+          collection="prospects"
+          selection={selection}
+          noun={["kontakt", "kontakty", "kontaktů"]}
+          mode={archived ? "restore" : "archive"}
+          onDone={(ids) => setProspects((prev) => prev.filter((p) => !ids.includes(p.id)))}
+        />
+      )}
 
       {/* Load more */}
       {hasMore && (

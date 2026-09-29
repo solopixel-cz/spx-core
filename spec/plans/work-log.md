@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-29 — Hromadná archivace v tabulkách + klienti řazení podle platby
+
+Větev `feature/progress` (odbočená z `feat/email-marketing`). Rozpracovaná fáze 33 odložena na lokální větev `wip/33-routovani-bez-modalu`.
+
+- **API** (`app/api/archive/route.ts`): `archive` / `restore` nově přijímají `ids: string[]` (max 200) → `{ done, failed, cascaded }`. Zpracování sekvenčně (kaskáda klienta). Jednotlivé `id` zachovává původní chování (chyba = 400).
+- **Sdílené:** `lib/hooks/use-row-selection.ts` (výběr jen z viditelných řádků), `components/bulk-archive-bar.tsx` (plovoucí lišta „Vybráno: N · Archivovat", inline potvrzení bez modálu, toast „Vrátit zpět" + `SelectAllCheckbox` / `RowCheckbox`), `Checkbox` umí `indeterminate` a má `type="button"`, `EntityCard` má slot `leading` pro zaškrtávátko na mobilu.
+- **Multiselect zapojen** do tabulek s archivací: klienti, leady (tabulkový pohled), tickety, oslovení. Jen admin/member (sales nemá archivaci). Leady a tickety: klik na celý řádek otevře detail (`onRowClick`), aby klik na checkbox neotevíral sheet.
+- **Klienti:** hromadná archivace **bez Undo** (kaskáda zruší předplatné a instance; obnova klienta je nevrací) — potvrzení s varováním.
+- **Klienti — platící první:** `page.tsx` dotahuje `subscriptions` → `billing: paying | internal | none` (paying = nezrušené a ne `internal`). Přepínač **Platící (výchozí) / Neplatící / Všichni** (pamatuje se v sessionStorage), nový sloupec **Paušál** (tarif · cena/měs, „Interní"). Řazení: platící → interní → bez předplatného, uvnitř aktivní první.
+- **Archiv v tabulkách:** klienti, leady, tickety i oslovení mají přepínač **Archiv** (`?archived=1`, jen admin/member) → tabulka archivovaných (nejnověji archivované první, sloupec „Archivováno"), hromadná lišta v režimu **Obnovit**. Server: `lib/archive-view.ts` (`isArchiveView`, `archivedQuery` = `where("deletedAt", "!=", null)`, bez složeného indexu). Komponenty `components/archive-toggle.tsx` (`ArchiveToggle`, `ArchiveNotice`). V archivu se skrývá vytváření/import/zabrání; řádky leadů, ticketů a oslovení se neotevírají (detail archivovaného oslovení vrací 404), klient se otevírá (detail má banner archivace). Oslovení v archivu bez stránkování. Trvalé mazání zůstává v Nastavení → Archiv.
+- **Výběr přežije detail:** `useRowSelection(visibleIds, storageKey)` drží výběr v sessionStorage (`selection:<kolekce>[:archive]`), po návratu z detailu je výběr zpět.
+- **Klikací plocha:** `RowCheckbox` / `SelectAllCheckbox` obalené `CheckboxHitArea` (min. 44×44 px, vyplní padding buňky, `data-no-row-nav`) — klik vedle zaškrtávátka přepne výběr, neotevře detail. Sloupec výběru `w-12`.
+- Verze 1.4.1 → **1.5.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
 ## 2026-09-22 — Ochrana proti omylnému odeslání (formulář podkladů, předání vizitky)
 
 **Problém:** Tlačítka odesílající e-mail v detailu klienta šla omylem odeslat na jeden klik (zejména „Poslat znovu" u formuláře podkladů odeslalo hned, bez potvrzení) → náhodné duplicitní odeslání.

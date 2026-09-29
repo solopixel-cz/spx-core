@@ -10,6 +10,7 @@ import { LeadFormDialog } from "./lead-form-dialog";
 import { KanbanBoard } from "./kanban-board";
 import { LeadsTable } from "./leads-table";
 import { LeadDetailSheet } from "./lead-detail-sheet";
+import { ArchiveNotice, ArchiveToggle } from "@/components/archive-toggle";
 
 export interface LeadRow {
   id: string;
@@ -25,6 +26,7 @@ export interface LeadRow {
   notes?: string;
   createdAt: string | null;
   updatedAt: string | null;
+  deletedAt?: string | null;
 }
 
 export interface UserOption {
@@ -63,10 +65,15 @@ export function LeadsPageClient({
   leads: initialLeads,
   users,
   currentUid,
+  canArchive = false,
+  archived = false,
 }: {
   leads: LeadRow[];
   users: UserOption[];
   currentUid: string;
+  canArchive?: boolean;
+  /** Tabulka archivovaných leadů (`?archived=1`). */
+  archived?: boolean;
 }) {
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
@@ -107,7 +114,10 @@ export function LeadsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Leady</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{archived ? "Archiv leadů" : "Leady"}</h1>
+        <div className="flex items-center gap-2">
+        {canArchive && <ArchiveToggle archived={archived} />}
+        {!archived && (
         <LeadFormDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
@@ -124,8 +134,22 @@ export function LeadsPageClient({
             </Button>
           }
         />
+        )}
+        </div>
       </div>
 
+      {archived ? (
+        <>
+          <ArchiveNotice count={leads.length} />
+          <LeadsTable
+            leads={leads}
+            users={users}
+            canArchive={canArchive}
+            archived
+            onRowsRemoved={(ids) => setLeads((prev) => prev.filter((l) => !ids.includes(l.id)))}
+          />
+        </>
+      ) : (
       <Tabs defaultValue="kanban">
         <TabsList>
           <TabsTrigger value="kanban">
@@ -154,9 +178,12 @@ export function LeadsPageClient({
             leads={leads}
             users={users}
             onLeadClick={setSelectedLead}
+            canArchive={canArchive}
+            onRowsRemoved={(ids) => setLeads((prev) => prev.filter((l) => !ids.includes(l.id)))}
           />
         </TabsContent>
       </Tabs>
+      )}
 
       <LeadDetailSheet
         lead={selectedLead}

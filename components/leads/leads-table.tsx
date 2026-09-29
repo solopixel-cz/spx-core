@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -33,6 +33,12 @@ import {
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
 import {
+  BulkArchiveBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+} from "@/components/bulk-archive-bar";
+import { useRowSelection } from "@/lib/hooks/use-row-selection";
+import {
   stageLabels,
   sourceLabels,
   type LeadRow,
@@ -56,25 +62,35 @@ export function LeadsTable({
   leads,
   users,
   onLeadClick,
+  canArchive = false,
+  onRowsRemoved,
+  archived = false,
 }: {
   leads: LeadRow[];
   users: UserOption[];
-  onLeadClick: (lead: LeadRow) => void;
+  /** Bez handleru (archiv) řádky detail neotevírají. */
+  onLeadClick?: (lead: LeadRow) => void;
+  canArchive?: boolean;
+  onRowsRemoved?: (ids: string[]) => void;
+  archived?: boolean;
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-  const columns = [
+  const dataColumns = [
     columnHelper.accessor("name", {
       header: "Jméno",
-      cell: (info) => (
-        <button
-          onClick={() => onLeadClick(info.row.original)}
-          className="font-medium hover:underline text-left"
-        >
-          {info.getValue()}
-        </button>
-      ),
+      cell: (info) =>
+        onLeadClick ? (
+          <button
+            onClick={() => onLeadClick(info.row.original)}
+            className="font-medium hover:underline text-left"
+          >
+            {info.getValue()}
+          </button>
+        ) : (
+          <span className="font-medium">{info.getValue()}</span>
+        ),
     }),
     columnHelper.accessor("company", {
       header: "Firma",
@@ -113,6 +129,17 @@ export function LeadsTable({
       },
       filterFn: (row, _col, val) => !val || val === "all" || row.original.ownerUid === val,
     }),
+    ...(archived
+      ? [
+          columnHelper.accessor("deletedAt", {
+            header: "Archivováno",
+            cell: (info) => {
+              const val = info.getValue();
+              return val ? new Date(val).toLocaleDateString("cs-CZ") : "—";
+            },
+          }),
+        ]
+      : []),
     columnHelper.accessor("updatedAt", {
       header: "Aktualizováno",
       cell: (info) => {
@@ -121,6 +148,17 @@ export function LeadsTable({
       },
     }),
   ];
+
+  const columns = canArchive
+    ? [
+        columnHelper.display({
+          id: "select",
+          header: () => <SelectAllCheckbox selection={selection} />,
+          cell: (info) => <RowCheckbox selection={selection} id={info.row.original.id} />,
+        }),
+        ...dataColumns,
+      ]
+    : dataColumns;
 
   const table = useReactTable({
     data: leads,
@@ -131,6 +169,10 @@ export function LeadsTable({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+
+  const rows = table.getRowModel().rows;
+  const visibleIds = useMemo(() => rows.map((r) => r.original.id), [rows]);
+  const selection = useRowSelection(visibleIds, archived ? "leads:archive" : "leads");
 
   return (
     <div className="space-y-4">
@@ -185,16 +227,17 @@ export function LeadsTable({
 
       {/* Mobil: karty */}
       <EntityCardList>
-        {table.getRowModel().rows.length === 0 ? (
-          <EntityCardEmpty>Žádné leady</EntityCardEmpty>
+        {rows.length === 0 ? (
+          <EntityCardEmpty>{archived ? "Archiv je prázdný" : "Žádné leady"}</EntityCardEmpty>
         ) : (
-          table.getRowModel().rows.map((row) => {
+          rows.map((row) => {
             const lead = row.original;
             const owner = users.find((u) => u.id === lead.ownerUid);
             return (
               <EntityCard
                 key={lead.id}
-                onClick={() => onLeadClick(lead)}
+                onClick={onLeadClick ? () => onLeadClick(lead) : undefined}
+                leading={canArchive ? <RowCheckbox selection={selection} id={lead.id} /> : undefined}
                 title={lead.name}
                 badge={
                   <Badge variant={stageVariants[lead.stage] ?? "secondary"}>
@@ -231,7 +274,7 @@ export function LeadsTable({
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
                 {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
+                  <TableHead key={h.id} className={h.id === "select" ? "w-12" : undefined}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
@@ -239,15 +282,19 @@ export function LeadsTable({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
+            {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
                   Žádné leady
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+              rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onRowClick={onLeadClick ? () => onLeadClick(row.original) : undefined}
+                  data-state={selection.isSelected(row.original.id) ? "selected" : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -259,6 +306,16 @@ export function LeadsTable({
           </TableBody>
         </Table>
       </div>
+
+      {canArchive && (
+        <BulkArchiveBar
+          collection="leads"
+          selection={selection}
+          noun={["lead", "leady", "leadů"]}
+          mode={archived ? "restore" : "archive"}
+          onDone={onRowsRemoved}
+        />
+      )}
     </div>
   );
 }

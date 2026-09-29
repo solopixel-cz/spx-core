@@ -70,15 +70,57 @@ export async function GET() {
   }
 }
 
+const MAX_BULK = 200;
+
+async function archiveOne(collection: string, id: string, uid: string, reason?: string) {
+  const entityType = entityTypeMap[collection];
+  if (!entityType) {
+    // instances don't have their own entityType in activity — use system
+    const db = getAdminFirestore();
+    const docRef = db.collection(collection).doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) throw new Error("Záznam nenalezen");
+
+    const { FieldValue } = await import("firebase-admin/firestore");
+    await docRef.update({
+      deletedAt: FieldValue.serverTimestamp(),
+      deletedBy: uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } else {
+    await archiveDocument(collection, id, uid, entityType, reason);
+  }
+
+  // Cascade for clients
+  return collection === "clients" ? await cascadeArchiveClient(id, uid) : [];
+}
+
+async function restoreOne(collection: string, id: string, uid: string) {
+  const entityType = entityTypeMap[collection];
+  if (!entityType) {
+    const db = getAdminFirestore();
+    const { FieldValue } = await import("firebase-admin/firestore");
+    await db.collection(collection).doc(id).update({
+      deletedAt: FieldValue.delete(),
+      deletedBy: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } else {
+    await restoreDocument(collection, id, uid, entityType);
+  }
+}
+
 // POST /api/archive — archive, restore, or permanently delete
+// `ids` (pole) = hromadná archivace / obnova; `id` = jeden záznam.
 export async function POST(request: Request) {
   try {
     const user = await requireRole("admin", "member");
     const body = await request.json();
-    const { action, collection, id, reason } = body as {
+    const { action, collection, id, ids, reason } = body as {
       action: "archive" | "restore" | "delete";
       collection: string;
-      id: string;
+      id?: string;
+      ids?: string[];
       reason?: string;
     };
 
@@ -86,55 +128,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Neplatná kolekce" }, { status: 400 });
     }
 
-    if (action === "archive") {
-      const entityType = entityTypeMap[collection];
-      if (!entityType) {
-        // instances don't have their own entityType in activity — use system
-        const db = getAdminFirestore();
-        const docRef = db.collection(collection).doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return NextResponse.json({ error: "Záznam nenalezen" }, { status: 404 });
-
-        const { FieldValue } = await import("firebase-admin/firestore");
-        await docRef.update({
-          deletedAt: FieldValue.serverTimestamp(),
-          deletedBy: user.uid,
-          updatedAt: FieldValue.serverTimestamp(),
-        });
-      } else {
-        await archiveDocument(collection, id, user.uid, entityType, reason);
+    if (action === "archive" || action === "restore") {
+      const bulk = Array.isArray(ids);
+      const targets = bulk ? ids : id ? [id] : [];
+      if (targets.length === 0) {
+        return NextResponse.json({ error: "Chybí záznam" }, { status: 400 });
+      }
+      if (targets.length > MAX_BULK) {
+        return NextResponse.json({ error: `Najednou lze zpracovat max. ${MAX_BULK} záznamů` }, { status: 400 });
       }
 
-      // Cascade for clients
-      let cascaded: string[] = [];
-      if (collection === "clients") {
-        cascaded = await cascadeArchiveClient(id, user.uid);
+      const done: string[] = [];
+      const failed: Array<{ id: string; error: string }> = [];
+      const cascaded: string[] = [];
+
+      // Sekvenčně — kaskáda klienta zapisuje do dalších kolekcí.
+      for (const targetId of targets) {
+        try {
+          if (action === "archive") {
+            cascaded.push(...(await archiveOne(collection, targetId, user.uid, reason)));
+          } else {
+            await restoreOne(collection, targetId, user.uid);
+          }
+          done.push(targetId);
+        } catch (err) {
+          failed.push({ id: targetId, error: err instanceof Error ? err.message : "Chyba" });
+        }
       }
 
       revalidatePath("/prospects");
       revalidatePath("/clients");
-      return NextResponse.json({ status: "ok", cascaded });
-    }
+      revalidatePath("/leads");
+      revalidatePath("/tickets");
 
-    if (action === "restore") {
-      const entityType = entityTypeMap[collection];
-      if (!entityType) {
-        const db = getAdminFirestore();
-        const { FieldValue } = await import("firebase-admin/firestore");
-        await db.collection(collection).doc(id).update({
-          deletedAt: FieldValue.delete(),
-          deletedBy: FieldValue.delete(),
-          updatedAt: FieldValue.serverTimestamp(),
-        });
-      } else {
-        await restoreDocument(collection, id, user.uid, entityType);
+      // Jeden záznam (`id`) — původní chování: chyba = 400.
+      if (!bulk && failed.length > 0) {
+        return NextResponse.json({ error: failed[0].error }, { status: 400 });
       }
-      revalidatePath("/prospects");
-      revalidatePath("/clients");
-      return NextResponse.json({ status: "ok" });
+      return NextResponse.json({ status: "ok", done, failed, cascaded });
     }
 
     if (action === "delete") {
+      if (!id) return NextResponse.json({ error: "Chybí záznam" }, { status: 400 });
       // Only admin can permanently delete
       if (user.role !== "admin") {
         return NextResponse.json({ error: "Jen administrátor může trvale mazat" }, { status: 403 });

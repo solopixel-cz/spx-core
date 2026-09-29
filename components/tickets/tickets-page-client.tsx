@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,6 +44,14 @@ import {
   EntityCardList,
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
+import { ArchiveNotice, ArchiveToggle } from "@/components/archive-toggle";
+import { formatDate } from "@/lib/format";
+import {
+  BulkArchiveBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+} from "@/components/bulk-archive-bar";
+import { useRowSelection } from "@/lib/hooks/use-row-selection";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 
 interface TicketRow {
@@ -58,6 +66,7 @@ interface TicketRow {
   assigneeUid?: string;
   links: string[];
   createdAt: string | null;
+  deletedAt?: string | null;
 }
 
 interface ClientOption { id: string; name: string }
@@ -86,10 +95,15 @@ export function TicketsPageClient({
   tickets,
   clients,
   users,
+  canArchive = false,
+  archived = false,
 }: {
   tickets: TicketRow[];
   clients: ClientOption[];
   users: UserOption[];
+  canArchive?: boolean;
+  /** Tabulka archivovaných ticketů (`?archived=1`). */
+  archived?: boolean;
 }) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,6 +124,8 @@ export function TicketsPageClient({
     if (clientFilter !== "all" && t.clientId !== clientFilter) return false;
     return true;
   });
+  const visibleIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
+  const selection = useRowSelection(visibleIds, archived ? "tickets:archive" : "tickets");
 
   const {
     register,
@@ -238,8 +254,11 @@ export function TicketsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Tickety</h1>
-        <Button size="sm" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Nový ticket</Button>
+        <h1 className="text-2xl font-bold tracking-tight">{archived ? "Archiv ticketů" : "Tickety"}</h1>
+        <div className="flex items-center gap-2">
+          {canArchive && <ArchiveToggle archived={archived} />}
+          {!archived && <Button size="sm" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Nový ticket</Button>}
+        </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingTicket(null); }}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader><DialogTitle>{editingTicket ? "Upravit ticket" : "Nový ticket"}</DialogTitle></DialogHeader>
@@ -348,6 +367,8 @@ export function TicketsPageClient({
         </Dialog>
       </div>
 
+      {archived && <ArchiveNotice count={tickets.length} />}
+
       <FilterBar>
         <Select items={{ all: "Všechny stavy", ...statusLabels }} value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -389,12 +410,13 @@ export function TicketsPageClient({
       {/* Mobil: karty */}
       <EntityCardList>
         {filtered.length === 0 ? (
-          <EntityCardEmpty>Žádné tickety</EntityCardEmpty>
+          <EntityCardEmpty>{archived ? "Archiv je prázdný" : "Žádné tickety"}</EntityCardEmpty>
         ) : (
           filtered.map((t) => (
             <EntityCard
               key={t.id}
-              onClick={() => setSelectedTicket(t)}
+              onClick={archived ? undefined : () => setSelectedTicket(t)}
+              leading={canArchive ? <RowCheckbox selection={selection} id={t.id} /> : undefined}
               title={t.title}
               badge={
                 <Badge variant={priorityVariants[t.priority] ?? "secondary"}>
@@ -419,32 +441,55 @@ export function TicketsPageClient({
         <Table>
           <TableHeader>
             <TableRow>
+              {canArchive && (
+                <TableHead className="w-12">
+                  <SelectAllCheckbox selection={selection} />
+                </TableHead>
+              )}
               <TableHead>Typ</TableHead>
               <TableHead>Titul</TableHead>
               <TableHead>Klient</TableHead>
               <TableHead>Priorita</TableHead>
               <TableHead>Stav</TableHead>
-              <TableHead>Stáří</TableHead>
+              <TableHead>{archived ? "Archivováno" : "Stáří"}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Žádné tickety</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canArchive ? 7 : 6} className="text-center text-muted-foreground">Žádné tickety</TableCell></TableRow>
             ) : (
               filtered.map((t) => (
-                <TableRow key={t.id} className="cursor-pointer" onClick={() => setSelectedTicket(t)}>
+                <TableRow
+                  key={t.id}
+                  onRowClick={archived ? undefined : () => setSelectedTicket(t)}
+                  data-state={selection.isSelected(t.id) ? "selected" : undefined}
+                >
+                  {canArchive && (
+                    <TableCell>
+                      <RowCheckbox selection={selection} id={t.id} />
+                    </TableCell>
+                  )}
                   <TableCell><Badge variant="outline">{typeLabels[t.type] ?? t.type}</Badge></TableCell>
                   <TableCell className="font-medium">{t.title}</TableCell>
                   <TableCell>{t.clientName}</TableCell>
                   <TableCell><Badge variant={priorityVariants[t.priority] ?? "secondary"}>{priorityLabels[t.priority] ?? t.priority}</Badge></TableCell>
                   <TableCell><Badge variant="secondary">{statusLabels[t.status] ?? t.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{getTimeSince(t.createdAt)}</TableCell>
+                  <TableCell className="text-muted-foreground">{archived ? formatDate(t.deletedAt ?? null) : getTimeSince(t.createdAt)}</TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {canArchive && (
+        <BulkArchiveBar
+          collection="tickets"
+          selection={selection}
+          noun={["ticket", "tickety", "ticketů"]}
+          mode={archived ? "restore" : "archive"}
+        />
+      )}
 
       {/* Detail sheet */}
       <Sheet open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>

@@ -42,6 +42,8 @@ interface EntityCardProps {
   /** Celá karta jako tlačítko (otevření sheetu/dialogu) */
   onClick?: () => void;
   title: React.ReactNode;
+  /** Prvek vlevo od titulku (např. zaškrtávátko pro hromadný výběr) — leží nad overlay, zůstává klikatelný */
+  leading?: React.ReactNode;
   /** Badge vpravo od titulku (stav, fáze…) */
   badge?: React.ReactNode;
   /** Druhý řádek — firma, e-mail apod. */
@@ -56,6 +58,7 @@ export function EntityCard({
   href,
   onClick,
   title,
+  leading,
   badge,
   subtitle,
   meta,
@@ -88,7 +91,10 @@ export function EntityCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 truncate font-medium leading-snug">
+        {leading && (
+          <span className="relative z-10 flex h-[1.375rem] shrink-0 items-center">{leading}</span>
+        )}
+        <span className="min-w-0 flex-1 truncate font-medium leading-snug">
           {titleNode}
         </span>
         {badge && <span className="shrink-0">{badge}</span>}

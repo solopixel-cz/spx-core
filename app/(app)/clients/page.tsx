@@ -1,27 +1,23 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { requireAuth } from "@/lib/auth";
-import { ClientsPageClient } from "@/components/clients/clients-page-client";
+import { PLANS } from "@/lib/plans";
+import { archivedQuery, byDeletedAtDesc, isArchiveView, toIso, type ArchiveSearchParams } from "@/lib/archive-view";
+import { ClientsPageClient, type ClientRow } from "@/components/clients/clients-page-client";
 
-interface ClientRow {
-  id: string;
-  name: string;
-  company?: string;
-  email: string;
-  status: string;
-  instanceCount: number;
-  updatedAt: string | null;
-}
-
-export default async function KlientiPage() {
+export default async function KlientiPage({ searchParams }: { searchParams: ArchiveSearchParams }) {
   const user = await requireAuth();
   const db = getAdminFirestore();
   const isSales = user.role === "sales";
+  const archived = await isArchiveView(searchParams, user.role);
 
-  const [clientsSnap, instancesSnap] = await Promise.all([
-    isSales
+  const [clientsSnap, instancesSnap, subsSnap] = await Promise.all([
+    archived
+      ? archivedQuery(db, "clients").get()
+      : isSales
       ? db.collection("clients").where("salesOwnerUid", "==", user.uid).orderBy("createdAt", "desc").get()
       : db.collection("clients").orderBy("createdAt", "desc").get(),
     db.collection("instances").get(),
+    db.collection("subscriptions").get(),
   ]);
 
   // Count instances per client
@@ -31,7 +27,23 @@ export default async function KlientiPage() {
     instanceCounts[clientId] = (instanceCounts[clientId] || 0) + 1;
   });
 
-  const clients: ClientRow[] = clientsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
+  // Předplatné (1:1 ke klientovi) — platící = nezrušené a ne interní.
+  const billingByClient: Record<string, Pick<ClientRow, "billing" | "planLabel" | "priceMonthly">> = {};
+  subsSnap.docs.forEach((doc) => {
+    const s = doc.data();
+    if (s.status === "cancelled") return;
+    const clientId = s.clientId as string;
+    if (billingByClient[clientId]?.billing === "paying") return;
+    billingByClient[clientId] = s.internal
+      ? { billing: "internal", planLabel: null, priceMonthly: null }
+      : {
+          billing: "paying",
+          planLabel: PLANS[s.plan as keyof typeof PLANS]?.label ?? (s.plan as string) ?? null,
+          priceMonthly: typeof s.priceMonthly === "number" ? s.priceMonthly : null,
+        };
+  });
+
+  const clients: ClientRow[] = clientsSnap.docs.filter((d) => !!d.data().deletedAt === archived).map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -41,8 +53,12 @@ export default async function KlientiPage() {
       status: data.status,
       instanceCount: instanceCounts[doc.id] || 0,
       updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+      deletedAt: toIso(data.deletedAt),
+      ...(billingByClient[doc.id] ?? { billing: "none", planLabel: null, priceMonthly: null }),
     };
   });
 
-  return <ClientsPageClient clients={clients} />;
+  if (archived) clients.sort(byDeletedAtDesc);
+
+  return <ClientsPageClient clients={clients} canArchive={!isSales} archived={archived} />;
 }

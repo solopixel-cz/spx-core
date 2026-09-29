@@ -1,17 +1,21 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { archivedQuery, byDeletedAtDesc, isArchiveView, toIso, type ArchiveSearchParams } from "@/lib/archive-view";
 import { LeadsPageClient } from "@/components/leads/leads-page-client";
 
-export default async function LeadyPage() {
+export default async function LeadyPage({ searchParams }: { searchParams: ArchiveSearchParams }) {
   const user = await requireAuth();
   const db = getAdminFirestore();
+  const archived = await isArchiveView(searchParams, user.role);
 
   const [leadsSnap, usersSnap] = await Promise.all([
-    db.collection("leads").orderBy("updatedAt", "desc").get(),
+    archived
+      ? archivedQuery(db, "leads").get()
+      : db.collection("leads").orderBy("updatedAt", "desc").get(),
     db.collection("users").where("active", "==", true).get(),
   ]);
 
-  const leads = leadsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
+  const leads = leadsSnap.docs.filter((d) => !!d.data().deletedAt === archived).map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -27,8 +31,11 @@ export default async function LeadyPage() {
       notes: data.notes as string | undefined,
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
       updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+      deletedAt: toIso(data.deletedAt),
     };
   });
+
+  if (archived) leads.sort(byDeletedAtDesc);
 
   const users = usersSnap.docs.map((doc) => ({
     id: doc.id,
@@ -41,6 +48,8 @@ export default async function LeadyPage() {
       leads={leads}
       users={users}
       currentUid={user.uid}
+      canArchive={user.role !== "sales"}
+      archived={archived}
     />
   );
 }
