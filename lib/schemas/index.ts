@@ -1,6 +1,7 @@
 export { userSchema, type User } from "./user";
 export { clientSchema, type Client } from "./client";
 export { instanceSchema, type Instance } from "./instance";
+export { projectSchema, type Project } from "./project";
 export { domainSchema, type Domain } from "./domain";
 export { leadSchema, type Lead } from "./lead";
 export { subscriptionSchema, type Subscription } from "./subscription";

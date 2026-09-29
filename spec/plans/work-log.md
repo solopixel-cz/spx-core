@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-29 — Fáze 34B: služby a zakázky
+
+- **Nová kolekce `projects`** (jednorázové zakázky): schéma `lib/schemas/project.ts`, stavy `projectStatus` (Poptávka / Rozpracováno / Dodáno / Zrušeno), API `POST /api/projects` + `PATCH /api/projects/[id]` (sales jen své klienty, `lib/projects.ts`), `deliveredAt` se nastavuje/maže podle stavu, aktivita u klienta. Rules `projects` (read auth, write admin SDK). `data-model.md` doplněn.
+- **Detail klienta:** záložka „Instance" → **„Služby"** = Vizitky a weby (`instances-tab`) + **Zakázky** (`components/clients/projects-section.tsx`: seznam, přidání/úprava v dialogu, rychlá změna stavu, termín s „po termínu", archivace s Vrátit zpět). Dlaždice „Služby" (počet + rozpracované zakázky).
+- **Vizitkové akce jen pro vizitku:** „Formulář podkladů" jen když klient má vizitku, nebo zatím nemá žádnou službu (onboarding); „Předat vizitku" jen s card instancí a nabízí jen vizitky; řádek Advisor Slug jen u vizitky.
+- **Vyfakturovat zakázku:** `/invoices/new?clientId&project=` předvyplní položku (název, cena); faktura ukládá `projectId`, zakázka dostane `invoiceId` (odkaz na fakturu v detailu). Smazání faktury `invoiceId` ze zakázky odstraní.
+- **Archivace:** `projects` v `/api/archive`, kaskáda při archivaci klienta, trvalé smazání blokuje vyfakturovaná zakázka / klient se zakázkami; štítek v Nastavení → Archiv.
+- **Seznam klientů:** sloupec „Instance" → **„Služby"** („Vizitka · Web · 2 zakázky (1 rozprac.)"), bez archivovaných instancí.
+- **Zjištění:** `lib/attention.ts` (`getAttentionItems`) se nikde nepoužívá → úprava podkladů v něm (fáze podkladů) se na dashboardu neprojevila; dashboard počítá vlastní seznam. Zakázky na dashboard odloženy.
+- Verze 1.7.0 → **1.8.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči, `firebase deploy --only firestore` (rules pro `projects`; aplikace čte přes Admin SDK, takže nasazení nespěchá).
+
 ## 2026-09-29 — Fáze 34A: klient osoba / firma
 
 - **Model:** `clients.kind` (`person` | `company`, chybí = osoba) + `contactName` (jen firma). Zod `clientKindSchema`, `data-model.md` doplněn. Bez migrace.

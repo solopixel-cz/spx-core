@@ -55,7 +55,8 @@ export interface ClientRow {
   company?: string;
   email: string;
   status: string;
-  instanceCount: number;
+  /** Služby klienta (fáze 34B): vizitky, weby, zakázky (bez zrušených). */
+  services: { cards: number; webs: number; projects: number; openProjects: number };
   updatedAt: string | null;
   deletedAt: string | null;
   /** paying = nezrušené a ne interní předplatné; internal = interní vizitka; none = bez předplatného */
@@ -109,6 +110,29 @@ function BillingCell({ client }: { client: ClientRow }) {
           {" "}
           · {formatCurrency(client.priceMonthly)}/měs
         </span>
+      )}
+    </span>
+  );
+}
+
+/** 1 zakázka / 2–4 zakázky / 5+ zakázek */
+function projectsLabel(n: number) {
+  return n === 1 ? "zakázka" : n >= 2 && n <= 4 ? "zakázky" : "zakázek";
+}
+
+/** Souhrn služeb: „Vizitka · Web · 2 zakázky (1 rozpracovaná)". */
+function ServicesCell({ services: s }: { services: ClientRow["services"] }) {
+  const parts = [
+    s.cards > 0 && (s.cards > 1 ? `${s.cards} vizitky` : "Vizitka"),
+    s.webs > 0 && (s.webs > 1 ? `${s.webs} weby` : "Web"),
+    s.projects > 0 && `${s.projects} ${projectsLabel(s.projects)}`,
+  ].filter(Boolean);
+  if (parts.length === 0) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span>
+      {parts.join(" · ")}
+      {s.openProjects > 0 && (
+        <span className="text-amber-600 dark:text-amber-400"> ({s.openProjects} rozprac.)</span>
       )}
     </span>
   );
@@ -168,9 +192,10 @@ const dataColumns = [
     cell: (info) => <BillingCell client={info.row.original} />,
     enableGlobalFilter: false,
   }),
-  columnHelper.accessor("instanceCount", {
-    header: "Instance",
-    cell: (info) => info.getValue(),
+  columnHelper.display({
+    id: "services",
+    header: "Služby",
+    cell: (info) => <ServicesCell services={info.row.original.services} />,
   }),
   columnHelper.accessor("updatedAt", {
     header: "Poslední aktivita",
@@ -456,10 +481,7 @@ export function ClientsPageClient({
                 meta={
                   <>
                     {c.billing !== "none" && <BillingCell client={c} />}
-                    <span>
-                      {c.instanceCount}{" "}
-                      {c.instanceCount === 1 ? "instance" : "instancí"}
-                    </span>
+                    <ServicesCell services={c.services} />
                     {c.updatedAt && (
                       <span>
                         {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}
@@ -535,8 +557,8 @@ export function ClientsPageClient({
           selection={selection}
           noun={["klienta", "klienty", "klientů"]}
           mode={archived ? "restore" : "archive"}
-          warning="Archivuje i instance, otevřené tickety a zruší předplatné."
-          restoreNote="Předplatné a instance se neobnovují, zkontrolujte je v detailu klienta."
+          warning="Archivuje i instance, zakázky, otevřené tickety a zruší předplatné."
+          restoreNote="Předplatné, instance a zakázky se neobnovují, zkontrolujte je v detailu klienta."
           undoable={false}
           onDone={(ids) =>
             setClients((prev) => prev.filter((c) => !ids.includes(c.id)))

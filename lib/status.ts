@@ -150,3 +150,11 @@ export function getStatusLabel(
 ): string {
   return map[value]?.label ?? value;
 }
+
+// Project (jednorázová zakázka) status
+export const projectStatus: Record<string, StatusConfig> = {
+  inquiry: { label: "Poptávka", color: "blue" },
+  in_progress: { label: "Rozpracováno", color: "yellow" },
+  delivered: { label: "Dodáno", color: "green" },
+  cancelled: { label: "Zrušeno", color: "gray" },
+};

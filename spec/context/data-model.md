@@ -65,6 +65,24 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
 }
 ```
 
+### `projects`
+Jednorázové **zakázky** klienta (fáze 34B), např. marketingový prospekt. Oddělené od `instances` (jiný životní cyklus: poptávka → dodáno → faktura). V UI detailu klienta záložka **Služby** = `instances` (Vizitky a weby) + `projects` (Zakázky).
+
+```ts
+{
+  clientId: string
+  title: string
+  description?: string
+  status: 'inquiry' | 'in_progress' | 'delivered' | 'cancelled'  // Poptávka / Rozpracováno / Dodáno / Zrušeno
+  price?: number             // CZK
+  invoiceId?: string         // faktura vystavená ze zakázky (smazání faktury ho vyčistí)
+  dueAt?: Timestamp          // termín dodání
+  deliveredAt?: Timestamp    // nastaví se při přechodu do delivered, smaže při odchodu
+  deletedAt?/deletedBy?      // archivace (/api/archive), kaskáda při archivaci klienta
+}
+```
+Rules: read `isAuth`, write jen Admin SDK. Dotazy jen `where clientId` bez orderBy (řazení v paměti) → bez indexu.
+
 ### `domains`
 Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít víc domén. Odlišné od `instances.domain` (to je solopixel.cz subdoména vizitky); tady jde o doménu, kterou si klient koupil u registrátora.
 
@@ -138,6 +156,7 @@ Předplatné, 1:1 ke klientovi.
   }[]
   variableSymbol?: string
   subscriptionId?: string    // vazba na předplatné (cron generování)
+  projectId?: string         // vystaveno ze zakázky (projects.invoiceId ukazuje zpět)
   note?: string
   issuedAt: Timestamp
   dueAt: Timestamp

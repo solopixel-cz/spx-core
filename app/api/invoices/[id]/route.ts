@@ -117,6 +117,9 @@ export async function DELETE(
     batch.delete(db.collection("commissions").doc(id));
     batch.delete(db.collection("commissions").doc(`${id}-reversal`));
     batch.delete(docRef);
+    // Zakázka vystavená touto fakturou znovu půjde vyfakturovat.
+    const projectsSnap = await db.collection("projects").where("invoiceId", "==", id).get();
+    projectsSnap.docs.forEach((d) => batch.update(d.ref, { invoiceId: null }));
     await batch.commit();
 
     // Audit stopa u klienta (faktura už neexistuje).

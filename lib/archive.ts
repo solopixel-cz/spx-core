@@ -60,7 +60,7 @@ export async function restoreDocument(
 }
 
 /**
- * Cascade archive for a client: archive instances, cancel subscription, archive open tickets.
+ * Cascade archive for a client: archive instances, cancel subscriptions, archive open tickets and projects.
  * Returns a summary of what was archived.
  */
 export async function cascadeArchiveClient(clientId: string, actorUid: string) {
@@ -113,6 +113,20 @@ export async function cascadeArchiveClient(clientId: string, actorUid: string) {
     }
   }
 
+  // Archive projects (zakázky) — i dodané, ať v detailu archivovaného klienta nevisí
+  const projectsSnap = await db.collection("projects")
+    .where("clientId", "==", clientId)
+    .get();
+  for (const doc of projectsSnap.docs) {
+    if (doc.data().deletedAt) continue;
+    await doc.ref.update({
+      deletedAt: FieldValue.serverTimestamp(),
+      deletedBy: actorUid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    cascaded.push(`Zakázka „${doc.data().title}"`);
+  }
+
   return cascaded;
 }
 
@@ -134,8 +148,9 @@ export async function checkDeleteConstraints(
       db.collection("tickets").where("clientId", "==", id).limit(1).get(),
       db.collection("card-tokens").where("clientId", "==", id).limit(1).get(),
       db.collection("subscriptions").where("clientId", "==", id).limit(1).get(),
+      db.collection("projects").where("clientId", "==", id).limit(1).get(),
     ]);
-    const labels = ["faktury", "provize", "instance", "tickety", "tokeny podkladů", "předplatné"];
+    const labels = ["faktury", "provize", "instance", "tickety", "tokeny podkladů", "předplatné", "zakázky"];
     const found = labels.filter((_, i) => !checks[i].empty);
     if (found.length > 0) return `Nelze trvale smazat — má navázané ${found.join(", ")}. Ponechejte v archivu.`;
   }
@@ -143,6 +158,11 @@ export async function checkDeleteConstraints(
   if (collection === "instances") {
     const tickets = await db.collection("tickets").where("instanceId", "==", id).limit(1).get();
     if (!tickets.empty) return "Nelze trvale smazat — má navázané tickety.";
+  }
+
+  if (collection === "projects") {
+    const doc = await db.collection("projects").doc(id).get();
+    if (doc.exists && doc.data()?.invoiceId) return "Nelze trvale smazat — zakázka je vyfakturovaná.";
   }
 
   if (collection === "leads") {

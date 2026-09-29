@@ -6,10 +6,10 @@ import { InvoiceForm } from "@/components/invoices/invoice-form";
 export default async function NovaFakturaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ clientId?: string; sub?: string }>;
+  searchParams: Promise<{ clientId?: string; sub?: string; project?: string }>;
 }) {
   await requireRole("admin", "member");
-  const { clientId, sub } = await searchParams;
+  const { clientId, sub, project } = await searchParams;
   const db = getAdminFirestore();
 
   const clientsSnap = await db.collection("clients").get();
@@ -58,6 +58,24 @@ export default async function NovaFakturaPage({
     }
   }
 
+  // Předvyplnění ze zakázky (tlačítko „Vyfakturovat" v detailu klienta).
+  let projectId: string | undefined;
+  if (clientId && project) {
+    const projectDoc = await db.collection("projects").doc(project).get();
+    const p = projectDoc.data();
+    if (projectDoc.exists && p?.clientId === clientId && !p.invoiceId && !p.deletedAt) {
+      projectId = projectDoc.id;
+      defaultItems = [
+        {
+          description: p.title as string,
+          quantity: 1,
+          unitPrice: (p.price as number | null) ?? 0,
+          discountPercent: 0,
+        },
+      ];
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Breadcrumbs
@@ -67,7 +85,12 @@ export default async function NovaFakturaPage({
       <div className="flex items-center gap-3">
         <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Nová faktura</h1>
       </div>
-      <InvoiceForm clients={clients} defaultClientId={clientId} defaultItems={defaultItems} />
+      <InvoiceForm
+        clients={clients}
+        defaultClientId={clientId}
+        defaultItems={defaultItems}
+        projectId={projectId}
+      />
     </div>
   );
 }

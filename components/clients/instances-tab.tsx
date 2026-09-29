@@ -291,8 +291,11 @@ export function InstancesTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Instance</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="font-semibold">Vizitky a weby</h3>
+          <p className="text-sm text-muted-foreground">Nasazené vizitky a weby klienta.</p>
+        </div>
         <InstanceFormDialog
           clientId={clientId}
           open={addOpen}
@@ -302,16 +305,16 @@ export function InstancesTab({
             router.refresh();
           }}
           trigger={
-            <Button size="sm">
+            <Button size="sm" variant="outline">
               <Plus className="mr-2 h-4 w-4" />
-              Přidat instanci
+              Přidat vizitku / web
             </Button>
           }
         />
       </div>
 
       {instances.length === 0 ? (
-        <EntityCardEmpty>Žádné instance</EntityCardEmpty>
+        <EntityCardEmpty>Žádná vizitka ani web</EntityCardEmpty>
       ) : (
         <>
         <div className="hidden overflow-x-auto rounded-md border md:block">

@@ -41,6 +41,7 @@ import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { CardFormButton } from "./card-form-button";
+import { ProjectsSection, type ProjectData } from "./projects-section";
 import { DeliveryDialog } from "./delivery-dialog";
 import { MarketingEmailDialog } from "./marketing-email-dialog";
 import { ClientTaskDialog } from "./client-task-dialog";
@@ -224,6 +225,7 @@ function StatTile({
 export function ClientDetailClient({
   client,
   instances,
+  projects = [],
   domains = [],
   activities,
   subscription = null,
@@ -238,6 +240,7 @@ export function ClientDetailClient({
 }: {
   client: ClientData;
   instances: InstanceData[];
+  projects?: ProjectData[];
   domains?: DomainData[];
   activities: ActivityData[];
   subscription?: SubData | null;
@@ -270,6 +273,13 @@ export function ClientDetailClient({
   ).length;
   const overdueInvoices = invoices.filter((i) => i.status === "overdue").length;
   const primaryInstance = instances[0];
+  // Vizitkové akce (podklady, předání) dávají smysl jen klientům s vizitkou.
+  // Nový klient bez jakékoli služby je bere taky (onboarding vizitky začíná formulářem).
+  const cardInstances = instances.filter((i) => i.type === "card");
+  const hasCard = cardInstances.length > 0;
+  const showCardActions = hasCard || (instances.length === 0 && projects.length === 0);
+  const liveProjects = projects.filter((p) => p.status !== "cancelled");
+  const openProjects = projects.filter((p) => p.status === "inquiry" || p.status === "in_progress");
 
   // Domény, kterým se blíží nebo prošlo obnovení (auto-renew se nepřipomíná).
   const domainAlerts = domains
@@ -278,7 +288,7 @@ export function ClientDetailClient({
     .sort((a, b) => (a.s.days ?? 0) - (b.s.days ?? 0));
 
   async function handleArchive() {
-    if (!confirm("Opravdu archivovat tohoto klienta? Instance, tickety a předplatné budou archivovány/zrušeny.")) return;
+    if (!confirm("Opravdu archivovat tohoto klienta? Instance, zakázky, tickety a předplatné budou archivovány/zrušeny.")) return;
     setActing(true);
     try {
       const res = await fetch("/api/archive", {
@@ -451,18 +461,20 @@ export function ClientDetailClient({
               notes: client.notes ?? "",
             }}
           />
-          <CardFormButton
-            clientId={client.id}
-            clientName={contactPersonName(client)}
-            clientEmail={client.email}
-          />
-          {client.email && instances.length > 0 && !isArchived && (
+          {showCardActions && (
+            <CardFormButton
+              clientId={client.id}
+              clientName={contactPersonName(client)}
+              clientEmail={client.email}
+            />
+          )}
+          {client.email && hasCard && !isArchived && (
             <DeliveryDialog
               clientId={client.id}
               clientName={client.name}
               defaultGreeting={greetingName(client)}
               clientEmail={client.email}
-              instances={instances.map((i) => ({
+              instances={cardInstances.map((i) => ({
                 id: i.id,
                 domain: i.domain,
                 status: i.status,
@@ -514,9 +526,13 @@ export function ClientDetailClient({
       {/* Přehledové dlaždice — tapnutí přepne na záložku */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile
-          label="Instance"
-          value={instances.length}
-          hint={primaryInstance?.domain ?? "Žádná instance"}
+          label="Služby"
+          value={instances.length + liveProjects.length}
+          hint={
+            openProjects.length > 0
+              ? `Rozpracované zakázky: ${openProjects.length}`
+              : (primaryInstance?.domain ?? (liveProjects.length > 0 ? "Jen zakázky" : "Žádná služba"))
+          }
           onClick={() => setTab("instance")}
         />
         {!isSales && (
@@ -550,7 +566,7 @@ export function ClientDetailClient({
       <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
         <TabsList>
           <TabsTrigger value="prehled">Přehled</TabsTrigger>
-          <TabsTrigger value="instance">Instance</TabsTrigger>
+          <TabsTrigger value="instance">Služby</TabsTrigger>
           <TabsTrigger value="domeny">Domény</TabsTrigger>
           {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
           <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
@@ -600,10 +616,12 @@ export function ClientDetailClient({
                     </dd>
                   </div>
                 )}
+                {hasCard && (
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Advisor Slug</dt>
                   <dd>{client.advisorSlug || "—"}</dd>
                 </div>
+                )}
               </dl>
             </div>
             {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
@@ -661,8 +679,14 @@ export function ClientDetailClient({
           )}
         </TabsContent>
 
-        <TabsContent value="instance" className="mt-5 md:mt-6">
+        <TabsContent value="instance" className="mt-5 space-y-8 md:mt-6">
           <InstancesTab clientId={client.id} instances={instances} />
+          <ProjectsSection
+            clientId={client.id}
+            projects={projects}
+            canManage={!isArchived}
+            canInvoice={!isSales}
+          />
         </TabsContent>
 
         <TabsContent value="domeny" className="mt-5 md:mt-6">

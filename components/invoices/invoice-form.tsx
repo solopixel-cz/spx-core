@@ -56,6 +56,7 @@ export function InvoiceForm({
   invoice,
   defaultClientId,
   defaultItems,
+  projectId,
 }: {
   clients: ClientOption[];
   invoice?: EditInvoice;
@@ -66,6 +67,8 @@ export function InvoiceForm({
     unitPrice: number;
     discountPercent?: number;
   }[];
+  /** Faktura ze zakázky — po uložení se zakázka propojí s fakturou. */
+  projectId?: string;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -126,7 +129,7 @@ export function InvoiceForm({
         : await fetch("/api/invoices", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...data, asDraft }),
+            body: JSON.stringify({ ...data, asDraft, projectId }),
           });
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json().catch(() => ({}));

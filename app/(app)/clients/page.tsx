@@ -10,7 +10,7 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
   const isSales = user.role === "sales";
   const archived = await isArchiveView(searchParams, user.role);
 
-  const [clientsSnap, instancesSnap, subsSnap] = await Promise.all([
+  const [clientsSnap, instancesSnap, subsSnap, projectsSnap] = await Promise.all([
     archived
       ? archivedQuery(db, "clients").get()
       : isSales
@@ -18,13 +18,24 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
       : db.collection("clients").orderBy("createdAt", "desc").get(),
     db.collection("instances").get(),
     db.collection("subscriptions").get(),
+    db.collection("projects").get(),
   ]);
 
-  // Count instances per client
-  const instanceCounts: Record<string, number> = {};
+  // Služby klienta: vizitky / weby (instances) + zakázky (projects), bez archivovaných.
+  const services: Record<string, ClientRow["services"]> = {};
+  const svc = (clientId: string) =>
+    (services[clientId] ??= { cards: 0, webs: 0, projects: 0, openProjects: 0 });
   instancesSnap.docs.forEach((doc) => {
-    const clientId = doc.data().clientId;
-    instanceCounts[clientId] = (instanceCounts[clientId] || 0) + 1;
+    const d = doc.data();
+    if (d.deletedAt) return;
+    if (d.type === "web") svc(d.clientId).webs++;
+    else svc(d.clientId).cards++;
+  });
+  projectsSnap.docs.forEach((doc) => {
+    const d = doc.data();
+    if (d.deletedAt || d.status === "cancelled") return;
+    svc(d.clientId).projects++;
+    if (d.status === "inquiry" || d.status === "in_progress") svc(d.clientId).openProjects++;
   });
 
   // Předplatné (1:1 ke klientovi) — platící = nezrušené a ne interní.
@@ -53,7 +64,7 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
       company: data.company,
       email: data.email,
       status: data.status,
-      instanceCount: instanceCounts[doc.id] || 0,
+      services: services[doc.id] ?? { cards: 0, webs: 0, projects: 0, openProjects: 0 },
       updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
       deletedAt: toIso(data.deletedAt),
       ...(billingByClient[doc.id] ?? { billing: "none", planLabel: null, priceMonthly: null }),

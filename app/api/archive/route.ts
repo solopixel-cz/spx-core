@@ -18,7 +18,7 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-const validCollections = ["clients", "instances", "leads", "tickets", "prospects"];
+const validCollections = ["clients", "instances", "leads", "tickets", "prospects", "projects"];
 const entityTypeMap: Record<string, "client" | "lead" | "ticket" | "prospect"> = {
   clients: "client",
   leads: "lead",

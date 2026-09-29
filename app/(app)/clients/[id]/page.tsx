@@ -191,6 +191,29 @@ export default async function ClientDetailPage({
       subject: (d.data().subject as string | undefined) ?? null,
     }));
 
+  // Jednorázové zakázky (fáze 34B) — bez orderBy, řadí se v paměti (bez složeného indexu).
+  const projectsSnap = await db.collection("projects").where("clientId", "==", id).get();
+  const invoiceNumbers = new Map(invoices.map((inv) => [inv.id, inv.number]));
+  const projects = projectsSnap.docs
+    .filter((d) => !d.data().deletedAt)
+    .map((d) => {
+      const p = d.data();
+      const invoiceId = (p.invoiceId as string | undefined) ?? null;
+      return {
+        id: d.id,
+        title: p.title as string,
+        description: (p.description as string | null) ?? null,
+        status: p.status as string,
+        price: (p.price as number | null) ?? null,
+        invoiceId,
+        invoiceNumber: invoiceId ? (invoiceNumbers.get(invoiceId) ?? null) : null,
+        dueAt: p.dueAt?.toDate?.()?.toISOString() ?? null,
+        deliveredAt: p.deliveredAt?.toDate?.()?.toISOString() ?? null,
+        createdAt: p.createdAt?.toDate?.()?.toISOString() ?? null,
+      };
+    })
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+
   const lastDeliveryDoc = deliverySnap.docs[0];
   const lastDelivery = lastDeliveryDoc
     ? {
@@ -204,6 +227,7 @@ export default async function ClientDetailPage({
     <ClientDetailClient
       client={client}
       instances={instances}
+      projects={projects}
       domains={domains}
       activities={activities}
       subscription={subscription}

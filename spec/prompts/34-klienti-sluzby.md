@@ -83,7 +83,7 @@ Založím firmu s kontaktní osobou → v seznamu má ikonu firmy, e-mail z deta
   - „Předat vizitku" (delivery; nabízet jen card instance),
   - řádek „Advisor Slug" v informacích.
 - Seznam klientů: sloupec „Instance" → **„Služby"** (např. „Vizitka · 1 zakázka").
-- Dashboard: volitelně karta „Rozpracované zakázky" (stav `inquiry`/`in_progress`, po termínu zvýraznit) do `lib/attention.ts`.
+- Dashboard: volitelně karta „Rozpracované zakázky" (stav `inquiry`/`in_progress`, po termínu zvýraznit) do `lib/attention.ts`. **Odloženo:** `lib/attention.ts` se nikde nepoužívá (mrtvý kód), dashboard má vlastní výpočet v `app/(app)/page.tsx` — zakázky tam doplnit samostatně.
 
 ### Akceptace B
 Klient jen se zakázkou nemá v detailu tlačítka pro vizitku; zakázku založím, posunu do „Dodáno", vyfakturuji a faktura je u zakázky vidět. Klient s vizitkou funguje jako dnes.
