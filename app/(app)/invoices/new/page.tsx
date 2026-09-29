@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
+import { subscriptionLabel } from "@/lib/plans";
 
 export default async function NovaFakturaPage({
   searchParams,
@@ -34,20 +35,23 @@ export default async function NovaFakturaPage({
   let defaultItems:
     | { description: string; quantity: number; unitPrice: number; discountPercent?: number }[]
     | undefined;
+  let subscriptionId: string | undefined;
   if (clientId && sub) {
-    const subSnap = await db
-      .collection("subscriptions")
-      .where("clientId", "==", clientId)
-      .limit(1)
-      .get();
-    if (!subSnap.empty) {
-      const s = subSnap.docs[0].data();
+    // `sub` = ID předplatného (klient jich může mít víc); stará URL `sub=1` → první předplatné.
+    const byId = sub !== "1" ? await db.collection("subscriptions").doc(sub).get() : null;
+    const subDoc =
+      byId?.exists && byId.data()?.clientId === clientId
+        ? byId
+        : (await db.collection("subscriptions").where("clientId", "==", clientId).limit(1).get()).docs[0];
+    if (subDoc) {
+      subscriptionId = subDoc.id;
+      const s = subDoc.data()!;
       const monthly = (s.priceMonthly as number) ?? 0;
       const unit = s.billingCycle === "yearly" ? monthly * 12 : monthly;
       const cycle = s.billingCycle === "yearly" ? "roční" : "měsíční";
       defaultItems = [
         {
-          description: `Předplatné ${s.plan} (${cycle}) {obdobi}`,
+          description: `${subscriptionLabel(s)} (${cycle}) {obdobi}`,
           quantity: 1,
           unitPrice: unit,
           // Sleva z předplatného se přenáší jako sleva řádku (plná cena − %),
@@ -90,6 +94,7 @@ export default async function NovaFakturaPage({
         defaultClientId={clientId}
         defaultItems={defaultItems}
         projectId={projectId}
+        subscriptionId={subscriptionId}
       />
     </div>
   );

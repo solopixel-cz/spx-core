@@ -1,5 +1,6 @@
 "use client";
 
+import { subscriptionLabel } from "@/lib/plans";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -32,9 +33,12 @@ interface InvoiceData {
 }
 
 interface SubInfo {
-  plan: string;
-  priceMonthly: number;
-  billingCycle: string;
+  id: string;
+  service?: string | null;
+  plan?: string | null;
+  label?: string | null;
+  status: string;
+  internal?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -56,12 +60,14 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 export function ClientInvoicesTab({
   invoices,
   clientId,
-  subscription,
+  subscriptions = [],
 }: {
   invoices: InvoiceData[];
   clientId: string;
-  subscription?: SubInfo | null;
+  subscriptions?: SubInfo[];
 }) {
+  // Fakturovat jde jen běžící, neinterní předplatné — každé má vlastní tlačítko.
+  const billable = subscriptions.filter((s) => !s.internal && s.status !== "cancelled");
   const router = useRouter();
   const [actingId, setActingId] = useState<string | null>(null);
 
@@ -75,17 +81,18 @@ export function ClientInvoicesTab({
         <Plus className="mr-1.5 h-4 w-4" />
         Vystavit fakturu
       </Button>
-      {subscription && (
+      {billable.map((s) => (
         <Button
+          key={s.id}
           size="sm"
           variant="outline"
           nativeButton={false}
-          render={<Link href={`/invoices/new?clientId=${clientId}&sub=1`} />}
+          render={<Link href={`/invoices/new?clientId=${clientId}&sub=${s.id}`} />}
         >
           <Repeat className="mr-1.5 h-4 w-4" />
-          Z předplatného
+          {billable.length > 1 ? `Z předplatného: ${subscriptionLabel(s)}` : "Z předplatného"}
         </Button>
-      )}
+      ))}
     </div>
   );
 

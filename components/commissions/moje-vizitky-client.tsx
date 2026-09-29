@@ -25,6 +25,7 @@ interface ClientRow {
   name: string;
   status: string;
   instanceStatus: string | null;
+  /** Názvy běžících předplatných (subscriptionLabel), čárkou. */
   plan: string | null;
   priceMonthly: number;
   myCommission: number;
@@ -38,12 +39,6 @@ interface CommissionRow {
   earnedAt: string | null;
   paidAt: string | null;
 }
-
-const planLabels: Record<string, string> = {
-  basic: "Basic",
-  standard: "Standard",
-  premium: "Premium",
-};
 
 const commissionStatusLabels: Record<string, string> = {
   pending: "Čeká",
@@ -112,7 +107,7 @@ export function MojeVizitkyClient({
                 key={c.id}
                 title={c.name}
                 badge={<StatusBadge map={clientStatus} value={c.status} />}
-                subtitle={c.plan ? planLabels[c.plan] ?? c.plan : undefined}
+                subtitle={c.plan ?? undefined}
                 meta={
                   <>
                     {c.instanceStatus && (
@@ -170,7 +165,7 @@ export function MojeVizitkyClient({
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>{c.plan ? planLabels[c.plan] ?? c.plan : "—"}</TableCell>
+                    <TableCell>{c.plan ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{c.priceMonthly > 0 ? formatCurrency(c.priceMonthly) : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{c.myCommission > 0 ? formatCurrency(c.myCommission) : "—"}</TableCell>
                   </TableRow>

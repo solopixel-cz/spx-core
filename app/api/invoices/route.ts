@@ -85,6 +85,7 @@ export async function POST(request: Request) {
       dueAt,
       status,
       projectId: data.projectId ?? null,
+      subscriptionId: data.subscriptionId ?? null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,

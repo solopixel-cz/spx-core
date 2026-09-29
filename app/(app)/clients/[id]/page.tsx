@@ -1,3 +1,4 @@
+import type { SubData } from "@/components/subscriptions/subscription-card";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
@@ -118,23 +119,25 @@ export default async function ClientDetailPage({
     createdAt: d.data().createdAt?.toDate?.()?.toISOString() ?? null,
   }));
 
-  const subDoc = subsSnap.docs[0];
-  const subscription = subDoc
-    ? {
-        id: subDoc.id,
-        plan: subDoc.data().plan as string,
-        priceMonthly: subDoc.data().priceMonthly as number,
-        billingCycle: subDoc.data().billingCycle as string,
-        status: subDoc.data().status as string,
-        startedAt:
-          subDoc.data().startedAt?.toDate?.()?.toISOString() ?? null,
-        nextInvoiceAt:
-          subDoc.data().nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
-        discountPercent: (subDoc.data().discountPercent as number | undefined) ?? 0,
-        discountNote: (subDoc.data().discountNote as string | undefined) ?? "",
-        internal: (subDoc.data().internal as boolean | undefined) ?? false,
-      }
-    : null;
+  // Klient může mít víc předplatných (fáze 34C). Chybějící `service` = vizitka.
+  const subscriptions: SubData[] = subsSnap.docs.map((subDoc) => {
+    const s = subDoc.data();
+    return {
+      id: subDoc.id,
+      service: (s.service as SubData["service"] | undefined) ?? "card",
+      plan: (s.plan as string | undefined) ?? null,
+      label: (s.label as string | undefined) ?? null,
+      instanceId: (s.instanceId as string | undefined) ?? null,
+      priceMonthly: s.priceMonthly as number,
+      billingCycle: s.billingCycle as string,
+      status: s.status as string,
+      startedAt: s.startedAt?.toDate?.()?.toISOString() ?? null,
+      nextInvoiceAt: s.nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
+      discountPercent: (s.discountPercent as number | undefined) ?? 0,
+      discountNote: (s.discountNote as string | undefined) ?? "",
+      internal: (s.internal as boolean | undefined) ?? false,
+    };
+  });
 
   const now = new Date();
   const invoices = invoicesSnap.docs.map((d) => {
@@ -230,7 +233,7 @@ export default async function ClientDetailPage({
       projects={projects}
       domains={domains}
       activities={activities}
-      subscription={subscription}
+      subscriptions={subscriptions}
       invoices={invoices}
       tasks={clientTasks}
       tickets={clientTickets}

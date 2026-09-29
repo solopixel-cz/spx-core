@@ -125,13 +125,16 @@ Obchodní pipeline.
 Stav `won` → vytvoří se `client` + onboarding úkoly ze šablony.
 
 ### `subscriptions`
-Předplatné, 1:1 ke klientovi.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`.
 
 ```ts
 {
   clientId: string
-  plan: 'basic' | 'standard' | 'premium'
-  priceMonthly: number       // CZK
+  service?: 'card' | 'web' | 'other'  // chybí = 'card' (stávající data)
+  plan?: 'basic' | 'pro'       // jen vizitka (PLANS: Základní / Pro růst)
+  label?: string             // vlastní název (web / jiné: povinný, např. „Správa webu")
+  instanceId?: string        // volitelná vazba na vizitku / web
+  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = 12 × (cron, faktura, MRR)
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
   internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se, nepočítá do MRR ani do „Blížící se fakturace"

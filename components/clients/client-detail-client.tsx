@@ -38,7 +38,7 @@ import {
 import { AlertTriangle, Building2 } from "lucide-react";
 import { contactPersonName, greetingName } from "@/lib/marketing/personalize";
 import { ActivityTab } from "./activity-tab";
-import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
+import { SubscriptionCard, type SubData } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { CardFormButton } from "./card-form-button";
 import { ProjectsSection, type ProjectData } from "./projects-section";
@@ -89,16 +89,6 @@ interface ActivityData {
   text: string;
   actorUid: string;
   createdAt: string | null;
-}
-
-interface SubData {
-  id: string;
-  plan: string;
-  priceMonthly: number;
-  billingCycle: string;
-  status: string;
-  startedAt: string | null;
-  nextInvoiceAt: string | null;
 }
 
 interface InvoiceData {
@@ -228,7 +218,7 @@ export function ClientDetailClient({
   projects = [],
   domains = [],
   activities,
-  subscription = null,
+  subscriptions = [],
   invoices = [],
   tasks = [],
   tickets = [],
@@ -243,7 +233,7 @@ export function ClientDetailClient({
   projects?: ProjectData[];
   domains?: DomainData[];
   activities: ActivityData[];
-  subscription?: SubData | null;
+  subscriptions?: SubData[];
   invoices?: InvoiceData[];
   tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string; recurrence?: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
@@ -624,7 +614,13 @@ export function ClientDetailClient({
                 )}
               </dl>
             </div>
-            {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
+            {!isSales && (
+              <SubscriptionCard
+                clientId={client.id}
+                subscriptions={subscriptions}
+                instances={instances.map((i) => ({ id: i.id, type: i.type, domain: i.domain }))}
+              />
+            )}
             {!isSales && salesUsers.length > 0 && (
               <div className="rounded-2xl border bg-card p-4 shadow-xs">
                 <h3 className="font-semibold">Obchodní vlastník</h3>
@@ -702,7 +698,7 @@ export function ClientDetailClient({
             <ClientInvoicesTab
               invoices={invoices}
               clientId={client.id}
-              subscription={subscription}
+              subscriptions={subscriptions}
             />
           </TabsContent>
         )}

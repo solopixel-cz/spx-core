@@ -1,3 +1,4 @@
+import { subscriptionLabel } from "@/lib/plans";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
@@ -51,10 +52,9 @@ export default async function DashboardPage() {
       const d = doc.data();
       if (d.internal) return; // interní vizitky negenerují příjem
       const price = d.priceMonthly as number;
-      const cycle = d.billingCycle as string;
       const discount = (d.discountPercent as number) || 0;
-      const effective = price * (1 - discount / 100);
-      mrr += cycle === "yearly" ? effective / 12 : effective;
+      // priceMonthly je vždy měsíční cena (roční fakturace = 12×, viz cron) → MRR = měsíční cena po slevě.
+      mrr += price * (1 - discount / 100);
     });
     mrr = Math.round(mrr);
 
@@ -232,6 +232,7 @@ export default async function DashboardPage() {
     id: string;
     clientId: string;
     clientName: string;
+    label: string;
     nextInvoiceAt: string;
     amount: number;
     overdue: boolean;
@@ -259,6 +260,7 @@ export default async function DashboardPage() {
           id: doc.id,
           clientId: s.clientId as string,
           clientName: client.name,
+          label: subscriptionLabel(s),
           nextInvoiceAt: due.toISOString(),
           amount: Math.round(base * (1 - discount / 100)),
           overdue: due < startOfToday,

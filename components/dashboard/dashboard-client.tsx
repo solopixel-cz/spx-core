@@ -75,6 +75,8 @@ interface UpcomingBill {
   id: string;
   clientId: string;
   clientName: string;
+  /** Název předplatného (klient jich může mít víc). */
+  label: string;
   nextInvoiceAt: string;
   amount: number;
   overdue: boolean;
@@ -240,9 +242,12 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingBilling.slice(0, 5).map((b) => (
-                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=1`}>
+                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=${b.id}`}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
-                        <span className="min-w-0 flex-1 truncate text-sm">{b.clientName}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm" title={b.label}>
+                          {b.clientName}
+                          <span className="ml-1.5 text-xs text-muted-foreground">{b.label}</span>
+                        </span>
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {formatCurrency(b.amount)}
                         </span>

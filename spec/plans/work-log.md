@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-29 — Fáze 34C: víc předplatných a obecné tarify
+
+- **Model `subscriptions`:** `service` (card / web / other, chybí = vizitka), `plan` volitelný (jen vizitka), `label` (vlastní název, u webu/jiné povinný), `instanceId` (volitelná vazba). Zod: `subscriptionFormSchema` (superRefine) + `subscriptionFormPartialSchema` pro PATCH. API čistí pole nepatřící k druhu služby. Bez migrace.
+- **`subscriptionLabel()`** (`lib/plans.ts`, + `SERVICE_LABELS`): „Digitální vizitka · Pro růst" / vlastní název. Použito v položkách faktur (cron i ruční „Z předplatného"), detailu, seznamu klientů, Moje vizitky, dashboardu.
+- **Detail klienta:** `SubscriptionCard` = seznam předplatných (zrušená na konci, potlačená) + „Přidat"; formulář s volbou služby (tarif u vizitky / název u webu a jiné), vazba na vizitku/web, náhled „Na faktuře: …".
+- **Faktura z předplatného:** `?sub=<subscriptionId>` (stará `sub=1` → první předplatné), faktura ukládá `subscriptionId`; v záložce Faktury tlačítko pro každé běžící neinterní předplatné. Dashboard „Blížící se fakturace" odkazuje na konkrétní předplatné a ukazuje jeho název.
+- **Seznam klientů:** platící = aspoň jedno běžící neinterní; Paušál = součet měsíčních cen po slevě („2 služby · … Kč/měs").
+- **Oprava (Moje vizitky):** bralo jen první předplatné (i zrušené/interní) a názvy tarifů basic/standard/premium → nyní součet běžících neinterních + `subscriptionLabel`.
+- **Oprava (význam `priceMonthly`):** cron a faktura ho berou jako měsíční cenu (roční = 12×), ale MRR dělil roční 12 a formulář psal „Cena za rok". Sjednoceno na měsíční cenu všude (MRR, formulář s poznámkou „Fakturuje se ročně: 12 ×", náhled, přehled). Ostrá data: žádné roční předplatné (13 aktivních + 2 zrušená, vše měsíční), dopad nulový.
+- Verze 1.8.0 → **1.9.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
 ## 2026-09-29 — Fáze 34B: služby a zakázky
 
 - **Nová kolekce `projects`** (jednorázové zakázky): schéma `lib/schemas/project.ts`, stavy `projectStatus` (Poptávka / Rozpracováno / Dodáno / Zrušeno), API `POST /api/projects` + `PATCH /api/projects/[id]` (sales jen své klienty, `lib/projects.ts`), `deliveredAt` se nastavuje/maže podle stavu, aktivita u klienta. Rules `projects` (read auth, write admin SDK). `data-model.md` doplněn.
