@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { statusOrder } from "@/lib/schemas/email-status";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
@@ -75,11 +74,11 @@ export default async function CampaignDetailPage({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[{ label: "Email marketing", href: "/email-marketing" }, { label: name }]}
       />
 
       <div className="flex items-center gap-3">
-        <BackButton href="/email-marketing" className="shrink-0" />
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold tracking-tight md:text-2xl">{name}</h1>
           <p className="text-sm text-muted-foreground">

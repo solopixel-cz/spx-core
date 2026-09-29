@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { personalizeTemplate, SAMPLE_VARS } from "@/lib/marketing/personalize";
 import { Send } from "lucide-react";
@@ -123,6 +122,7 @@ export function NewCampaignClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[
           { label: "Email marketing", href: "/email-marketing" },
           { label: "Nová kampaň" },
@@ -130,7 +130,6 @@ export function NewCampaignClient({
       />
 
       <div className="flex items-center gap-3">
-        <BackButton href="/email-marketing" className="shrink-0" />
         <h1 className="text-xl font-bold tracking-tight md:text-2xl">Nová kampaň</h1>
       </div>
 

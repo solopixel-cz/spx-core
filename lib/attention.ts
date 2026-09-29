@@ -1,6 +1,7 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { UserRole } from "@/lib/auth";
 import { getSalesClientIds } from "@/lib/sales-clients";
+import { normalizeSubmission } from "@/lib/submission-view-model";
 
 export interface AttentionItem {
   type: "invoice" | "ticket" | "lead" | "submission" | "task" | "prospect";
@@ -124,9 +125,9 @@ export async function getAttentionItems(
             items.push({
               type: "submission",
               severity: age > 7 ? "high" : "low",
-              title: `Podklady „${d.fullName}" čekají ${age} dní`,
+              title: `Podklady „${normalizeSubmission(d).fullName ?? "?"}" čekají ${age} dní`,
               age,
-              href: "/submissions",
+              href: `/submissions/${doc.id}`,
             });
           }
         });

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   personalizeTemplate,
@@ -174,6 +173,7 @@ export function TemplateEditorClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[
           { label: "Email marketing", href: "/email-marketing" },
           { label: title },
@@ -182,7 +182,6 @@ export function TemplateEditorClient({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <BackButton href="/email-marketing" className="shrink-0" />
           <h1 className="truncate text-xl font-bold tracking-tight md:text-2xl">
             {title}
           </h1>

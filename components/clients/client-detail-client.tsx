@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -314,9 +313,9 @@ export function ClientDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/clients"
         items={[{ label: "Klienti", href: "/clients" }, { label: client.name }]}
       />
-      <BackButton href="/clients" className="-ml-2" />
 
       {/* Archived banner */}
       {isArchived && (

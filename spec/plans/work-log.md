@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-29 — Detail podkladů na vlastní stránce
+
+- **Nová routa `/submissions/[id]`** (ID = token): `app/(app)/submissions/[id]/page.tsx` načte podklad přes Admin SDK, vazbu na klienta (token → e-mail fallback), jméno zpracovatele; sales vidí jen podklady svých klientů (jinak 404). Seznam už nepoužívá Sheet, řádek/karta vede na detail; záložka Nové/Zpracované se pamatuje (sessionStorage).
+- **`components/submissions/submission-detail-client.tsx`** ve stylu detailu klienta: breadcrumbs + zpět, hero (fotka, stav, odesláno/zpracováno kým, chipy e-mail/telefon/doména/klient, akce Kopírovat pro AI + Označit zpracované). **Přehled vyplnění** (chybějící povinná a doporučená pole). Sekce jako karty s vysvětlivkou, k čemu slouží na vizitce; každé pole má popisek + nápovědu, prázdná pole jsou vidět („Nevyplněno" / „Chybí (povinné)"). O mně přes celou šířku s počtem znaků (doporučeno 500).
+- **View model:** doplněna pole z webového kontraktu, která CRM ignorovalo: `services.pricing`, `appearance.colors/notes` (v datech zatím prázdné, zobrazí se jen vyplněné; jdou i do AI promptu), příznak `legacy`, popisky `MAIN_ACTION_HINTS` / `TONE_HINTS`. `data-model.md` doplněn.
+- **Odkazy na detail:** e-mail o novém podkladu, in-app notifikace i položka dashboardu vedou na `/submissions/<token>`. **Oprava:** dashboard u v2 podkladů psal „undefined" místo jména (bral ploché `fullName`), nově přes `normalizeSubmission`.
+- **Kopírovat pro AI:** po kliknutí se tlačítko na 2 s změní na „✓ Zkopírováno" (místo toastu).
+- **Zpět vedle drobečků:** `Breadcrumbs` má `backHref` → kompaktní šipka (`BackButton compact`) v řádku drobečkové navigace. Přesunuto na všech 10 detailech s drobečky (klient, oslovení, faktura + nová/úprava, podklad, email marketing: kampaň, nová kampaň, šablona, seznam); samostatná šipka u titulku zrušena. Nastavení (bez drobečků) beze změny.
+- Verze 1.5.0 → **1.6.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
 ## 2026-09-29 — Hromadná archivace v tabulkách + klienti řazení podle platby
 
 Větev `feature/progress` (odbočená z `feat/email-marketing`). Rozpracovaná fáze 33 odložena na lokální větev `wip/33-routovani-bez-modalu`.

@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { clientStatus } from "@/lib/status";
@@ -166,11 +165,11 @@ export function ListDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[{ label: "Email marketing", href: "/email-marketing" }, { label: list.name }]}
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <BackButton href="/email-marketing" className="shrink-0" />
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}

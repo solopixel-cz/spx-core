@@ -54,7 +54,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySelect } from "./category-select";
 import { ProspectFormDialog } from "./prospect-form-dialog";
@@ -506,12 +505,12 @@ export function ProspectDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/prospects"
         items={[{ label: "Oslovení", href: "/prospects" }, { label: prospect.name }]}
       />
 
-      {/* Hlavička s návratem */}
+      {/* Hlavička */}
       <div className="flex items-center gap-3">
-        <BackButton href="/prospects" className="shrink-0" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-xl font-bold tracking-tight md:text-2xl">

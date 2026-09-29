@@ -57,11 +57,12 @@ export function buildSubmissionPrompt(submission: SubmissionView): string {
 
   // ## Co dělá
   const hasServices =
-    submission.whatIDo || submission.topServices || submission.mainAction;
+    submission.whatIDo || submission.topServices || submission.mainAction || submission.pricing;
   if (hasServices) {
     lines.push("## Co dělá");
     addBlock("Čím se živí", submission.whatIDo);
     addBlock("Hlavní 3 služby", submission.topServices);
+    addBlock("Ceník (orientačně od)", submission.pricing);
     const mainAction = label(MAIN_ACTION_LABELS, submission.mainAction);
     if (mainAction) {
       const note = submission.mainActionNote ? ` (${submission.mainActionNote})` : "";
@@ -85,6 +86,14 @@ export function buildSubmissionPrompt(submission: SubmissionView): string {
     addField("Tón", tone);
     addField("Oslovení", address);
     addBlock("Vlastními slovy", submission.ownWords);
+    lines.push("");
+  }
+
+  // ## Vzhled
+  if (submission.appearanceColors || submission.appearanceNotes) {
+    lines.push("## Vzhled a poznámky");
+    addField("Barvy / styl", submission.appearanceColors);
+    addBlock("Další poznámky", submission.appearanceNotes);
     lines.push("");
   }
 

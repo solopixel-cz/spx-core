@@ -362,6 +362,7 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
     topServices?: string
     mainAction?: 'zavolat' | 'poptavka' | 'termin' | 'jine'
     mainActionNote?: string
+    pricing?: string       // orientační ceník „od" (v datech zatím vždy prázdné)
   }
   about?: { text?: string }
   pixela?: {
@@ -369,6 +370,7 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
     address?: 'vykani' | 'tykani'
     ownWords?: string
   }
+  appearance?: { colors?: string; notes?: string }  // vzhled a poznámky (v datech zatím vždy prázdné)
   profileImageUrl?: string
   createdAt: Timestamp
   processedAt?: Timestamp
