@@ -35,7 +35,8 @@ import {
   renewalLabel,
   domainHref,
 } from "@/lib/domain-renewal";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Building2 } from "lucide-react";
+import { contactPersonName, greetingName } from "@/lib/marketing/personalize";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
@@ -48,6 +49,8 @@ import { ClientTicketDialog } from "./client-ticket-dialog";
 interface ClientData {
   id: string;
   name: string;
+  kind: "person" | "company";
+  contactName?: string;
   company?: string;
   ico?: string;
   dic?: string;
@@ -250,6 +253,7 @@ export function ClientDetailClient({
   const isSales = userRole === "sales";
   const isAdminOrMember = !isSales;
   const isArchived = !!client.deletedAt;
+  const isCompany = client.kind === "company";
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [acting, setActing] = useState(false);
@@ -339,7 +343,7 @@ export function ClientDetailClient({
       <div className="rounded-2xl border bg-card p-4 shadow-xs md:p-6">
         <div className="flex items-start gap-3 md:gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-bold text-primary md:size-14 md:text-xl">
-            {getInitials(client.name)}
+            {isCompany ? <Building2 className="h-6 w-6" /> : getInitials(client.name)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -350,10 +354,16 @@ export function ClientDetailClient({
                 {statusLabels[client.status] ?? client.status}
               </Badge>
             </div>
-            {client.company && (
+            {isCompany ? (
               <p className="mt-0.5 text-sm text-muted-foreground md:text-base">
-                {client.company}
+                Firma{client.contactName ? ` · kontakt: ${client.contactName}` : ""}
               </p>
+            ) : (
+              client.company && (
+                <p className="mt-0.5 text-sm text-muted-foreground md:text-base">
+                  {client.company}
+                </p>
+              )
             )}
           </div>
         </div>
@@ -426,7 +436,9 @@ export function ClientDetailClient({
             }
             defaultValues={{
               id: client.id,
+              kind: client.kind,
               name: client.name,
+              contactName: client.contactName ?? "",
               company: client.company ?? "",
               ico: client.ico ?? "",
               dic: client.dic ?? "",
@@ -441,13 +453,14 @@ export function ClientDetailClient({
           />
           <CardFormButton
             clientId={client.id}
-            clientName={client.name}
+            clientName={contactPersonName(client)}
             clientEmail={client.email}
           />
           {client.email && instances.length > 0 && !isArchived && (
             <DeliveryDialog
               clientId={client.id}
               clientName={client.name}
+              defaultGreeting={greetingName(client)}
               clientEmail={client.email}
               instances={instances.map((i) => ({
                 id: i.id,
@@ -467,6 +480,7 @@ export function ClientDetailClient({
             <MarketingEmailDialog
               clientId={client.id}
               clientName={client.name}
+              defaultGreeting={greetingName(client)}
               clientEmail={client.email}
               templates={emailTemplates}
               defaultLink={primaryInstance?.deployUrl ?? ""}

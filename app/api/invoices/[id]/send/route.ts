@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { sendTransactionalEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
 import { companySchema } from "@/lib/schemas/company";
+import { contactPersonName } from "@/lib/marketing/personalize";
 import {
   renderInvoicePdf,
   type InvoicePdfData,
@@ -73,6 +74,8 @@ export async function POST(
     const variableSymbol =
       (invoice.variableSymbol as string) || number.replace(/\D/g, "");
     const clientName = (client.name as string) || "kliente";
+    // Oslovení v e-mailu: u firmy kontaktní osoba (odběratel na PDF zůstává firma).
+    const greetingFull = contactPersonName(client) || clientName;
 
     // Dodavatelské údaje (settings/company) — platební údaje, PDF, QR.
     const companyDoc = await db.collection("settings").doc("company").get();
@@ -104,7 +107,7 @@ export async function POST(
     const subject = `Faktura ${number}`;
 
     const lines: string[] = [
-      `<p>Dobrý den, ${escapeHtml(clientName)},</p>`,
+      `<p>Dobrý den, ${escapeHtml(greetingFull)},</p>`,
       `<p>zasíláme fakturu <strong>${escapeHtml(number)}</strong>.</p>`,
       `<ul>`,
       `<li>Částka: <strong>${amount} Kč</strong></li>`,
@@ -120,7 +123,7 @@ export async function POST(
     const html = lines.join("\n");
 
     const text =
-      `Dobrý den, ${clientName},\n\n` +
+      `Dobrý den, ${greetingFull},\n\n` +
       `zasíláme fakturu ${number}.\n\n` +
       `Částka: ${amount} Kč\n` +
       `Datum vystavení: ${fmtDate(invoice.issuedAt)}\n` +

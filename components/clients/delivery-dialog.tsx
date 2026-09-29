@@ -40,6 +40,8 @@ interface DeliveryEmailData {
 interface DeliveryDialogProps {
   clientId: string;
   clientName: string;
+  /** Výchozí oslovení (lze v dialogu upravit). */
+  defaultGreeting?: string;
   clientEmail: string;
   instances: InstanceData[];
   lastDelivery?: DeliveryEmailData | null;
@@ -49,6 +51,7 @@ interface DeliveryDialogProps {
 export function DeliveryDialog({
   clientId,
   clientName,
+  defaultGreeting,
   clientEmail,
   instances,
   lastDelivery,
@@ -56,7 +59,7 @@ export function DeliveryDialog({
 }: DeliveryDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [greeting, setGreeting] = useState(clientName.split(" ")[0]);
+  const [greeting, setGreeting] = useState(defaultGreeting ?? clientName.split(" ")[0]);
   const [selectedInstanceId, setSelectedInstanceId] = useState(
     instances.length === 1 ? instances[0].id : ""
   );

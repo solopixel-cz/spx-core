@@ -48,6 +48,8 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
     return {
       id: doc.id,
       name: data.name,
+      kind: data.kind === "company" ? "company" : "person",
+      contactName: data.contactName,
       company: data.company,
       email: data.email,
       status: data.status,

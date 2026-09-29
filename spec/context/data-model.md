@@ -24,12 +24,14 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
 ```
 
 ### `clients`
-Klienti (finanční poradci).
+Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
 
 ```ts
 {
-  name: string               // jméno poradce
-  company?: string
+  kind?: 'person' | 'company'  // chybí = 'person' (stávající klienti)
+  name: string               // osoba: jméno a příjmení; firma: název firmy
+  contactName?: string       // jen firma: kontaktní osoba (oslovení v e-mailech)
+  company?: string           // jen osoba: značka / síť (OVB, ZFP…); u firmy se nepoužívá
   ico?: string               // odběratel na faktuře
   dic?: string
   billingStreet?: string     // fakturační adresa (ulice a č.p.)

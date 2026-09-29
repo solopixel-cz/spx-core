@@ -184,11 +184,10 @@ export function InvoiceForm({
 
             {selectedClient ? (
               <div className="rounded-xl border bg-muted/30 p-4">
-                <p className="font-medium">
-                  {selectedClient.company || selectedClient.name}
-                </p>
+                {/* Odběratel = jméno osoby / název firmy (stejně jako na PDF); značka jen doplňkově. */}
+                <p className="font-medium">{selectedClient.name}</p>
                 {selectedClient.company && (
-                  <p className="text-sm text-muted-foreground">{selectedClient.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedClient.company}</p>
                 )}
                 {(selectedClient.ico || selectedClient.dic) && (
                   <p className="mt-1.5 text-sm text-muted-foreground">

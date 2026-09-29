@@ -33,6 +33,8 @@ interface TemplateSummary {
 interface MarketingEmailDialogProps {
   clientId: string;
   clientName: string;
+  /** Výchozí oslovení (lze v dialogu upravit). */
+  defaultGreeting?: string;
   clientEmail: string;
   templates: TemplateSummary[];
   /** Předvyplněný odkaz (např. deployUrl vizitky) — vždy editovatelný. */
@@ -43,6 +45,7 @@ interface MarketingEmailDialogProps {
 export function MarketingEmailDialog({
   clientId,
   clientName,
+  defaultGreeting,
   clientEmail,
   templates,
   defaultLink = "",
@@ -54,7 +57,7 @@ export function MarketingEmailDialog({
     templates.length === 1 ? templates[0].id : ""
   );
   const [odkaz, setOdkaz] = useState(defaultLink);
-  const [greeting, setGreeting] = useState(firstName(clientName));
+  const [greeting, setGreeting] = useState(defaultGreeting ?? firstName(clientName));
   const [sending, setSending] = useState(false);
   const inFlight = useRef(false);
 

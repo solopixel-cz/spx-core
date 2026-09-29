@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-29 — Fáze 34A: klient osoba / firma
+
+- **Model:** `clients.kind` (`person` | `company`, chybí = osoba) + `contactName` (jen firma). Zod `clientKindSchema`, `data-model.md` doplněn. Bez migrace.
+- **Formulář klienta:** přepínač Osoba / Firma; u firmy „Název firmy" + „Kontaktní osoba", e-mail/telefon = kontakt; neplatné pole se při uložení vyprázdní (osoba nemá kontakt, firma nemá značku).
+- **Oslovení:** `greetingName()` + `contactPersonName()` v `lib/marketing/personalize.ts`. Zapojeno: marketing e-mail a předání vizitky (API i výchozí oslovení v dialogu), kampaně (příjemce z klientů), token formuláře podkladů (jméno = kontaktní osoba), e-mail s fakturou. Firma bez kontaktu → celý název.
+- **Faktura:** náhled odběratele ve formuláři srovnán s PDF (`name`, značka jen pod ním).
+- **Seznam klientů:** ikona firmy, sloupec „Značka / kontakt", filtr Osoby / Firmy (pamatuje se), hledání i podle kontaktní osoby. Detail: ikona budovy místo iniciál, „Firma · kontakt: …". Cmd+K hledá i podle kontaktu.
+- Lead → klient zatím vždy osoba (volba typu při výhře leadu odložena).
+- Verze 1.6.0 → **1.7.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
 ## 2026-09-29 — Detail podkladů na vlastní stránce
 
 - **Nová routa `/submissions/[id]`** (ID = token): `app/(app)/submissions/[id]/page.tsx` načte podklad přes Admin SDK, vazbu na klienta (token → e-mail fallback), jméno zpracovatele; sales vidí jen podklady svých klientů (jinak 404). Seznam už nepoužívá Sheet, řádek/karta vede na detail; záložka Nové/Zpracované se pamatuje (sessionStorage).

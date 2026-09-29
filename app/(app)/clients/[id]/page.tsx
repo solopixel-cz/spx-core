@@ -23,6 +23,8 @@ export default async function ClientDetailPage({
   const client = {
     id: doc.id,
     name: data.name as string,
+    kind: (data.kind as "person" | "company" | undefined) ?? "person",
+    contactName: data.contactName as string | undefined,
     company: data.company as string | undefined,
     ico: data.ico as string | undefined,
     dic: data.dic as string | undefined,

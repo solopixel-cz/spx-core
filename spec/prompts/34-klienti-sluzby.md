@@ -35,14 +35,13 @@ contactName?: string          // jen firma: kontaktní osoba (celé jméno)
 ### Oslovení v e-mailech — jeden helper
 Dnes se křestní jméno počítá na 6+ místech (`name.split(" ")[0]` / `firstName()`), u firmy by vyšlo „Dobrý den, Stavby“. Zavést `greetingName(client)` v `lib/marketing/personalize.ts`:
 - osoba → `firstName(name)` (dnešní chování),
-- firma → `firstName(contactName)`, bez kontaktu → prázdné (šablona pak má znít „Dobrý den,").
+- firma → `firstName(contactName)`, bez kontaktu → celý název firmy (prázdné oslovení by v šablonách dalo „Dobrý den, ,").
+- `contactPersonName(client)` = celé jméno člověka, se kterým komunikujeme (firma → kontakt). Používá se pro token formuláře podkladů (web ho předvyplní jako „Jméno a příjmení") a oslovení v e-mailu s fakturou.
 
 Nahradit v: `app/api/clients/[id]/route.ts:179, 256`, `app/api/card-tokens/route.ts:84`, `components/clients/marketing-email-dialog.tsx:57`, `components/clients/delivery-dialog.tsx:59` (nebo jejich nástupcích po fázi 33), `app/api/marketing/campaigns/route.ts:216`, `app/api/invoices/[id]/send/route.ts:75` (dnes celé jméno, fallback „kliente").
 
 ### Faktura — odběratel
-- **Oprava nesouladu:** PDF (`lib/pdf/invoice-pdf.tsx:271`) ukazuje jen `name`, formulář (`components/invoices/invoice-form.tsx:188`) `company || name`. Sjednotit jednou funkcí `invoiceBuyer(client)`:
-  - firma → název firmy (`name`) + IČO/DIČ + adresa,
-  - osoba → `name`, pod ním `company` (pokud je) + IČO/DIČ + adresa.
+- **Oprava nesouladu:** PDF (`lib/pdf/invoice-pdf.tsx:271`) ukazuje jen `name`, formulář (`components/invoices/invoice-form.tsx:188`) `company || name`. **Správně je PDF:** odběratel = `name` (osoba jako OSVČ s IČO, firma svým názvem); značka (`company`) odběratel není. Náhled ve formuláři srovnán podle PDF (`name`, pod ním značka), PDF beze změny.
 
 ### UI
 - Formulář klienta: přepínač **Osoba / Firma** nahoře; u firmy popisky „Název firmy", „Kontaktní osoba", skrýt „Firma / značka".

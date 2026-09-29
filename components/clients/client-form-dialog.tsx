@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { clientFormSchema, type ClientFormData } from "@/lib/schemas/client";
 
 interface ClientFormDialogProps {
@@ -50,9 +51,12 @@ export function ClientFormDialog({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
       status: "onboarding",
+      kind: "person",
       ...defaultValues,
     },
   });
+
+  const isCompany = watch("kind") === "company";
 
   async function onSubmit(data: ClientFormData) {
     try {
@@ -62,7 +66,12 @@ export function ClientFormDialog({
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        // Osoba nemá kontaktní osobu, firma nemá značku — neplatné pole vyprázdnit.
+        body: JSON.stringify(
+          data.kind === "company"
+            ? { ...data, company: "" }
+            : { ...data, contactName: "" }
+        ),
       });
 
       if (!res.ok) {
@@ -90,9 +99,19 @@ export function ClientFormDialog({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Tabs
+            value={isCompany ? "company" : "person"}
+            onValueChange={(v) => setValue("kind", v as ClientFormData["kind"])}
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="person">Osoba</TabsTrigger>
+              <TabsTrigger value="company">Firma</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Jméno *</Label>
+              <Label htmlFor="name">{isCompany ? "Název firmy *" : "Jméno a příjmení *"}</Label>
               <Input id="name" {...register("name")} />
               {errors.name && (
                 <p className="text-sm text-destructive">
@@ -100,10 +119,17 @@ export function ClientFormDialog({
                 </p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Firma</Label>
-              <Input id="company" {...register("company")} />
-            </div>
+            {isCompany ? (
+              <div className="space-y-2">
+                <Label htmlFor="contactName">Kontaktní osoba</Label>
+                <Input id="contactName" placeholder="Jméno a příjmení" {...register("contactName")} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="company">Firma / značka</Label>
+                <Input id="company" placeholder="např. OVB, ZFP" {...register("company")} />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -135,7 +161,7 @@ export function ClientFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail *</Label>
+              <Label htmlFor="email">{isCompany ? "E-mail kontaktu *" : "E-mail *"}</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (
                 <p className="text-sm text-destructive">
@@ -144,7 +170,7 @@ export function ClientFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefon</Label>
+              <Label htmlFor="phone">{isCompany ? "Telefon kontaktu" : "Telefon"}</Label>
               <Input id="phone" {...register("phone")} />
             </div>
           </div>

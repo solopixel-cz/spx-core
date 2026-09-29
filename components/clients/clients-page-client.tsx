@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -50,6 +50,8 @@ import { ClientFormDialog } from "./client-form-dialog";
 export interface ClientRow {
   id: string;
   name: string;
+  kind: "person" | "company";
+  contactName?: string;
   company?: string;
   email: string;
   status: string;
@@ -116,19 +118,35 @@ const columnHelper = createColumnHelper<ClientRow>();
 
 const dataColumns = [
   columnHelper.accessor("name", {
-    header: "Jméno",
+    header: "Jméno / název",
     cell: (info) => (
       <Link
         href={`/clients/${info.row.original.id}`}
-        className="font-medium hover:underline"
+        className="inline-flex items-center gap-1.5 font-medium hover:underline"
       >
+        {info.row.original.kind === "company" && (
+          <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Firma" />
+        )}
         {info.getValue()}
       </Link>
     ),
   }),
   columnHelper.accessor("company", {
-    header: "Firma",
-    cell: (info) => info.getValue() || "—",
+    header: "Značka / kontakt",
+    cell: (info) => {
+      const c = info.row.original;
+      if (c.kind === "company") {
+        return c.contactName ? (
+          <span>
+            <span className="text-muted-foreground">kontakt: </span>
+            {c.contactName}
+          </span>
+        ) : (
+          "—"
+        );
+      }
+      return info.getValue() || "—";
+    },
   }),
   columnHelper.accessor("email", {
     header: "E-mail",
@@ -190,6 +208,7 @@ export function ClientsPageClient({
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [segment, setSegment] = useState<Segment>("paying");
+  const [kindFilter, setKindFilter] = useState<"all" | "person" | "company">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -209,12 +228,14 @@ export function ClientsPageClient({
           q?: string;
           status?: string;
           segment?: Segment;
+          kind?: "all" | "person" | "company";
         };
         if (saved.q) setGlobalFilter(saved.q);
         if (saved.status && saved.status !== "all") {
           setColumnFilters([{ id: "status", value: saved.status }]);
         }
         if (saved.segment) setSegment(saved.segment);
+        if (saved.kind) setKindFilter(saved.kind);
       }
     } catch {
       // ignore
@@ -231,12 +252,12 @@ export function ClientsPageClient({
         "all";
       sessionStorage.setItem(
         FILTER_STORAGE_KEY,
-        JSON.stringify({ q: globalFilter, status, segment }),
+        JSON.stringify({ q: globalFilter, status, segment, kind: kindFilter }),
       );
     } catch {
       // ignore
     }
-  }, [globalFilter, columnFilters, segment, hydrated]);
+  }, [globalFilter, columnFilters, segment, kindFilter, hydrated]);
 
   const sorted = useMemo(
     () =>
@@ -250,15 +271,21 @@ export function ClientsPageClient({
     [clients, archived],
   );
 
-  const payingCount = sorted.filter((c) => c.billing === "paying").length;
+  // Typ klienta (osoba / firma) — filtruje ještě před segmenty, ať počty sedí.
+  const kindFiltered = useMemo(
+    () => (kindFilter === "all" ? sorted : sorted.filter((c) => c.kind === kindFilter)),
+    [sorted, kindFilter],
+  );
+
+  const payingCount = kindFiltered.filter((c) => c.billing === "paying").length;
   const segmentData = useMemo(
     () =>
       archived || segment === "all"
-        ? sorted
-        : sorted.filter(
+        ? kindFiltered
+        : kindFiltered.filter(
             (c) => (c.billing === "paying") === (segment === "paying"),
           ),
-    [sorted, segment, archived],
+    [kindFiltered, segment, archived],
   );
 
   const baseColumns = archived
@@ -284,6 +311,15 @@ export function ClientsPageClient({
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    // Hledání i podle kontaktní osoby firmy (není samostatný sloupec).
+    globalFilterFn: (row, _columnId, value) => {
+      const q = String(value ?? "").toLowerCase().trim();
+      if (!q) return true;
+      const c = row.original;
+      return [c.name, c.company, c.contactName, c.email].some((v) =>
+        v?.toLowerCase().includes(q),
+      );
+    },
     getFilteredRowModel: getFilteredRowModel(),
   });
 
@@ -325,9 +361,9 @@ export function ClientsPageClient({
           <TabsList>
             <TabsTrigger value="paying">Platící ({payingCount})</TabsTrigger>
             <TabsTrigger value="other">
-              Neplatící ({sorted.length - payingCount})
+              Neplatící ({kindFiltered.length - payingCount})
             </TabsTrigger>
-            <TabsTrigger value="all">Všichni ({sorted.length})</TabsTrigger>
+            <TabsTrigger value="all">Všichni ({kindFiltered.length})</TabsTrigger>
           </TabsList>
         </Tabs>
       )}
@@ -362,6 +398,20 @@ export function ClientsPageClient({
             <SelectItem value="churned">Odešlý</SelectItem>
           </SelectContent>
         </Select>
+        <Select
+          items={{ all: "Osoby i firmy", person: "Osoby", company: "Firmy" }}
+          value={kindFilter}
+          onValueChange={(val) => val && setKindFilter(val as typeof kindFilter)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Typ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Osoby i firmy</SelectItem>
+            <SelectItem value="person">Osoby</SelectItem>
+            <SelectItem value="company">Firmy</SelectItem>
+          </SelectContent>
+        </Select>
       </FilterBar>
 
       {/* Mobil: karty */}
@@ -382,13 +432,27 @@ export function ClientsPageClient({
                     <RowCheckbox selection={selection} id={c.id} />
                   ) : undefined
                 }
-                title={c.name}
+                title={
+                  c.kind === "company" ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Firma" />
+                      {c.name}
+                    </span>
+                  ) : (
+                    c.name
+                  )
+                }
                 badge={
                   <Badge variant={statusVariants[c.status] ?? "secondary"}>
                     {statusLabels[c.status] ?? c.status}
                   </Badge>
                 }
-                subtitle={[c.company, c.email].filter(Boolean).join(" · ")}
+                subtitle={[
+                  c.kind === "company" ? c.contactName : c.company,
+                  c.email,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
                 meta={
                   <>
                     {c.billing !== "none" && <BillingCell client={c} />}

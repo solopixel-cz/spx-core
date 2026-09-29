@@ -31,6 +31,7 @@ export async function GET(request: Request) {
         return (
           (d.name as string).toLowerCase().includes(q) ||
           (d.company as string | undefined)?.toLowerCase().includes(q) ||
+          (d.contactName as string | undefined)?.toLowerCase().includes(q) ||
           (d.email as string).toLowerCase().includes(q)
         );
       })
@@ -38,7 +39,8 @@ export async function GET(request: Request) {
       .map((doc) => ({
         id: doc.id,
         name: doc.data().name,
-        company: doc.data().company,
+        // U firmy ukázat pod názvem kontaktní osobu (pole company se u firmy nepoužívá).
+        company: doc.data().kind === "company" ? doc.data().contactName : doc.data().company,
       }));
 
     const leads = leadsSnap.docs

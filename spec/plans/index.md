@@ -35,6 +35,6 @@
 | Fáze 30 — Podklady: nová struktura formuláře | ✅ Hotovo (§1–§4; §5 admin odloženo) | [`../prompts/30-podklady-nova-struktura.md`](../prompts/30-podklady-nova-struktura.md) |
 | Fáze 31 — Rozšíření fakturace (A–D) | ✅ Hotovo (Fakturoid odstraněn ve fázi 32) | [`../prompts/31-fakturace-rozsireni.md`](../prompts/31-fakturace-rozsireni.md) |
 | Fáze 32 — Odstřižení Fakturoidu (vlastní PDF, QR, evidence) | ✅ Hotovo | [`../prompts/32-fakturace-bez-fakturoidu.md`](../prompts/32-fakturace-bez-fakturoidu.md) |
-| Fáze 34 — Klient osoba/firma, služby a zakázky, víc předplatných | 🚧 Rozpracováno (krok A) | [`../prompts/34-klienti-sluzby.md`](../prompts/34-klienti-sluzby.md) — kroky A (typ klienta) → B (služby + zakázky) → C (víc předplatných) |
+| Fáze 34 — Klient osoba/firma, služby a zakázky, víc předplatných | 🚧 Rozpracováno (A hotovo, další B) | [`../prompts/34-klienti-sluzby.md`](../prompts/34-klienti-sluzby.md) — kroky A (typ klienta) → B (služby + zakázky) → C (víc předplatných) |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).
