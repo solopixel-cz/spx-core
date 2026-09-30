@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useRefresh } from "@/components/refresh-context";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -19,13 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -47,18 +37,9 @@ interface UserRow {
   senderName?: string;
 }
 
-const addUserSchema = z.object({
-  email: z.string().email("Zadejte platný e-mail"),
-  displayName: z.string().min(1, "Zadejte jméno"),
-  role: z.enum(["admin", "member", "sales"]),
-});
-
-type AddUserForm = z.infer<typeof addUserSchema>;
-
 export default function UzivatelePage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
   // Klíč právě probíhající řádkové akce, např. "uid-toggle" / "uid-reset" / "uid-role"
   const [actingKey, setActingKey] = useState<string | null>(null);
 
@@ -79,42 +60,6 @@ export default function UzivatelePage() {
   }, [fetchUsers]);
 
   useRefresh(fetchUsers);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<AddUserForm>({
-    resolver: zodResolver(addUserSchema),
-    defaultValues: { role: "member" },
-  });
-
-  async function onAddUser(data: AddUserForm) {
-    try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Nepodařilo se vytvořit uživatele");
-      }
-
-      const result = await res.json();
-      toast.success(`Uživatel vytvořen. Dočasné heslo: ${result.tempPassword}`);
-      setDialogOpen(false);
-      reset();
-      fetchUsers();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Nepodařilo se vytvořit uživatele"
-      );
-    }
-  }
 
   async function handleToggleActive(user: UserRow) {
     setActingKey(`${user.id}-toggle`);
@@ -196,62 +141,10 @@ export default function UzivatelePage() {
         <div className="flex items-center gap-2 min-w-0">
           <h2 className="text-xl font-semibold">Uživatelé</h2>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger
-            render={
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Přidat uživatele
-              </Button>
-            }
-          />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nový uživatel</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onAddUser)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" {...register("email")} />
-                {errors.email && (
-                  <p className="text-sm text-destructive">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Jméno</Label>
-                <Input id="displayName" {...register("displayName")} />
-                {errors.displayName && (
-                  <p className="text-sm text-destructive">
-                    {errors.displayName.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select
-                  defaultValue="member"
-                  onValueChange={(val) => {
-                    if (val) setValue("role", val as "admin" | "member" | "sales");
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Člen</SelectItem>
-                    <SelectItem value="sales">Obchodník</SelectItem>
-                    <SelectItem value="admin">Administrátor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Vytvářím..." : "Vytvořit"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" nativeButton={false} render={<Link href="/settings/users/new" />}>
+          <Plus className="mr-2 h-4 w-4" />
+          Přidat uživatele
+        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-md border">

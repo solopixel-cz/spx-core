@@ -23,12 +23,6 @@ import {
 import { RichTextEditor } from "./rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,7 +51,7 @@ import {
 import { ActivityTab } from "@/components/clients/activity-tab";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySelect } from "./category-select";
-import { ProspectFormDialog } from "./prospect-form-dialog";
+import { toastWithUndo } from "@/lib/undo-toast";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
 
 interface ActivityData {
@@ -93,9 +87,8 @@ export function ProspectDetailClient({
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [acting, setActing] = useState(false);
-  const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  // Rozbalený panel v kartě Akce (místo modálů): zápis kontaktu nebo změna stavu.
+  const [panel, setPanel] = useState<"contact" | "status" | null>(null);
   const [statusAction, setStatusAction] = useState<"not_interested" | "unreachable">("not_interested");
   const [statusNote, setStatusNote] = useState("");
 
@@ -273,7 +266,7 @@ export function ProspectDetailClient({
       });
       if (!res.ok) throw new Error();
       toast.success("Kontakt zaznamenán");
-      setContactDialogOpen(false);
+      setPanel(null);
       resetContactForm();
       refreshActivities();
       router.refresh();
@@ -298,7 +291,7 @@ export function ProspectDetailClient({
       if (!res.ok) throw new Error();
       const label = statusAction === "not_interested" ? "Nemá zájem" : "Nedostupný";
       toast.success(`Kontakt označen: ${label}`);
-      setStatusDialogOpen(false);
+      setPanel(null);
       setStatusNote("");
       refreshActivities();
       router.refresh();
@@ -427,8 +420,8 @@ export function ProspectDetailClient({
     }
   }
 
+  // Archivace bez potvrzení: hned, s „Vrátit zpět" v toastu.
   async function handleArchive() {
-    if (!confirm("Archivovat tento kontakt?")) return;
     setActing(true);
     try {
       const res = await fetch("/api/archive", {
@@ -437,7 +430,17 @@ export function ProspectDetailClient({
         body: JSON.stringify({ action: "archive", collection: "prospects", id: prospect.id }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Kontakt archivován");
+      toastWithUndo({
+        message: "Kontakt archivován",
+        undo: async () => {
+          await fetch("/api/archive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "restore", collection: "prospects", id: prospect.id }),
+          });
+          router.refresh();
+        },
+      });
       router.push("/prospects");
       router.refresh();
     } catch {
@@ -522,7 +525,8 @@ export function ProspectDetailClient({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setEditOpen(true)}
+            nativeButton={false}
+            render={<Link href={`/prospects/${prospect.id}/edit`} />}
             className="ml-auto shrink-0"
           >
             <Pencil className="mr-2 h-4 w-4" />
@@ -656,8 +660,107 @@ export function ProspectDetailClient({
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Akce
                   </p>
+                  {panel === "contact" ? (
+                    <div className="space-y-4">
+                      <p className="font-medium">Zapsat kontakt</p>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Kanál</Label>
+                          <Select value={channel} onValueChange={(val) => val && setChannel(val)}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(prospectChannel).map(([k, v]) => (
+                                <SelectItem key={k} value={k}>
+                                  {v.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Výsledek</Label>
+                          <Select value={result} onValueChange={(val) => val && setResult(val)}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(prospectResult).map(([k, v]) => (
+                                <SelectItem key={k} value={k}>
+                                  {v.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Poznámka</Label>
+                        <Textarea
+                          value={contactNote}
+                          onChange={(e) => setContactNote(e.target.value)}
+                          placeholder="Volitelná poznámka..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Follow-up datum</Label>
+                        <Input
+                          type="date"
+                          value={followUpAt}
+                          onChange={(e) => setFollowUpAt(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleContact} disabled={acting}>
+                          {acting ? "Ukládám..." : "Uložit"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          disabled={acting}
+                          onClick={() => {
+                            setPanel(null);
+                            resetContactForm();
+                          }}
+                        >
+                          Zrušit
+                        </Button>
+                      </div>
+                    </div>
+                  ) : panel === "status" ? (
+                    <div className="space-y-4">
+                      <p className="font-medium">
+                        {statusAction === "not_interested" ? "Nemá zájem" : "Nedostupný"}
+                      </p>
+                      <div className="space-y-2">
+                        <Label>Poznámka</Label>
+                        <Input
+                          value={statusNote}
+                          onChange={(e) => setStatusNote(e.target.value)}
+                          placeholder="Volitelná poznámka..."
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="destructive" onClick={handleStatusChange} disabled={acting}>
+                          {acting ? "Ukládám..." : "Potvrdit"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          disabled={acting}
+                          onClick={() => {
+                            setPanel(null);
+                            setStatusNote("");
+                          }}
+                        >
+                          Zrušit
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button onClick={() => setContactDialogOpen(true)} disabled={acting}>
+                    <Button onClick={() => setPanel("contact")} disabled={acting}>
                       <Phone className="mr-2 h-4 w-4" />
                       Zapsat kontakt
                     </Button>
@@ -674,7 +777,7 @@ export function ProspectDetailClient({
                       variant="outline"
                       onClick={() => {
                         setStatusAction("not_interested");
-                        setStatusDialogOpen(true);
+                        setPanel("status");
                       }}
                       disabled={acting}
                     >
@@ -685,7 +788,7 @@ export function ProspectDetailClient({
                       variant="outline"
                       onClick={() => {
                         setStatusAction("unreachable");
-                        setStatusDialogOpen(true);
+                        setPanel("status");
                       }}
                       disabled={acting}
                     >
@@ -704,6 +807,8 @@ export function ProspectDetailClient({
                       <Unlock className="mr-2 h-4 w-4" />
                       Uvolnit kontakt
                     </Button>
+                  )}
+                    </>
                   )}
                 </div>
               )}
@@ -1084,112 +1189,6 @@ export function ProspectDetailClient({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Contact dialog */}
-      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Zapsat kontakt</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Kanál</Label>
-              <Select value={channel} onValueChange={(val) => val && setChannel(val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(prospectChannel).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Výsledek</Label>
-              <Select value={result} onValueChange={(val) => val && setResult(val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(prospectResult).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Poznámka</Label>
-              <Textarea
-                value={contactNote}
-                onChange={(e) => setContactNote(e.target.value)}
-                placeholder="Volitelná poznámka..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Follow-up datum</Label>
-              <Input
-                type="date"
-                value={followUpAt}
-                onChange={(e) => setFollowUpAt(e.target.value)}
-              />
-            </div>
-            <Button onClick={handleContact} disabled={acting} className="w-full">
-              {acting ? "Ukládám..." : "Uložit"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Status change dialog (not_interested / unreachable) */}
-      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {statusAction === "not_interested" ? "Nemá zájem" : "Nedostupný"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Poznámka</Label>
-              <Input
-                value={statusNote}
-                onChange={(e) => setStatusNote(e.target.value)}
-                placeholder="Volitelná poznámka..."
-              />
-            </div>
-            <Button
-              onClick={handleStatusChange}
-              disabled={acting}
-              className="w-full"
-              variant="destructive"
-            >
-              {acting ? "Ukládám..." : "Potvrdit"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit dialog */}
-      <ProspectFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        prospect={prospect}
-        onSuccess={(saved) => {
-          setEditOpen(false);
-          // Sesynchronizuj lokální stav editovaný na detailu (jinak by zůstal starý).
-          if (saved) {
-            setCategory(saved.category);
-            setCardUrl(saved.demoUrl);
-          }
-          router.refresh();
-        }}
-      />
     </div>
   );
 }

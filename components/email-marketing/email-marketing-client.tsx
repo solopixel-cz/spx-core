@@ -2,20 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -119,34 +108,9 @@ export function EmailMarketingClient({
   overview: Overview;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState("overview");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  async function handleCreateList() {
-    if (!newName.trim()) return;
-    setCreating(true);
-    try {
-      const res = await fetch("/api/marketing/lists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() || undefined }),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      toast.success("Seznam vytvořen");
-      setCreateOpen(false);
-      setNewName("");
-      setNewDesc("");
-      router.push(`/email-marketing/lists/${data.id}`);
-    } catch {
-      toast.error("Nepodařilo se vytvořit seznam");
-    } finally {
-      setCreating(false);
-    }
-  }
+  // Výchozí záložka z `?tab=` (návrat z podstránek, např. nového seznamu).
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") ?? "overview");
 
   return (
     <div className="space-y-6">
@@ -351,7 +315,7 @@ export function EmailMarketingClient({
         {/* ---------- SEZNAMY ---------- */}
         <TabsContent value="lists" className="mt-5 space-y-4 md:mt-6">
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Button size="sm" nativeButton={false} render={<Link href="/email-marketing/lists/new" />}>
               <Plus className="mr-2 h-4 w-4" />
               Nový seznam
             </Button>
@@ -409,44 +373,6 @@ export function EmailMarketingClient({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Nový seznam dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nový seznam</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="list-name">Název *</Label>
-              <Input
-                id="list-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Např. Řemeslníci Praha"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="list-desc">Popis</Label>
-              <Textarea
-                id="list-desc"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                rows={2}
-                placeholder="Volitelný popis seznamu"
-              />
-            </div>
-            <Button
-              onClick={handleCreateList}
-              disabled={creating || !newName.trim()}
-              className="w-full"
-            >
-              {creating ? "Vytvářím..." : "Vytvořit a přidat kontakty"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -126,7 +127,6 @@ export function TemplateEditorClient({
 
   async function handleDelete() {
     if (!isEdit) return;
-    if (!confirm("Smazat tuto šablonu?")) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/email-templates/${template!.id}`, {
@@ -193,10 +193,17 @@ export function TemplateEditorClient({
                 <Copy className="mr-2 h-4 w-4" />
                 Duplikovat
               </Button>
-              <Button variant="outline" onClick={handleDelete} disabled={busy}>
+              <ConfirmButton
+                variant="outline"
+                size="default"
+                question="Smazat šablonu?"
+                confirmLabel="Smazat"
+                onConfirm={handleDelete}
+                disabled={busy}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Smazat
-              </Button>
+              </ConfirmButton>
             </>
           )}
           <Button onClick={handleSave} disabled={busy || !name.trim()}>

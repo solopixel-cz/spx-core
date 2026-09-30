@@ -9,7 +9,12 @@
 | 33E úkoly, 33F tickety (vč. detailu místo Sheetu) | ✅ 1.12.0 |
 | 33C leady | ➖ odpadá (leady zrušené v 1.11.0) |
 | 33I podklady | ➖ hotovo dřív (`/submissions/[id]`) |
-| 33D Oslovení, 33G fakturace, 33H email marketing, 33J provize, 33K nastavení, 33L úklid | ⏳ |
+| 33D Oslovení (formulář a import jako routy, zápis kontaktu a změna stavu jako rozbalovací panel) | ✅ 1.13.0 |
+| 33G fakturace (export jako routa, smazání jako rozbalovací panel, storno inline potvrzením) | ✅ 1.13.0 |
+| 33H email marketing (nový seznam jako routa, mazání a odeslání kampaně inline potvrzením) | ✅ 1.13.0 |
+| 33J provize (výplata jako rozbalovací panel) | ✅ 1.13.0 |
+| 33K nastavení (nový uživatel jako routa s dočasným heslem, trvalé smazání v archivu jako rozbalený řádek) | ✅ 1.13.0 |
+| 33L úklid: `dialog.tsx` + `sheet.tsx` zůstávají jen pro výjimky (Cmd+K, mobilní nav); mrtvý `change-password-dialog` smazán (profil má formulář na stránce) | ✅ 1.13.0 |
 
 ## Cíl a princip
 

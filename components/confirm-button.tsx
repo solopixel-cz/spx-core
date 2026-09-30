@@ -53,7 +53,7 @@ export function ConfirmButton({
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="text-sm text-muted-foreground">{question}</span>
       <Button
         type="button"

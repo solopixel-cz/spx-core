@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Fáze 33 dokončena (D, G, H, J, K, L): žádné obsahové modály
+
+- **33D Oslovení:** `/prospects/new`, `/prospects/[id]/edit` (`prospect-form`, po vytvoření na detail kontaktu), `/prospects/import` (CSV import, jen admin/member). Na detailu „Zapsat kontakt" a „Nemá zájem / Nedostupný" rozbalí formulář přímo v kartě Akce. Archivace kontaktu bez `confirm()`, s „Vrátit zpět".
+- **33G fakturace:** `/invoices/export`. Smazání faktury = rozbalovací panel pod hlavičkou (ochrana opsáním čísla zůstává). **Storno** dřív proběhlo na jeden klik bez potvrzení, teď inline potvrzení.
+- **33H email marketing:** `/email-marketing/lists/new`; záložka z `?tab=`. Mazání seznamu a šablony a odeslání kampaně (s počtem kontaktů) inline potvrzením místo `confirm()`.
+- **33J provize:** „Vyplatit" rozbalí panel s částkou a poznámkou pod filtrem.
+- **33K nastavení:** `/settings/users/new` (jen admin); dočasné heslo zůstane na stránce ke zkopírování (dřív jen v mizejícím toastu). Trvalé smazání v archivu = rozbalený řádek pod položkou (opsání názvu), hromadné smazání inline potvrzením.
+- **33L úklid:** `Dialog` zůstává jen v Cmd+K, `Sheet` jen v mobilní navigaci. Smazán nepoužívaný `change-password-dialog` (profil má změnu hesla na stránce od fáze 18). `ConfirmButton` se na úzkých místech zalamuje.
+- Verze 1.12.0 → **1.13.0** (feat). Lint (0 chyb) + build čisté. **Zbývá:** ověřit v prohlížeči.
+
 ## 2026-09-30 — Fáze 33 (A, B, E, F): detail klienta, úkoly a tickety bez modálů
 
 Navazuje na WIP z `wip/33-routovani-bez-modalu` (převzaty `confirm-button` + `undo-toast`, odesílací routy postavené znovu nad současným detailem klienta). Spec: [`../prompts/33-routovani-bez-modalu.md`](../prompts/33-routovani-bez-modalu.md).

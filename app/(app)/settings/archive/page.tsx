@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useRefresh } from "@/components/refresh-context";
 import { Button } from "@/components/ui/button";
@@ -22,12 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/empty-state";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -54,7 +49,6 @@ export default function ArchivPage() {
   const [items, setItems] = useState<ArchivedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ArchivedItem | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [acting, setActing] = useState(false);
@@ -113,7 +107,6 @@ export default function ArchivPage() {
         return;
       }
       toast.success("Trvale smazáno");
-      setDeleteDialogOpen(false);
       setDeleteTarget(null);
       setDeleteConfirmName("");
       fetchItems();
@@ -126,7 +119,6 @@ export default function ArchivPage() {
 
   async function handleBatchDelete() {
     if (selected.size === 0) return;
-    if (!confirm(`Trvale smazat ${selected.size} vybraných záznamů? Záznamy s vazbami budou přeskočeny.`)) return;
     setBatchDeleting(true);
     let deleted = 0;
     let skipped = 0;
@@ -173,15 +165,15 @@ export default function ArchivPage() {
 
       <div className="flex items-center gap-4">
         {selected.size > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleBatchDelete}
+          <ConfirmButton
+            question="Trvale smazat? Záznamy s vazbami se přeskočí."
+            confirmLabel="Smazat trvale"
+            onConfirm={handleBatchDelete}
             disabled={batchDeleting}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             {batchDeleting ? "Mažu..." : `Smazat vybrané (${selected.size})`}
-          </Button>
+          </ConfirmButton>
         )}
         <Select value={typeFilter} onValueChange={(val: string | null) => val && setTypeFilter(val)}>
           <SelectTrigger className="w-40">
@@ -213,7 +205,8 @@ export default function ArchivPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((item) => (
-                <TableRow key={`${item.collection}-${item.id}`}>
+                <Fragment key={`${item.collection}-${item.id}`}>
+                <TableRow>
                   <TableCell>
                     <Checkbox
                       checked={selected.has(`${item.collection}-${item.id}`)}
@@ -241,9 +234,9 @@ export default function ArchivPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          setDeleteTarget(item);
+                          const same = deleteTarget?.id === item.id && deleteTarget.collection === item.collection;
+                          setDeleteTarget(same ? null : item);
                           setDeleteConfirmName("");
-                          setDeleteDialogOpen(true);
                         }}
                         disabled={acting}
                         title="Trvale smazat"
@@ -254,43 +247,47 @@ export default function ArchivPage() {
                     </div>
                   </TableCell>
                 </TableRow>
+                {deleteTarget?.id === item.id && deleteTarget.collection === item.collection && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={6} className="whitespace-normal">
+                      {/* Trvalé smazání: rozbalený řádek místo modálu, ochrana opsáním názvu */}
+                      <div className="space-y-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+                        <p className="text-sm text-muted-foreground">
+                          Trvale smazaný záznam nelze obnovit. Pokud má navázaná data, mazání bude odmítnuto.
+                        </p>
+                        <div className="space-y-2">
+                          <Label>Pro potvrzení přepište název: <span className="font-medium">{item.name}</span></Label>
+                          <Input
+                            value={deleteConfirmName}
+                            onChange={(e) => setDeleteConfirmName(e.target.value)}
+                            placeholder={item.name}
+                            className="max-w-sm"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handlePermanentDelete}
+                            disabled={acting || deleteConfirmName !== item.name}
+                          >
+                            {acting ? "Mažu..." : "Trvale smazat"}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)} disabled={acting}>
+                            Zrušit
+                          </Button>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
-
-      {/* Permanent delete dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Trvale smazat</DialogTitle>
-          </DialogHeader>
-          {deleteTarget && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Trvale smazaný záznam nelze obnovit. Pokud má navázaná data, mazání bude odmítnuto.
-              </p>
-              <div className="space-y-2">
-                <Label>Pro potvrzení přepište název: <span className="font-medium">{deleteTarget.name}</span></Label>
-                <Input
-                  value={deleteConfirmName}
-                  onChange={(e) => setDeleteConfirmName(e.target.value)}
-                  placeholder={deleteTarget.name}
-                />
-              </div>
-              <Button
-                variant="destructive"
-                onClick={handlePermanentDelete}
-                disabled={acting || deleteConfirmName !== deleteTarget.name}
-                className="w-full"
-              >
-                {acting ? "Mažu..." : "Trvale smazat"}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

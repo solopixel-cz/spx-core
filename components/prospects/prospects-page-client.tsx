@@ -42,8 +42,6 @@ import type { OutreachContent } from "@/lib/email-templates/outreach-content";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { Plus, Upload, Hand, Monitor, Phone } from "lucide-react";
 import Link from "next/link";
-import { ProspectFormDialog } from "./prospect-form-dialog";
-import { CsvImportDialog } from "./csv-import-dialog";
 
 export interface ProspectRow {
   id: string;
@@ -110,8 +108,6 @@ export function ProspektiPageClient({
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [globalFilter, setGlobalFilter] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -236,13 +232,13 @@ export function ProspektiPageClient({
           <div className="flex gap-2">
             {isAdminOrMember && <ArchiveToggle archived={archived} />}
             {isAdminOrMember && !archived && (
-              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/prospects/import" />}>
                 <Upload className="mr-2 h-4 w-4" />
                 CSV Import
               </Button>
             )}
             {!archived && (
-              <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Button size="sm" nativeButton={false} render={<Link href="/prospects/new" />}>
                 <Plus className="mr-2 h-4 w-4" />
                 Přidat kontakt
               </Button>
@@ -581,28 +577,6 @@ export function ProspektiPageClient({
         </div>
       )}
 
-      {/* Create dialog */}
-      <ProspectFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onSuccess={() => {
-          setCreateOpen(false);
-          router.refresh();
-        }}
-      />
-
-      {/* CSV Import dialog */}
-      {isAdminOrMember && (
-        <CsvImportDialog
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          users={users}
-          onSuccess={() => {
-            setImportOpen(false);
-            router.refresh();
-          }}
-        />
-      )}
     </div>
   );
 }
