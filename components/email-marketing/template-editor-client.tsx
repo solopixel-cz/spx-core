@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   personalizeTemplate,
@@ -127,7 +127,6 @@ export function TemplateEditorClient({
 
   async function handleDelete() {
     if (!isEdit) return;
-    if (!confirm("Smazat tuto šablonu?")) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/email-templates/${template!.id}`, {
@@ -174,6 +173,7 @@ export function TemplateEditorClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[
           { label: "Email marketing", href: "/email-marketing" },
           { label: title },
@@ -182,7 +182,6 @@ export function TemplateEditorClient({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <BackButton href="/email-marketing" className="shrink-0" />
           <h1 className="truncate text-xl font-bold tracking-tight md:text-2xl">
             {title}
           </h1>
@@ -194,10 +193,17 @@ export function TemplateEditorClient({
                 <Copy className="mr-2 h-4 w-4" />
                 Duplikovat
               </Button>
-              <Button variant="outline" onClick={handleDelete} disabled={busy}>
+              <ConfirmButton
+                variant="outline"
+                size="default"
+                question="Smazat šablonu?"
+                confirmLabel="Smazat"
+                onConfirm={handleDelete}
+                disabled={busy}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Smazat
-              </Button>
+              </ConfirmButton>
             </>
           )}
           <Button onClick={handleSave} disabled={busy || !name.trim()}>

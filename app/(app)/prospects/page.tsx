@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { ProspektiPageClient } from "@/components/prospects/prospects-page-client";
+import { archivedQuery, isArchiveView, type ArchiveSearchParams } from "@/lib/archive-view";
+import { ProspektiPageClient, type ProspectRow } from "@/components/prospects/prospects-page-client";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -10,16 +11,28 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-export default async function ProspektiPage() {
+export default async function ProspektiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ archived?: string; source?: string }>;
+}) {
   const user = await requireAuth();
   const db = getAdminFirestore();
+  const archived = await isArchiveView(searchParams as ArchiveSearchParams, user.role);
+  // Pohled „Poptávky z webu": všechny webové poptávky bez stránkování (je jich málo),
+  // aby šly spočítat podle kampaně. Bez orderBy = bez složeného indexu, řadí se v paměti.
+  const webOnly = !archived && (await searchParams).source === "web";
 
   const pageLimit = 50;
   const [prospectsSnap, usersSnap, emailsSnap, callsSnap] = await Promise.all([
-    db.collection("prospects")
-      .orderBy("createdAt", "desc")
-      .limit(pageLimit * 2)
-      .get(),
+    archived
+      ? archivedQuery(db, "prospects").get() // archiv bez stránkování
+      : webOnly
+      ? db.collection("prospects").where("source", "==", "web").get()
+      : db.collection("prospects")
+          .orderBy("createdAt", "desc")
+          .limit(pageLimit * 2)
+          .get(),
     db.collection("users").get(),
     db.collection("outreachEmails").get(),
     db.collection("activity")
@@ -48,9 +61,10 @@ export default async function ProspektiPage() {
     calledProspectIds.add(doc.data().entityId as string);
   });
 
-  const nonDeletedDocs = prospectsSnap.docs.filter((d) => !d.data().deletedAt);
-  const prospectDocs = nonDeletedDocs.slice(0, pageLimit);
-  const initialHasMore = nonDeletedDocs.length > pageLimit;
+  const listDocs = prospectsSnap.docs.filter((d) => !!d.data().deletedAt === archived);
+  const unpaged = archived || webOnly;
+  const prospectDocs = unpaged ? listDocs : listDocs.slice(0, pageLimit);
+  const initialHasMore = !unpaged && listDocs.length > pageLimit;
 
   const prospects = prospectDocs.map((doc) => {
     const d = doc.data();
@@ -67,8 +81,11 @@ export default async function ProspektiPage() {
       status: d.status as string,
       ownerUid: (d.ownerUid as string) ?? null,
       leadId: (d.leadId as string) ?? null,
+      clientId: (d.clientId as string) ?? null,
       source: d.source as string,
       importBatchId: (d.importBatchId as string) ?? null,
+      inquiry: (d.inquiry as ProspectRow["inquiry"]) ?? null,
+      attribution: (d.attribution as ProspectRow["attribution"]) ?? null,
       claimedAt: serializeTimestamp(d.claimedAt),
       lastTouchAt: serializeTimestamp(d.lastTouchAt),
       nextFollowUpAt: serializeTimestamp(d.nextFollowUpAt),
@@ -76,8 +93,12 @@ export default async function ProspektiPage() {
       wasCalled: !!d.wasCalled || calledProspectIds.has(doc.id),
       createdAt: serializeTimestamp(d.createdAt),
       updatedAt: serializeTimestamp(d.updatedAt),
+      deletedAt: serializeTimestamp(d.deletedAt),
     };
   });
+
+  if (archived) prospects.sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
+  if (webOnly) prospects.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   const users = usersSnap.docs.map((doc) => ({
     id: doc.id,
@@ -92,6 +113,8 @@ export default async function ProspektiPage() {
       users={users}
       currentUid={user.uid}
       userRole={user.role}
+      archived={archived}
+      webOnly={webOnly}
     />
   );
 }

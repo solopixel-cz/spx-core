@@ -2,6 +2,113 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Poptávky z webu: zdroj návštěvy (UTM) a obsah poptávky
+
+Zadání od agenta spx-web (commit `375dd5e` na `feature/reword`). Počítalo s leady, ty jsou zrušené, takže vše míří na kontakt v Oslovení (`source=web`).
+
+- **Příjem** (`/api/leads/intake`, beze změny cesty, autentizace a odpovědí): `webInquirySchema` přijímá `utm_content`, `referrer`, `landing_page` (dosud se tiše zahazovaly; `.strict()` schéma nemělo, poptávky tedy nepadaly). Prázdný řetězec = nevyplněno, limity UTM/referrer 200 znaků.
+- **Uložení:** `prospects.attribution` (`utmSource`, `utmMedium`, `utmCampaign`, `utmContent`, `referrer`, `landingPage`, chybějící `null`) a `prospects.inquiry` (obor, produkt, plán, režim, tým, odkaz, zpráva, poznámka). Z poznámky se odstraní řádek „Zdroj: …=…", který web přidává jako zálohu (vlastní věta klienta začínající „Zdroj:" zůstane). Aktivita kontaktu dál nese čitelný přepis.
+- **Detail kontaktu:** karta „Poptávka z webu" (vyplněné údaje, odkaz, celá poznámka) s blokem „Zdroj" (kampaň, zdroj/médium, varianta, přišel z, první stránka). Starší poptávky kartu nemají, obsah je v aktivitě.
+- **Seznam:** pohled „Poptávky z webu" (`/prospects?source=web`, všechny webové poptávky bez stránkování, bez nového indexu) se souhrnem počtů podle zdroje a kampaně; štítky zároveň filtrují. Sloupec „Zdroj" místo „Firma".
+- **Upozornění:** in-app + Web Push nese zdroj („Jana · jana@x.cz · letak / print · podzim-2026"). **E-mail o nové poptávce CRM neposílá** (jen notifikace adminům); rozhodnutí na uživateli.
+- `data-model.md` doplněn (`inquiry`, `attribution`). Verze 1.13.0 → **1.14.0** (feat). Lint + build čisté. **Zbývá:** nasadit, testovací poptávky z produkčního webu (s UTM i napřímo), pak je smazat.
+
+## 2026-09-30 — Fáze 33 dokončena (D, G, H, J, K, L): žádné obsahové modály
+
+- **33D Oslovení:** `/prospects/new`, `/prospects/[id]/edit` (`prospect-form`, po vytvoření na detail kontaktu), `/prospects/import` (CSV import, jen admin/member). Na detailu „Zapsat kontakt" a „Nemá zájem / Nedostupný" rozbalí formulář přímo v kartě Akce. Archivace kontaktu bez `confirm()`, s „Vrátit zpět".
+- **33G fakturace:** `/invoices/export`. Smazání faktury = rozbalovací panel pod hlavičkou (ochrana opsáním čísla zůstává). **Storno** dřív proběhlo na jeden klik bez potvrzení, teď inline potvrzení.
+- **33H email marketing:** `/email-marketing/lists/new`; záložka z `?tab=`. Mazání seznamu a šablony a odeslání kampaně (s počtem kontaktů) inline potvrzením místo `confirm()`.
+- **33J provize:** „Vyplatit" rozbalí panel s částkou a poznámkou pod filtrem.
+- **33K nastavení:** `/settings/users/new` (jen admin); dočasné heslo zůstane na stránce ke zkopírování (dřív jen v mizejícím toastu). Trvalé smazání v archivu = rozbalený řádek pod položkou (opsání názvu), hromadné smazání inline potvrzením.
+- **33L úklid:** `Dialog` zůstává jen v Cmd+K, `Sheet` jen v mobilní navigaci. Smazán nepoužívaný `change-password-dialog` (profil má změnu hesla na stránce od fáze 18). `ConfirmButton` se na úzkých místech zalamuje.
+- Verze 1.12.0 → **1.13.0** (feat). Lint (0 chyb) + build čisté. **Zbývá:** ověřit v prohlížeči.
+
+## 2026-09-30 — Fáze 33 (A, B, E, F): detail klienta, úkoly a tickety bez modálů
+
+Navazuje na WIP z `wip/33-routovani-bez-modalu` (převzaty `confirm-button` + `undo-toast`, odesílací routy postavené znovu nad současným detailem klienta). Spec: [`../prompts/33-routovani-bez-modalu.md`](../prompts/33-routovani-bez-modalu.md).
+
+- **33A sdílené kameny:** `FormPage` (drobečky + šipka zpět, titulek, popis), `FormActions` (Uložit/Zrušit, na mobilu lepicí lišta dole), `ConfirmButton` (inline potvrzení, spouštěcí a potvrzovací tlačítko mají vlastní vzhled), `toastWithUndo` + nový `deferredDelete` (odložené trvalé smazání s „Vrátit zpět" pro kolekce bez archivu). Loadery `lib/client-route.ts` (guard sales + drobečky + návrat na záložku), `lib/ticket-route.ts`, `lib/form-options.ts`, `lib/subscription-data.ts` (`toSubData` sdílený s detailem).
+- **33B detail klienta → routy:** `/clients/new` (i převod z Oslovení `?prospectId=`, předvyplnění na serveru), `/clients/[id]/edit`, `/send/form` (formulář podkladů, kopírování odkazu se „Zkopírováno"), `/send/deliver`, `/send/email` (dřív „vizitka k náhledu"), `/instances/new|[id]/edit`, `/domains/new|[id]/edit` (odebrání domény inline potvrzením, z tabulky zmizel koš), `/subscriptions/new|[id]/edit`, `/projects/new|[id]/edit` (archivace s Vrátit zpět). Aktivní záložka v URL `?tab=`, podstránky se na ni vracejí. Tickety v záložce klienta vedou na detail ticketu.
+- **Archivace klienta:** `confirm()` → inline potvrzení (ne Undo: obnova klienta nevrací kaskádu, předplatné by zůstalo zrušené).
+- **Oprava:** e-mail ze šablony při otevření přepisoval oslovení firmy na „křestní jméno" z názvu firmy (ignoroval `defaultGreeting`); na routě se bere správné oslovení.
+- **33E úkoly:** `/tasks/new` (`?clientId=` z detailu klienta), `/tasks/[id]/edit`; mazání bez `window.confirm` přes `deferredDelete`. Formulář umí „Bez klienta" (jen dokud vazba není, API ji zrušit neumí).
+- **33F tickety:** detail `/tickets/[id]` místo Sheetu (stav, odkazy, klient, vizitka/web, archivace s Vrátit zpět, obnova archivovaného), `/tickets/new` (`?clientId=`), `/tickets/[id]/edit`; `?from=client` vrací na klienta. Formulář nabízí vizitku/web zvoleného klienta. Archivovat smí jen admin/member (dřív tlačítko viděl i sales).
+- Smazány: `client-form-dialog` (→ `client-form`), `card-form-button`, `delivery-dialog` (→ `deliver-card-form`), `marketing-email-dialog` (→ `send-email-form`), `client-task-dialog`, `client-ticket-dialog`; detail klienta už nenačítá šablony ani poslední předání.
+- Verze 1.11.0 → **1.12.0** (feat). Lint (0 chyb) + build čisté. **Zbývá:** ověřit v prohlížeči (hlavně mobil), pak 33D Oslovení, 33G fakturace, 33H email marketing, 33J provize, 33K nastavení, 33L úklid.
+
+## 2026-09-30 — Leady zrušené, klient rovnou z Oslovení
+
+- **Leady pryč z aplikace:** smazána stránka `/leads`, `components/leads/*`, `/api/leads` + `[id]`, `lib/schemas/lead.ts`, stavové mapy; odebráno z menu, Cmd+K, hledání, dashboardu, profilu (úvodní stránka), archivu a hromadné archivace. `/leads` a `/leady` → dočasné přesměrování na `/prospects`. Rules `leads` jen čtení (data v DB zůstávají, nic se nemaže ani nepřevádí; index ponechán). Historická aktivita `lead` odkazuje na Oslovení.
+- **Poptávky z webu → Oslovení:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) zakládá kontakt `source=web`, `status=new`, vlastník z env; obsah poptávky do aktivity kontaktu, notifikace na detail. Nové schéma `lib/schemas/web-inquiry.ts` přijímá i `link`, `note`, `utm_*` (dřív je Zod tiše zahazoval). Badge „Poptávka z webu".
+- **Klient z Oslovení:** na detailu kontaktu „Vytvořit klienta" (místo „Převést na lead") → předvyplněný formulář klienta → `POST /api/clients` s `prospectId` (vlastník kontaktu = obchodní vlastník klienta, kontakt `converted` + `clientId`, aktivita na obou) → přesměrování na nového klienta. Stav `converted` se nově jmenuje „Klient", převedený kontakt má odkaz „Klient →" a nejde trvale smazat.
+- **Onboarding úkoly při založení klienta:** `lib/onboarding.ts` (přesunuto z výhry leadu), zaškrtávátko „Vytvořit onboarding úkoly" ve formuláři nového klienta (výchozí zapnuto), platí pro ruční i převod z Oslovení.
+- **Dashboard:** „Pipeline hodnota" (leady) → „Rozpracované zakázky (N)" s hodnotou; rychlá akce „Lead" → „Oslovení".
+- Docs: `data-model.md`, `project.md`. Verze 1.10.0 → **1.11.0** (feat). Lint + build čisté. **Zbývá:** ověřit v prohlížeči (převod, poptávka z webu přes proxy), nasadit rules.
+
+## 2026-09-30 — Drobnosti: IČO skryté, drobečky všude, klik při výběru
+
+- **IČO v podkladech se nezobrazuje** (dle `data-model.md`): odstraněno z detailu i z přehledu povinných polí; seznam i detail ho do prohlížeče vůbec neposílají.
+- **Drobečková navigace všude:** podstránky Nastavení (Archiv, Fakturační údaje, Uživatelé, E-mailové šablony, Notifikace, Onboarding) a Profil mají `Breadcrumbs` „Nastavení > …" se šipkou zpět; samostatné šipky zrušeny. `PageHeader` už `backHref` nemá (návrat jen přes drobečky).
+- **Klik při aktivním výběru:** když je v tabulce něco vybrané, klik na řádek / mobilní kartu přepne výběr místo otevření detailu (klienti, tickety, oslovení). `useRowSelection` vrací `active`.
+- Smazán nepoužívaný `lib/attention.ts`.
+- Verze 1.9.0 → **1.10.0** (feat). Lint + build čisté.
+
+## 2026-09-29 — Fáze 34C: víc předplatných a obecné tarify
+
+- **Model `subscriptions`:** `service` (card / web / other, chybí = vizitka), `plan` volitelný (jen vizitka), `label` (vlastní název, u webu/jiné povinný), `instanceId` (volitelná vazba). Zod: `subscriptionFormSchema` (superRefine) + `subscriptionFormPartialSchema` pro PATCH. API čistí pole nepatřící k druhu služby. Bez migrace.
+- **`subscriptionLabel()`** (`lib/plans.ts`, + `SERVICE_LABELS`): „Digitální vizitka · Pro růst" / vlastní název. Použito v položkách faktur (cron i ruční „Z předplatného"), detailu, seznamu klientů, Moje vizitky, dashboardu.
+- **Detail klienta:** `SubscriptionCard` = seznam předplatných (zrušená na konci, potlačená) + „Přidat"; formulář s volbou služby (tarif u vizitky / název u webu a jiné), vazba na vizitku/web, náhled „Na faktuře: …".
+- **Faktura z předplatného:** `?sub=<subscriptionId>` (stará `sub=1` → první předplatné), faktura ukládá `subscriptionId`; v záložce Faktury tlačítko pro každé běžící neinterní předplatné. Dashboard „Blížící se fakturace" odkazuje na konkrétní předplatné a ukazuje jeho název.
+- **Seznam klientů:** platící = aspoň jedno běžící neinterní; Paušál = součet měsíčních cen po slevě („2 služby · … Kč/měs").
+- **Oprava (Moje vizitky):** bralo jen první předplatné (i zrušené/interní) a názvy tarifů basic/standard/premium → nyní součet běžících neinterních + `subscriptionLabel`.
+- **Oprava (význam `priceMonthly`):** cron a faktura ho berou jako měsíční cenu (roční = 12×), ale MRR dělil roční 12 a formulář psal „Cena za rok". Sjednoceno na měsíční cenu všude (MRR, formulář s poznámkou „Fakturuje se ročně: 12 ×", náhled, přehled). Ostrá data: žádné roční předplatné (13 aktivních + 2 zrušená, vše měsíční), dopad nulový.
+- Verze 1.8.0 → **1.9.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
+## 2026-09-29 — Fáze 34B: služby a zakázky
+
+- **Nová kolekce `projects`** (jednorázové zakázky): schéma `lib/schemas/project.ts`, stavy `projectStatus` (Poptávka / Rozpracováno / Dodáno / Zrušeno), API `POST /api/projects` + `PATCH /api/projects/[id]` (sales jen své klienty, `lib/projects.ts`), `deliveredAt` se nastavuje/maže podle stavu, aktivita u klienta. Rules `projects` (read auth, write admin SDK). `data-model.md` doplněn.
+- **Detail klienta:** záložka „Instance" → **„Služby"** = Vizitky a weby (`instances-tab`) + **Zakázky** (`components/clients/projects-section.tsx`: seznam, přidání/úprava v dialogu, rychlá změna stavu, termín s „po termínu", archivace s Vrátit zpět). Dlaždice „Služby" (počet + rozpracované zakázky).
+- **Vizitkové akce jen pro vizitku:** „Formulář podkladů" jen když klient má vizitku, nebo zatím nemá žádnou službu (onboarding); „Předat vizitku" jen s card instancí a nabízí jen vizitky; řádek Advisor Slug jen u vizitky.
+- **Vyfakturovat zakázku:** `/invoices/new?clientId&project=` předvyplní položku (název, cena); faktura ukládá `projectId`, zakázka dostane `invoiceId` (odkaz na fakturu v detailu). Smazání faktury `invoiceId` ze zakázky odstraní.
+- **Archivace:** `projects` v `/api/archive`, kaskáda při archivaci klienta, trvalé smazání blokuje vyfakturovaná zakázka / klient se zakázkami; štítek v Nastavení → Archiv.
+- **Seznam klientů:** sloupec „Instance" → **„Služby"** („Vizitka · Web · 2 zakázky (1 rozprac.)"), bez archivovaných instancí.
+- **Zjištění:** `lib/attention.ts` (`getAttentionItems`) se nikde nepoužívá → úprava podkladů v něm (fáze podkladů) se na dashboardu neprojevila; dashboard počítá vlastní seznam. Zakázky na dashboard odloženy.
+- Verze 1.7.0 → **1.8.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči, `firebase deploy --only firestore` (rules pro `projects`; aplikace čte přes Admin SDK, takže nasazení nespěchá).
+
+## 2026-09-29 — Fáze 34A: klient osoba / firma
+
+- **Model:** `clients.kind` (`person` | `company`, chybí = osoba) + `contactName` (jen firma). Zod `clientKindSchema`, `data-model.md` doplněn. Bez migrace.
+- **Formulář klienta:** přepínač Osoba / Firma; u firmy „Název firmy" + „Kontaktní osoba", e-mail/telefon = kontakt; neplatné pole se při uložení vyprázdní (osoba nemá kontakt, firma nemá značku).
+- **Oslovení:** `greetingName()` + `contactPersonName()` v `lib/marketing/personalize.ts`. Zapojeno: marketing e-mail a předání vizitky (API i výchozí oslovení v dialogu), kampaně (příjemce z klientů), token formuláře podkladů (jméno = kontaktní osoba), e-mail s fakturou. Firma bez kontaktu → celý název.
+- **Faktura:** náhled odběratele ve formuláři srovnán s PDF (`name`, značka jen pod ním).
+- **Seznam klientů:** ikona firmy, sloupec „Značka / kontakt", filtr Osoby / Firmy (pamatuje se), hledání i podle kontaktní osoby. Detail: ikona budovy místo iniciál, „Firma · kontakt: …". Cmd+K hledá i podle kontaktu.
+- Lead → klient zatím vždy osoba (volba typu při výhře leadu odložena).
+- Verze 1.6.0 → **1.7.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
+## 2026-09-29 — Detail podkladů na vlastní stránce
+
+- **Nová routa `/submissions/[id]`** (ID = token): `app/(app)/submissions/[id]/page.tsx` načte podklad přes Admin SDK, vazbu na klienta (token → e-mail fallback), jméno zpracovatele; sales vidí jen podklady svých klientů (jinak 404). Seznam už nepoužívá Sheet, řádek/karta vede na detail; záložka Nové/Zpracované se pamatuje (sessionStorage).
+- **`components/submissions/submission-detail-client.tsx`** ve stylu detailu klienta: breadcrumbs + zpět, hero (fotka, stav, odesláno/zpracováno kým, chipy e-mail/telefon/doména/klient, akce Kopírovat pro AI + Označit zpracované). **Přehled vyplnění** (chybějící povinná a doporučená pole). Sekce jako karty s vysvětlivkou, k čemu slouží na vizitce; každé pole má popisek + nápovědu, prázdná pole jsou vidět („Nevyplněno" / „Chybí (povinné)"). O mně přes celou šířku s počtem znaků (doporučeno 500).
+- **View model:** doplněna pole z webového kontraktu, která CRM ignorovalo: `services.pricing`, `appearance.colors/notes` (v datech zatím prázdné, zobrazí se jen vyplněné; jdou i do AI promptu), příznak `legacy`, popisky `MAIN_ACTION_HINTS` / `TONE_HINTS`. `data-model.md` doplněn.
+- **Odkazy na detail:** e-mail o novém podkladu, in-app notifikace i položka dashboardu vedou na `/submissions/<token>`. **Oprava:** dashboard u v2 podkladů psal „undefined" místo jména (bral ploché `fullName`), nově přes `normalizeSubmission`.
+- **Kopírovat pro AI:** po kliknutí se tlačítko na 2 s změní na „✓ Zkopírováno" (místo toastu).
+- **Zpět vedle drobečků:** `Breadcrumbs` má `backHref` → kompaktní šipka (`BackButton compact`) v řádku drobečkové navigace. Přesunuto na všech 10 detailech s drobečky (klient, oslovení, faktura + nová/úprava, podklad, email marketing: kampaň, nová kampaň, šablona, seznam); samostatná šipka u titulku zrušena. Nastavení (bez drobečků) beze změny.
+- Verze 1.5.0 → **1.6.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
+## 2026-09-29 — Hromadná archivace v tabulkách + klienti řazení podle platby
+
+Větev `feature/progress` (odbočená z `feat/email-marketing`). Rozpracovaná fáze 33 odložena na lokální větev `wip/33-routovani-bez-modalu`.
+
+- **API** (`app/api/archive/route.ts`): `archive` / `restore` nově přijímají `ids: string[]` (max 200) → `{ done, failed, cascaded }`. Zpracování sekvenčně (kaskáda klienta). Jednotlivé `id` zachovává původní chování (chyba = 400).
+- **Sdílené:** `lib/hooks/use-row-selection.ts` (výběr jen z viditelných řádků), `components/bulk-archive-bar.tsx` (plovoucí lišta „Vybráno: N · Archivovat", inline potvrzení bez modálu, toast „Vrátit zpět" + `SelectAllCheckbox` / `RowCheckbox`), `Checkbox` umí `indeterminate` a má `type="button"`, `EntityCard` má slot `leading` pro zaškrtávátko na mobilu.
+- **Multiselect zapojen** do tabulek s archivací: klienti, leady (tabulkový pohled), tickety, oslovení. Jen admin/member (sales nemá archivaci). Leady a tickety: klik na celý řádek otevře detail (`onRowClick`), aby klik na checkbox neotevíral sheet.
+- **Klienti:** hromadná archivace **bez Undo** (kaskáda zruší předplatné a instance; obnova klienta je nevrací) — potvrzení s varováním.
+- **Klienti — platící první:** `page.tsx` dotahuje `subscriptions` → `billing: paying | internal | none` (paying = nezrušené a ne `internal`). Přepínač **Platící (výchozí) / Neplatící / Všichni** (pamatuje se v sessionStorage), nový sloupec **Paušál** (tarif · cena/měs, „Interní"). Řazení: platící → interní → bez předplatného, uvnitř aktivní první.
+- **Archiv v tabulkách:** klienti, leady, tickety i oslovení mají přepínač **Archiv** (`?archived=1`, jen admin/member) → tabulka archivovaných (nejnověji archivované první, sloupec „Archivováno"), hromadná lišta v režimu **Obnovit**. Server: `lib/archive-view.ts` (`isArchiveView`, `archivedQuery` = `where("deletedAt", "!=", null)`, bez složeného indexu). Komponenty `components/archive-toggle.tsx` (`ArchiveToggle`, `ArchiveNotice`). V archivu se skrývá vytváření/import/zabrání; řádky leadů, ticketů a oslovení se neotevírají (detail archivovaného oslovení vrací 404), klient se otevírá (detail má banner archivace). Oslovení v archivu bez stránkování. Trvalé mazání zůstává v Nastavení → Archiv.
+- **Výběr přežije detail:** `useRowSelection(visibleIds, storageKey)` drží výběr v sessionStorage (`selection:<kolekce>[:archive]`), po návratu z detailu je výběr zpět.
+- **Klikací plocha:** `RowCheckbox` / `SelectAllCheckbox` obalené `CheckboxHitArea` (min. 44×44 px, vyplní padding buňky, `data-no-row-nav`) — klik vedle zaškrtávátka přepne výběr, neotevře detail. Sloupec výběru `w-12`.
+- Verze 1.4.1 → **1.5.0** (feat). Lint + build čisté. **Zbývá:** ověření v prohlížeči.
+
 ## 2026-09-22 — Ochrana proti omylnému odeslání (formulář podkladů, předání vizitky)
 
 **Problém:** Tlačítka odesílající e-mail v detailu klienta šla omylem odeslat na jeden klik (zejména „Poslat znovu" u formuláře podkladů odeslalo hned, bez potvrzení) → náhodné duplicitní odeslání.

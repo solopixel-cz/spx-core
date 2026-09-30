@@ -1,3 +1,4 @@
+import { subscriptionLabel } from "@/lib/plans";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
@@ -8,7 +9,7 @@ export default async function DashboardPage() {
   const isSales = user.role === "sales";
 
   const [
-    leadsSnap,
+    projectsSnap,
     invoicesSnap,
     subsSnap,
     tasksSnap,
@@ -18,7 +19,7 @@ export default async function DashboardPage() {
     prospectsSnap,
     domainsSnap,
   ] = await Promise.all([
-    db.collection("leads").get(),
+    db.collection("projects").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
     isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
     db.collection("tasks").get(),
@@ -29,14 +30,14 @@ export default async function DashboardPage() {
     db.collection("domains").get(),
   ]);
 
-  // Pipeline hodnota (aktivní leady s očekávanou hodnotou)
-  let pipelineValue = 0;
-  const activeLeadStages = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
-  leadsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
+  // Rozpracované zakázky (poptávka / rozpracováno) — hodnota k vyfakturování (nahradila pipeline leadů)
+  let openProjectsValue = 0;
+  let openProjectsCount = 0;
+  projectsSnap.docs.forEach((doc) => {
     const d = doc.data();
-    if (activeLeadStages.includes(d.stage as string) && d.value) {
-      pipelineValue += d.value as number;
-    }
+    if (d.deletedAt || (d.status !== "inquiry" && d.status !== "in_progress")) return;
+    openProjectsCount++;
+    openProjectsValue += (d.price as number | null) ?? 0;
   });
 
   // Financial metrics (admin/member only)
@@ -51,10 +52,9 @@ export default async function DashboardPage() {
       const d = doc.data();
       if (d.internal) return; // interní vizitky negenerují příjem
       const price = d.priceMonthly as number;
-      const cycle = d.billingCycle as string;
       const discount = (d.discountPercent as number) || 0;
-      const effective = price * (1 - discount / 100);
-      mrr += cycle === "yearly" ? effective / 12 : effective;
+      // priceMonthly je vždy měsíční cena (roční fakturace = 12×, viz cron) → MRR = měsíční cena po slevě.
+      mrr += price * (1 - discount / 100);
     });
     mrr = Math.round(mrr);
 
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
-      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/leads" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
+      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/prospects" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
       return {
         id: doc.id,
         actorUid: d.actorUid as string,
@@ -232,6 +232,7 @@ export default async function DashboardPage() {
     id: string;
     clientId: string;
     clientName: string;
+    label: string;
     nextInvoiceAt: string;
     amount: number;
     overdue: boolean;
@@ -259,6 +260,7 @@ export default async function DashboardPage() {
           id: doc.id,
           clientId: s.clientId as string,
           clientName: client.name,
+          label: subscriptionLabel(s),
           nextInvoiceAt: due.toISOString(),
           amount: Math.round(base * (1 - discount / 100)),
           overdue: due < startOfToday,
@@ -328,7 +330,8 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      pipelineValue={pipelineValue}
+      openProjectsValue={openProjectsValue}
+      openProjectsCount={openProjectsCount}
       mrr={mrr}
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}

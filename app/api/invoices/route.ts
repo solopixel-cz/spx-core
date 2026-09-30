@@ -84,10 +84,21 @@ export async function POST(request: Request) {
       issuedAt,
       dueAt,
       status,
+      projectId: data.projectId ?? null,
+      subscriptionId: data.subscriptionId ?? null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,
     });
+
+    // Vystaveno ze zakázky → propojit zakázku s fakturou (jen stejného klienta).
+    if (data.projectId) {
+      const projectRef = db.collection("projects").doc(data.projectId);
+      const project = await projectRef.get();
+      if (project.exists && project.data()?.clientId === data.clientId) {
+        await projectRef.update({ invoiceId: docRef.id, updatedAt: FieldValue.serverTimestamp() });
+      }
+    }
 
     await logActivity({
       entityType: "invoice",

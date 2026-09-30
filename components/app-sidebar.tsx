@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   History,
   Users,
-  Briefcase,
   BookUser,
   Receipt,
   Percent,
@@ -47,7 +46,6 @@ const navGroups: NavGroup[] = [
   {
     title: "Obchod",
     items: [
-      { label: "Leady", href: "/leads", icon: Briefcase },
       { label: "Oslovení", href: "/prospects", icon: BookUser },
       {
         label: "Email marketing",

@@ -56,6 +56,8 @@ export function InvoiceForm({
   invoice,
   defaultClientId,
   defaultItems,
+  projectId,
+  subscriptionId,
 }: {
   clients: ClientOption[];
   invoice?: EditInvoice;
@@ -66,6 +68,10 @@ export function InvoiceForm({
     unitPrice: number;
     discountPercent?: number;
   }[];
+  /** Faktura ze zakázky — po uložení se zakázka propojí s fakturou. */
+  projectId?: string;
+  /** Faktura z předplatného — uloží se `subscriptionId`. */
+  subscriptionId?: string;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -126,7 +132,7 @@ export function InvoiceForm({
         : await fetch("/api/invoices", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...data, asDraft }),
+            body: JSON.stringify({ ...data, asDraft, projectId, subscriptionId }),
           });
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json().catch(() => ({}));
@@ -184,11 +190,10 @@ export function InvoiceForm({
 
             {selectedClient ? (
               <div className="rounded-xl border bg-muted/30 p-4">
-                <p className="font-medium">
-                  {selectedClient.company || selectedClient.name}
-                </p>
+                {/* Odběratel = jméno osoby / název firmy (stejně jako na PDF); značka jen doplňkově. */}
+                <p className="font-medium">{selectedClient.name}</p>
                 {selectedClient.company && (
-                  <p className="text-sm text-muted-foreground">{selectedClient.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedClient.company}</p>
                 )}
                 {(selectedClient.ico || selectedClient.dic) && (
                   <p className="mt-1.5 text-sm text-muted-foreground">

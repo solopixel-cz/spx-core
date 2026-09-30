@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { redirect } from "next/navigation";
 import { MojeVizitkyClient } from "@/components/commissions/moje-vizitky-client";
+import { subscriptionLabel } from "@/lib/plans";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -37,18 +38,21 @@ export default async function MojeVizitkyPage() {
   // Build client rows with subscription info
   const clients = clientsSnap.docs.filter((d) => !d.data().deletedAt).map((doc) => {
     const d = doc.data();
-    const sub = subsSnap.docs.find((s) => s.data().clientId === doc.id);
-    const inst = instancesSnap.docs.find((i) => i.data().clientId === doc.id);
-    const priceMonthly = sub ? (sub.data().priceMonthly as number) : 0;
-    const discount = sub ? ((sub.data().discountPercent as number) || 0) : 0;
-    const effective = priceMonthly * (1 - discount / 100);
+    // Všechna běžící neinterní předplatná klienta (fáze 34C): měsíční cena po slevě (priceMonthly je vždy měsíční).
+    const subs = subsSnap.docs
+      .map((s) => s.data())
+      .filter((s) => s.clientId === doc.id && s.status !== "cancelled" && !s.internal);
+    const inst = instancesSnap.docs.find((i) => i.data().clientId === doc.id && !i.data().deletedAt);
+    const effective = subs.reduce((sum, s) => {
+      return sum + ((s.priceMonthly as number) ?? 0) * (1 - ((s.discountPercent as number) || 0) / 100);
+    }, 0);
 
     return {
       id: doc.id,
       name: d.name as string,
       status: d.status as string,
       instanceStatus: inst ? (inst.data().status as string) : null,
-      plan: sub ? (sub.data().plan as string) : null,
+      plan: subs.length > 0 ? subs.map((s) => subscriptionLabel(s)).join(", ") : null,
       priceMonthly: Math.round(effective),
       myCommission: Math.round(effective * effectiveRate),
     };

@@ -50,7 +50,7 @@ export default async function AktivitaPage() {
       const et = d.entityType as string;
       const href =
         et === "client" ? `/clients/${d.entityId}`
-        : et === "lead" ? "/leads"
+        : et === "lead" ? "/prospects" // leady zrušené
         : et === "ticket" ? "/tickets"
         : et === "prospect" ? "/prospects"
         : "/invoices";

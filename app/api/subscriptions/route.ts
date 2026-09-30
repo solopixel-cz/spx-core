@@ -74,6 +74,10 @@ export async function POST(request: Request) {
 
     const docRef = await db.collection("subscriptions").add({
       ...subData,
+      // Vizitka má tarif, web / jiná služba vlastní název — druhé pole prázdné.
+      plan: data.service === "card" ? data.plan : null,
+      label: data.label?.trim() || null,
+      instanceId: data.instanceId || null,
       clientId,
       startedAt,
       nextInvoiceAt: nextInvoice,

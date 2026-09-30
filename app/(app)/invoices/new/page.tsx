@@ -1,16 +1,16 @@
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
+import { subscriptionLabel } from "@/lib/plans";
 
 export default async function NovaFakturaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ clientId?: string; sub?: string }>;
+  searchParams: Promise<{ clientId?: string; sub?: string; project?: string }>;
 }) {
   await requireRole("admin", "member");
-  const { clientId, sub } = await searchParams;
+  const { clientId, sub, project } = await searchParams;
   const db = getAdminFirestore();
 
   const clientsSnap = await db.collection("clients").get();
@@ -35,20 +35,23 @@ export default async function NovaFakturaPage({
   let defaultItems:
     | { description: string; quantity: number; unitPrice: number; discountPercent?: number }[]
     | undefined;
+  let subscriptionId: string | undefined;
   if (clientId && sub) {
-    const subSnap = await db
-      .collection("subscriptions")
-      .where("clientId", "==", clientId)
-      .limit(1)
-      .get();
-    if (!subSnap.empty) {
-      const s = subSnap.docs[0].data();
+    // `sub` = ID předplatného (klient jich může mít víc); stará URL `sub=1` → první předplatné.
+    const byId = sub !== "1" ? await db.collection("subscriptions").doc(sub).get() : null;
+    const subDoc =
+      byId?.exists && byId.data()?.clientId === clientId
+        ? byId
+        : (await db.collection("subscriptions").where("clientId", "==", clientId).limit(1).get()).docs[0];
+    if (subDoc) {
+      subscriptionId = subDoc.id;
+      const s = subDoc.data()!;
       const monthly = (s.priceMonthly as number) ?? 0;
       const unit = s.billingCycle === "yearly" ? monthly * 12 : monthly;
       const cycle = s.billingCycle === "yearly" ? "roční" : "měsíční";
       defaultItems = [
         {
-          description: `Předplatné ${s.plan} (${cycle}) {obdobi}`,
+          description: `${subscriptionLabel(s)} (${cycle}) {obdobi}`,
           quantity: 1,
           unitPrice: unit,
           // Sleva z předplatného se přenáší jako sleva řádku (plná cena − %),
@@ -59,16 +62,40 @@ export default async function NovaFakturaPage({
     }
   }
 
+  // Předvyplnění ze zakázky (tlačítko „Vyfakturovat" v detailu klienta).
+  let projectId: string | undefined;
+  if (clientId && project) {
+    const projectDoc = await db.collection("projects").doc(project).get();
+    const p = projectDoc.data();
+    if (projectDoc.exists && p?.clientId === clientId && !p.invoiceId && !p.deletedAt) {
+      projectId = projectDoc.id;
+      defaultItems = [
+        {
+          description: p.title as string,
+          quantity: 1,
+          unitPrice: (p.price as number | null) ?? 0,
+          discountPercent: 0,
+        },
+      ];
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/invoices"
         items={[{ label: "Faktury", href: "/invoices" }, { label: "Nová faktura" }]}
       />
       <div className="flex items-center gap-3">
-        <BackButton href="/invoices" className="shrink-0" />
         <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Nová faktura</h1>
       </div>
-      <InvoiceForm clients={clients} defaultClientId={clientId} defaultItems={defaultItems} />
+      <InvoiceForm
+        clients={clients}
+        defaultClientId={clientId}
+        defaultItems={defaultItems}
+        projectId={projectId}
+        subscriptionId={subscriptionId}
+      />
     </div>
   );
 }

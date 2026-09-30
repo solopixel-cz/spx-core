@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BackButton } from "@/components/back-button";
 
 export interface Crumb {
   label: string;
@@ -11,15 +12,20 @@ export interface Crumb {
  * Drobečková navigace — cesta k aktuální stránce. Poslední položka je aktuální
  * (bez odkazu). Používá se na detailech a vnořených stránkách, kde dává smysl
  * ukázat hierarchii; ne na seznamech (kořeny) ani tam, kde kontext plyne odjinud.
+ *
+ * `backHref` = před drobečky se zobrazí šipka zpět (jednotné místo pro návrat
+ * na detailech, nezabírá vlastní řádek).
  */
 export function Breadcrumbs({
   items,
+  backHref,
   className,
 }: {
   items: Crumb[];
+  backHref?: string;
   className?: string;
 }) {
-  return (
+  const nav = (
     <nav
       aria-label="Drobečková navigace"
       className={cn(
@@ -51,5 +57,13 @@ export function Breadcrumbs({
         );
       })}
     </nav>
+  );
+
+  if (!backHref) return nav;
+  return (
+    <div className="-mt-1.5 mb-2 flex min-w-0 items-center gap-1">
+      <BackButton href={backHref} compact className="-ml-2.5 shrink-0" />
+      {nav}
+    </div>
   );
 }

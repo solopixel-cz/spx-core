@@ -13,18 +13,6 @@ export const clientStatus: Record<string, StatusConfig> = {
   churned: { label: "Odešlý", color: "red" },
 };
 
-// Lead stage
-export const leadStage: Record<string, StatusConfig> = {
-  new: { label: "Nový", color: "blue" },
-  contacted: { label: "Osloven", color: "blue" },
-  demo: { label: "Demo", color: "yellow" },
-  offer: { label: "Nabídka", color: "yellow" },
-  contract: { label: "Smlouva", color: "green" },
-  onboarding: { label: "Onboarding", color: "yellow" },
-  won: { label: "Vyhráno", color: "green" },
-  lost: { label: "Ztraceno", color: "red" },
-};
-
 // Invoice status
 export const invoiceStatus: Record<string, StatusConfig> = {
   draft: { label: "Koncept", color: "gray" },
@@ -79,15 +67,6 @@ export const subscriptionStatus: Record<string, StatusConfig> = {
   cancelled: { label: "Zrušeno", color: "gray" },
 };
 
-// Lead source
-export const leadSource: Record<string, StatusConfig> = {
-  web: { label: "Web", color: "blue" },
-  referral: { label: "Doporučení", color: "green" },
-  outreach: { label: "Oslovení", color: "yellow" },
-  event: { label: "Akce", color: "yellow" },
-  other: { label: "Jiné", color: "gray" },
-};
-
 // Prospect status
 export const prospectStatus: Record<string, StatusConfig> = {
   new: { label: "Nový", color: "blue" },
@@ -95,7 +74,7 @@ export const prospectStatus: Record<string, StatusConfig> = {
   responding: { label: "Reaguje", color: "green" },
   not_interested: { label: "Nemá zájem", color: "gray" },
   unreachable: { label: "Nedostupný", color: "red" },
-  converted: { label: "Konvertován", color: "green" },
+  converted: { label: "Klient", color: "green" }, // převeden na klienta
 };
 
 // Prospect contact channel
@@ -150,3 +129,11 @@ export function getStatusLabel(
 ): string {
   return map[value]?.label ?? value;
 }
+
+// Project (jednorázová zakázka) status
+export const projectStatus: Record<string, StatusConfig> = {
+  inquiry: { label: "Poptávka", color: "blue" },
+  in_progress: { label: "Rozpracováno", color: "yellow" },
+  delivered: { label: "Dodáno", color: "green" },
+  cancelled: { label: "Zrušeno", color: "gray" },
+};

@@ -3,6 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { currentPeriod } from "@/lib/schemas/invoice";
+import { subscriptionLabel } from "@/lib/plans";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       amount,
       items: [
         {
-          description: `Předplatné ${sub.plan} (${cycleLabel}) – ${currentPeriod(now)}`,
+          description: `${subscriptionLabel(sub)} (${cycleLabel}) – ${currentPeriod(now)}`,
           quantity: 1,
           unitPrice: amount,
         },

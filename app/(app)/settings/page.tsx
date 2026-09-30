@@ -44,7 +44,7 @@ const tiles: Tile[] = [
   },
   {
     label: "Onboarding",
-    description: "Checklist úkolů, který se vytvoří při výhře leadu",
+    description: "Checklist úkolů, který se vytvoří při založení klienta",
     href: "/settings/onboarding",
     icon: ClipboardList,
     roles: ["admin"],
