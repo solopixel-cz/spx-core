@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/empty-state";
-import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { formatDate } from "@/lib/format";
 import { RotateCcw, Trash2, Archive } from "lucide-react";
 
@@ -164,8 +164,11 @@ export default function ArchivPage() {
 
   return (
     <div className="space-y-4">
+      <Breadcrumbs
+        backHref="/settings"
+        items={[{ label: "Nastavení", href: "/settings" }, { label: "Archiv" }]}
+      />
       <div className="flex items-center gap-2">
-        <BackButton href="/settings" className="-ml-2" />
         <h2 className="text-xl font-semibold">Archiv</h2>
       </div>
 

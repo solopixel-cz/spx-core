@@ -63,7 +63,10 @@ export function useRowSelection(visibleIds: string[], storageKey?: string) {
 
   const clear = useCallback(() => setSelected(new Set()), []);
 
-  return { selectedIds, allSelected, someSelected, isSelected, toggle, toggleAll, clear };
+  /** Něco je vybrané → klik na řádek jen přepíná výběr (neotevírá detail). */
+  const active = selectedIds.length > 0;
+
+  return { selectedIds, active, allSelected, someSelected, isSelected, toggle, toggleAll, clear };
 }
 
 export type RowSelection = ReturnType<typeof useRowSelection>;

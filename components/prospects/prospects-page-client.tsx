@@ -362,7 +362,7 @@ export function ProspektiPageClient({
             return (
               <EntityCard
                 key={prospect.id}
-                onClick={archived ? undefined : () => router.push(`/prospects/${prospect.id}`)}
+                onClick={selection.active ? () => selection.toggle(prospect.id) : archived ? undefined : () => router.push(`/prospects/${prospect.id}`)}
                 leading={isAdminOrMember ? <RowCheckbox selection={selection} id={prospect.id} /> : undefined}
                 title={prospect.name}
                 badge={<StatusBadge map={prospectStatus} value={prospect.status} />}
@@ -472,6 +472,7 @@ export function ProspektiPageClient({
                   <TableRow
                     key={prospect.id}
                     href={archived ? undefined : `/prospects/${prospect.id}`}
+                    onRowClick={selection.active ? () => selection.toggle(prospect.id) : undefined}
                     data-state={selection.isSelected(prospect.id) ? "selected" : undefined}
                   >
                     {isAdminOrMember && (

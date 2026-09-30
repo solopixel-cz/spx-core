@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EmailTemplateEditor } from "@/components/settings/email-template-editor";
 import { renderOutreachEmail } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail } from "@/lib/email-templates/followup";
@@ -12,8 +12,11 @@ import { buildCardFormUrl } from "@/lib/card-form-url";
 export default function SablonyPage() {
   return (
     <div className="space-y-4">
+      <Breadcrumbs
+        backHref="/settings"
+        items={[{ label: "Nastavení", href: "/settings" }, { label: "E-mailové šablony" }]}
+      />
       <div className="flex items-center gap-2">
-        <BackButton href="/settings" className="-ml-2" />
         <h2 className="text-xl font-semibold">E-mailové šablony</h2>
       </div>
 

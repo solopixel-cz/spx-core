@@ -415,7 +415,7 @@ export function TicketsPageClient({
           filtered.map((t) => (
             <EntityCard
               key={t.id}
-              onClick={archived ? undefined : () => setSelectedTicket(t)}
+              onClick={selection.active ? () => selection.toggle(t.id) : archived ? undefined : () => setSelectedTicket(t)}
               leading={canArchive ? <RowCheckbox selection={selection} id={t.id} /> : undefined}
               title={t.title}
               badge={
@@ -461,7 +461,7 @@ export function TicketsPageClient({
               filtered.map((t) => (
                 <TableRow
                   key={t.id}
-                  onRowClick={archived ? undefined : () => setSelectedTicket(t)}
+                  onRowClick={selection.active ? () => selection.toggle(t.id) : archived ? undefined : () => setSelectedTicket(t)}
                   data-state={selection.isSelected(t.id) ? "selected" : undefined}
                 >
                   {canArchive && (

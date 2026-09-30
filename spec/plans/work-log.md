@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Drobnosti: IČO skryté, drobečky všude, klik při výběru
+
+- **IČO v podkladech se nezobrazuje** (dle `data-model.md`): odstraněno z detailu i z přehledu povinných polí; seznam i detail ho do prohlížeče vůbec neposílají.
+- **Drobečková navigace všude:** podstránky Nastavení (Archiv, Fakturační údaje, Uživatelé, E-mailové šablony, Notifikace, Onboarding) a Profil mají `Breadcrumbs` „Nastavení > …" se šipkou zpět; samostatné šipky zrušeny. `PageHeader` už `backHref` nemá (návrat jen přes drobečky).
+- **Klik při aktivním výběru:** když je v tabulce něco vybrané, klik na řádek / mobilní kartu přepne výběr místo otevření detailu (klienti, tickety, oslovení). `useRowSelection` vrací `active`.
+- Smazán nepoužívaný `lib/attention.ts`.
+- Verze 1.9.0 → **1.10.0** (feat). Lint + build čisté.
+
 ## 2026-09-29 — Fáze 34C: víc předplatných a obecné tarify
 
 - **Model `subscriptions`:** `service` (card / web / other, chybí = vizitka), `plan` volitelný (jen vizitka), `label` (vlastní název, u webu/jiné povinný), `instanceId` (volitelná vazba). Zod: `subscriptionFormSchema` (superRefine) + `subscriptionFormPartialSchema` pro PATCH. API čistí pole nepatřící k druhu služby. Bez migrace.

@@ -92,7 +92,6 @@ export function SubmissionDetailClient({ submission: s }: { submission: Submissi
   // Povinná pole formuláře (v2) — co chybí, je potřeba doptat.
   const required: [string, string | undefined][] = [
     ["Jméno", s.fullName],
-    ["IČO", s.ico],
     ["Telefon", s.phone],
     ["E-mail", s.email],
     ["Doména", s.customDomain],
@@ -236,7 +235,6 @@ export function SubmissionDetailClient({ submission: s }: { submission: Submissi
           intro="Hlavička vizitky a kontakty, přes které se návštěvník ozve."
         >
           <FieldRow label="Jméno a příjmení" hint="Z pozvánky, klient ho neměnil. Hlavní titulek vizitky." value={s.fullName} required />
-          <FieldRow label="IČO" hint="Jen pro fakturaci. Na vizitce ani v AI podkladu se neobjeví." value={s.ico} required />
           <FieldRow label="Telefon" hint="Tlačítko Zavolat a kontakt na vizitce." value={s.phone} required />
           <FieldRow label="E-mail" hint="Z pozvánky. Kontakt na vizitce a adresa, kam chodí poptávky." value={s.email} required />
           <FieldRow label="Firma / značka" hint="Zobrazí se pod jménem (např. ZFP, OVB)." value={s.companyBrand} />

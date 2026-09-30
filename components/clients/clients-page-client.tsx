@@ -451,7 +451,8 @@ export function ClientsPageClient({
             return (
               <EntityCard
                 key={c.id}
-                href={`/clients/${c.id}`}
+                href={selection.active ? undefined : `/clients/${c.id}`}
+                onClick={selection.active ? () => selection.toggle(c.id) : undefined}
                 leading={
                   canArchive ? (
                     <RowCheckbox selection={selection} id={c.id} />
@@ -530,6 +531,7 @@ export function ClientsPageClient({
                 <TableRow
                   key={row.id}
                   href={`/clients/${row.original.id}`}
+                  onRowClick={selection.active ? () => selection.toggle(row.original.id) : undefined}
                   data-state={
                     selection.isSelected(row.original.id)
                       ? "selected"

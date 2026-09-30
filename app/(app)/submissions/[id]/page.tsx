@@ -23,7 +23,9 @@ export default async function PodkladDetailPage({
   if (!doc.exists) notFound();
 
   const data = doc.data()!;
-  const view = normalizeSubmission(data);
+  // IČO se v CRM nezobrazuje (data-model) → do prohlížeče ho vůbec neposíláme.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { ico: _ico, ...view } = normalizeSubmission(data);
 
   // Vazba na klienta: přes token, jinak podle e-mailu (stejně jako seznam).
   let clientId = tokenDoc.data()?.clientId as string | undefined;
