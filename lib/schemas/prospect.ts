@@ -10,7 +10,7 @@ export const prospectStatusValues = [
   "converted",
 ] as const;
 
-export const prospectSourceValues = ["import", "manual"] as const;
+export const prospectSourceValues = ["import", "manual", "web"] as const; // web = poptávka z webu (dříve lead)
 
 export const prospectSchema = z.object({
   ...baseFields,
@@ -27,7 +27,8 @@ export const prospectSchema = z.object({
   claimedAt: z.any().optional(),
   lastTouchAt: z.any().optional(),
   nextFollowUpAt: z.any().optional(),
-  leadId: z.string().optional(),
+  leadId: z.string().optional(), // historické (leady zrušené 2026-09-30)
+  clientId: z.string().optional(), // klient vytvořený z tohoto kontaktu (status converted)
   source: z.enum(prospectSourceValues),
   importBatchId: z.string().optional(),
 });

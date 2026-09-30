@@ -40,3 +40,28 @@ export function personalizeTemplate(text: string, vars: TemplateVars): string {
 export function firstName(name: string): string {
   return (name || "").split(" ")[0] || name || "";
 }
+
+/**
+ * Oslovení klienta v e-mailu ({{jmeno}}): osoba → křestní jméno, firma →
+ * křestní jméno kontaktní osoby; firma bez kontaktu → název firmy.
+ */
+export function greetingName(client: {
+  kind?: string | null;
+  name?: string | null;
+  contactName?: string | null;
+}): string {
+  if (client.kind === "company") {
+    return client.contactName ? firstName(client.contactName) : (client.name ?? "");
+  }
+  return firstName(client.name ?? "");
+}
+
+/** Celé jméno člověka, se kterým komunikujeme: osoba → jméno, firma → kontaktní osoba (jinak název firmy). */
+export function contactPersonName(client: {
+  kind?: string | null;
+  name?: string | null;
+  contactName?: string | null;
+}): string {
+  if (client.kind === "company") return client.contactName || client.name || "";
+  return client.name ?? "";
+}

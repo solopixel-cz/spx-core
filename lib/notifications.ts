@@ -6,7 +6,7 @@ import { sendPushToUsers } from "@/lib/push";
  * Interní notifikace. Aktuálně míří všem adminům (malý tým, centrální dohled) —
  * zapíše in-app záznam do `notifications/{id}` pro každého admina a zároveň
  * pošle Web Push na jejich zařízení. Volá se ze serverových event bodů
- * (intake leadu, vyplněné podklady, otevřený e-mail s formulářem…).
+ * (poptávka z webu, vyplněné podklady, otevřený e-mail s formulářem…).
  *
  * Notifikace nikdy neshodí hlavní operaci — chyby jen zaloguje.
  */

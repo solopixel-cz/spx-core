@@ -75,6 +75,8 @@ interface UpcomingBill {
   id: string;
   clientId: string;
   clientName: string;
+  /** Název předplatného (klient jich může mít víc). */
+  label: string;
   nextInvoiceAt: string;
   amount: number;
   overdue: boolean;
@@ -115,7 +117,8 @@ function StatCard({
 }
 
 export function DashboardClient({
-  pipelineValue,
+  openProjectsValue,
+  openProjectsCount = 0,
   mrr,
   paidThisMonth,
   invoicedThisMonth,
@@ -133,7 +136,8 @@ export function DashboardClient({
   unpaidInvoices = 0,
   userRole = "member",
 }: {
-  pipelineValue: number;
+  openProjectsValue: number;
+  openProjectsCount?: number;
   mrr: number;
   paidThisMonth: number;
   invoicedThisMonth: number;
@@ -154,7 +158,7 @@ export function DashboardClient({
   const isSales = userRole === "sales";
 
   const quickActions = [
-    { label: "Lead", href: "/leads", icon: Briefcase },
+    { label: "Oslovení", href: "/prospects", icon: Briefcase },
     { label: "Klient", href: "/clients", icon: UserPlus },
     ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
     { label: "Ticket", href: "/tickets", icon: TicketCheck },
@@ -240,9 +244,12 @@ export function DashboardClient({
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingBilling.slice(0, 5).map((b) => (
-                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=1`}>
+                    <Link key={b.id} href={`/invoices/new?clientId=${b.clientId}&sub=${b.id}`}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
-                        <span className="min-w-0 flex-1 truncate text-sm">{b.clientName}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm" title={b.label}>
+                          {b.clientName}
+                          <span className="ml-1.5 text-xs text-muted-foreground">{b.label}</span>
+                        </span>
                         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {formatCurrency(b.amount)}
                         </span>
@@ -408,7 +415,11 @@ export function DashboardClient({
               accent="text-emerald-600 dark:text-emerald-400"
             />
             <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
-            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leads" />
+            <StatCard
+              label={`Rozpracované zakázky (${openProjectsCount})`}
+              value={formatCurrency(openProjectsValue)}
+              href="/clients"
+            />
             <Card className="col-span-2 min-w-0 md:col-span-4">
               <CardContent className="min-w-0 pt-4">
                 <DashboardChart series={chartSeries} />

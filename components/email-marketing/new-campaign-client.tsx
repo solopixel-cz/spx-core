@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { personalizeTemplate, SAMPLE_VARS } from "@/lib/marketing/personalize";
 import { Send } from "lucide-react";
@@ -93,12 +93,6 @@ export function NewCampaignClient({
       toast.error("Vyberte šablonu i seznam");
       return;
     }
-    if (
-      !confirm(
-        `Opravdu odeslat kampaň na seznam „${selectedList?.name}" (${selectedList?.memberCount ?? 0} kontaktů)?`
-      )
-    )
-      return;
     setSending(true);
     try {
       const res = await fetch("/api/marketing/campaigns", {
@@ -123,6 +117,7 @@ export function NewCampaignClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[
           { label: "Email marketing", href: "/email-marketing" },
           { label: "Nová kampaň" },
@@ -130,7 +125,6 @@ export function NewCampaignClient({
       />
 
       <div className="flex items-center gap-3">
-        <BackButton href="/email-marketing" className="shrink-0" />
         <h1 className="text-xl font-bold tracking-tight md:text-2xl">Nová kampaň</h1>
       </div>
 
@@ -205,10 +199,20 @@ export function NewCampaignClient({
             </p>
           )}
 
-          <Button onClick={handleSend} disabled={!canSend} className="w-full">
+          {/* Odeslání je nevratné: inline potvrzení s počtem příjemců. */}
+          <ConfirmButton
+            variant="default"
+            confirmVariant="default"
+            size="default"
+            question={`Odeslat na ${selectedList?.memberCount ?? 0} kontaktů?`}
+            confirmLabel={sending ? "Odesílám..." : "Odeslat"}
+            onConfirm={handleSend}
+            disabled={!canSend}
+            className="w-full"
+          >
             <Send className="mr-2 h-4 w-4" />
             {sending ? "Odesílám..." : "Odeslat kampaň"}
-          </Button>
+          </ConfirmButton>
 
           <div className="space-y-2 rounded-lg border border-dashed p-3">
             <Label className="text-xs">Testovací e-mail</Label>

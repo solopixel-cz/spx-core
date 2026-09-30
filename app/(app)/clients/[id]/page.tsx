@@ -1,7 +1,9 @@
+import type { SubData } from "@/components/subscriptions/subscription-card";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ClientDetailClient } from "@/components/clients/client-detail-client";
+import { toSubData } from "@/lib/subscription-data";
 
 export default async function ClientDetailPage({
   params,
@@ -23,6 +25,8 @@ export default async function ClientDetailPage({
   const client = {
     id: doc.id,
     name: data.name as string,
+    kind: (data.kind as "person" | "company" | undefined) ?? "person",
+    contactName: data.contactName as string | undefined,
     company: data.company as string | undefined,
     ico: data.ico as string | undefined,
     dic: data.dic as string | undefined,
@@ -41,7 +45,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, domains, activity, subscription, invoices in parallel
-  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap, templatesSnap] =
+  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -69,16 +73,6 @@ export default async function ClientDetailPage({
       db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("users").get(),
-      db
-        .collection("deliveryEmails")
-        .where("clientId", "==", id)
-        .orderBy("sentAt", "desc")
-        .limit(1)
-        .get(),
-      // Email-marketingové šablony pro dialog „Poslat e-mail" (jen admin/member).
-      isSales
-        ? Promise.resolve({ docs: [] })
-        : db.collection("emailTemplates").orderBy("updatedAt", "desc").get(),
     ]);
 
   const instances = instancesSnap.docs.filter((d) => !d.data().deletedAt).map((d) => ({
@@ -116,23 +110,8 @@ export default async function ClientDetailPage({
     createdAt: d.data().createdAt?.toDate?.()?.toISOString() ?? null,
   }));
 
-  const subDoc = subsSnap.docs[0];
-  const subscription = subDoc
-    ? {
-        id: subDoc.id,
-        plan: subDoc.data().plan as string,
-        priceMonthly: subDoc.data().priceMonthly as number,
-        billingCycle: subDoc.data().billingCycle as string,
-        status: subDoc.data().status as string,
-        startedAt:
-          subDoc.data().startedAt?.toDate?.()?.toISOString() ?? null,
-        nextInvoiceAt:
-          subDoc.data().nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
-        discountPercent: (subDoc.data().discountPercent as number | undefined) ?? 0,
-        discountNote: (subDoc.data().discountNote as string | undefined) ?? "",
-        internal: (subDoc.data().internal as boolean | undefined) ?? false,
-      }
-    : null;
+  // Klient může mít víc předplatných (fáze 34C). Chybějící `service` = vizitka.
+  const subscriptions: SubData[] = subsSnap.docs.map(toSubData);
 
   const now = new Date();
   const invoices = invoicesSnap.docs.map((d) => {
@@ -181,38 +160,42 @@ export default async function ClientDetailPage({
     .filter((d) => d.data().active)
     .map((d) => ({ id: d.id, displayName: d.data().displayName as string }));
 
-  const emailTemplates = templatesSnap.docs
+  // Jednorázové zakázky (fáze 34B) — bez orderBy, řadí se v paměti (bez složeného indexu).
+  const projectsSnap = await db.collection("projects").where("clientId", "==", id).get();
+  const invoiceNumbers = new Map(invoices.map((inv) => [inv.id, inv.number]));
+  const projects = projectsSnap.docs
     .filter((d) => !d.data().deletedAt)
-    .map((d) => ({
-      id: d.id,
-      name: d.data().name as string,
-      subject: (d.data().subject as string | undefined) ?? null,
-    }));
-
-  const lastDeliveryDoc = deliverySnap.docs[0];
-  const lastDelivery = lastDeliveryDoc
-    ? {
-        id: lastDeliveryDoc.id,
-        sentAt: lastDeliveryDoc.data().sentAt?.toDate?.()?.toISOString() ?? null,
-        status: lastDeliveryDoc.data().status as string,
-      }
-    : null;
+    .map((d) => {
+      const p = d.data();
+      const invoiceId = (p.invoiceId as string | undefined) ?? null;
+      return {
+        id: d.id,
+        title: p.title as string,
+        description: (p.description as string | null) ?? null,
+        status: p.status as string,
+        price: (p.price as number | null) ?? null,
+        invoiceId,
+        invoiceNumber: invoiceId ? (invoiceNumbers.get(invoiceId) ?? null) : null,
+        dueAt: p.dueAt?.toDate?.()?.toISOString() ?? null,
+        deliveredAt: p.deliveredAt?.toDate?.()?.toISOString() ?? null,
+        createdAt: p.createdAt?.toDate?.()?.toISOString() ?? null,
+      };
+    })
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return (
     <ClientDetailClient
       client={client}
       instances={instances}
+      projects={projects}
       domains={domains}
       activities={activities}
-      subscription={subscription}
+      subscriptions={subscriptions}
       invoices={invoices}
       tasks={clientTasks}
       tickets={clientTickets}
       salesUsers={salesUsers}
       userRole={user.role}
-      currentUid={user.uid}
-      lastDelivery={lastDelivery}
-      emailTemplates={emailTemplates}
     />
   );
 }

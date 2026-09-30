@@ -23,12 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -90,7 +84,7 @@ export function ProvizePageClient({
   const [salesFilter, setSalesFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  const [payoutOpen, setPayoutOpen] = useState(false);
   const [payoutNote, setPayoutNote] = useState("");
   const [paying, setPaying] = useState(false);
 
@@ -162,7 +156,7 @@ export function ProvizePageClient({
       });
       if (!res.ok) throw new Error();
       toast.success(`${selected.size} provizí označeno jako vyplacené`);
-      setPayoutDialogOpen(false);
+      setPayoutOpen(false);
       setPayoutNote("");
       setSelected(new Set());
       router.refresh();
@@ -304,7 +298,7 @@ export function ProvizePageClient({
         </Select>
         {selected.size > 0 && (
           <>
-            <Button size="sm" onClick={() => setPayoutDialogOpen(true)}>
+            <Button size="sm" onClick={() => setPayoutOpen((o) => !o)}>
               <CreditCard className="mr-2 h-4 w-4" />
               Vyplatit ({selected.size})
             </Button>
@@ -315,6 +309,39 @@ export function ProvizePageClient({
           </>
         )}
       </FilterBar>
+
+      {/* Výplata: rozbalovací panel místo modálu */}
+      {payoutOpen && selected.size > 0 && (
+        <div className="space-y-4 rounded-2xl border bg-card p-4 shadow-xs md:p-6">
+          <p className="font-semibold">Označit jako vyplacené</p>
+          <p className="text-sm text-muted-foreground">
+            {selected.size} provizí za celkem{" "}
+            <span className="font-semibold text-foreground">
+                {formatCurrency(
+                  pendingForSelection
+                    .filter((c) => selected.has(c.id))
+                    .reduce((sum, c) => sum + c.amount, 0)
+                )}
+            </span>
+          </p>
+          <div className="space-y-2">
+            <Label>Poznámka (číslo faktury od obchodníka)</Label>
+            <Input
+                value={payoutNote}
+                onChange={(e) => setPayoutNote(e.target.value)}
+                placeholder="Volitelné..."
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handlePayout} disabled={paying}>
+              {paying ? "Zpracovávám..." : "Označit vyplacené"}
+            </Button>
+            <Button variant="ghost" onClick={() => setPayoutOpen(false)} disabled={paying}>
+              Zrušit
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Mobil: karty */}
       <EntityCardList>
@@ -418,38 +445,6 @@ export function ProvizePageClient({
           </TableBody>
         </Table>
       </div>
-
-      {/* Payout dialog */}
-      <Dialog open={payoutDialogOpen} onOpenChange={setPayoutDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Označit jako vyplacené</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {selected.size} provizí za celkem{" "}
-              <span className="font-semibold text-foreground">
-                {formatCurrency(
-                  pendingForSelection
-                    .filter((c) => selected.has(c.id))
-                    .reduce((sum, c) => sum + c.amount, 0)
-                )}
-              </span>
-            </p>
-            <div className="space-y-2">
-              <Label>Poznámka (číslo faktury od obchodníka)</Label>
-              <Input
-                value={payoutNote}
-                onChange={(e) => setPayoutNote(e.target.value)}
-                placeholder="Volitelné..."
-              />
-            </div>
-            <Button onClick={handlePayout} disabled={paying} className="w-full">
-              {paying ? "Zpracovávám..." : "Označit vyplacené"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

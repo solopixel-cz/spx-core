@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X, Loader2, Send } from "lucide-react";
+import { Plus, Check, X, Loader2, Send, Download } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -31,7 +31,6 @@ import {
 import { FilterBar } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
-import { InvoiceExportDialog } from "@/components/invoices/invoice-export-dialog";
 
 interface InvoiceRow {
   id: string;
@@ -120,7 +119,10 @@ export function InvoicesPageClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
         <div className="flex gap-2">
-          <InvoiceExportDialog />
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/invoices/export" />}>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
           <Button size="sm" nativeButton={false} render={<Link href="/invoices/new" />}>
             <Plus className="mr-2 h-4 w-4" />
             Nová faktura

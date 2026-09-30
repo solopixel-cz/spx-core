@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,6 +17,8 @@ import {
   Phone,
   Globe,
   Repeat,
+  FileText,
+  Plus,
 } from "lucide-react";
 import { taskRecurrenceLabels } from "@/lib/schemas/task";
 import { cn } from "@/lib/utils";
@@ -28,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ClientFormDialog } from "./client-form-dialog";
 import { InstancesTab } from "./instances-tab";
 import { DomainsTab, type DomainData } from "./domains-tab";
 import {
@@ -36,19 +37,18 @@ import {
   renewalLabel,
   domainHref,
 } from "@/lib/domain-renewal";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Building2 } from "lucide-react";
 import { ActivityTab } from "./activity-tab";
-import { SubscriptionCard } from "@/components/subscriptions/subscription-card";
+import { SubscriptionCard, type SubData } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
-import { CardFormButton } from "./card-form-button";
-import { DeliveryDialog } from "./delivery-dialog";
-import { MarketingEmailDialog } from "./marketing-email-dialog";
-import { ClientTaskDialog } from "./client-task-dialog";
-import { ClientTicketDialog } from "./client-ticket-dialog";
+import { ProjectsSection, type ProjectData } from "./projects-section";
+import { ConfirmButton } from "@/components/confirm-button";
 
 interface ClientData {
   id: string;
   name: string;
+  kind: "person" | "company";
+  contactName?: string;
   company?: string;
   ico?: string;
   dic?: string;
@@ -86,16 +86,6 @@ interface ActivityData {
   text: string;
   actorUid: string;
   createdAt: string | null;
-}
-
-interface SubData {
-  id: string;
-  plan: string;
-  priceMonthly: number;
-  billingCycle: string;
-  status: string;
-  startedAt: string | null;
-  nextInvoiceAt: string | null;
 }
 
 interface InvoiceData {
@@ -222,40 +212,44 @@ function StatTile({
 export function ClientDetailClient({
   client,
   instances,
+  projects = [],
   domains = [],
   activities,
-  subscription = null,
+  subscriptions = [],
   invoices = [],
   tasks = [],
   tickets = [],
   salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
-  currentUid = "",
-  lastDelivery = null,
-  emailTemplates = [],
 }: {
   client: ClientData;
   instances: InstanceData[];
+  projects?: ProjectData[];
   domains?: DomainData[];
   activities: ActivityData[];
-  subscription?: SubData | null;
+  subscriptions?: SubData[];
   invoices?: InvoiceData[];
   tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string; recurrence?: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
-  currentUid?: string;
-  lastDelivery?: { id: string; sentAt: string | null; status: string } | null;
-  emailTemplates?: Array<{ id: string; name: string; subject?: string | null }>;
 }) {
   const isSales = userRole === "sales";
   const isAdminOrMember = !isSales;
   const isArchived = !!client.deletedAt;
+  const isCompany = client.kind === "company";
   const router = useRouter();
-  const [editOpen, setEditOpen] = useState(false);
   const [acting, setActing] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
-  const [tab, setTab] = useState("prehled");
+  // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový úkol…) vedl zpět na ni.
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [tab, setTabState] = useState(searchParams.get("tab") ?? "prehled");
+  function setTab(next: string) {
+    setTabState(next);
+    router.replace(next === "prehled" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
+  }
+  const base = `/clients/${client.id}`;
 
   // Souhrny pro přehledové dlaždice
   const openTasks = tasks.filter((t) => t.status !== "done").length;
@@ -267,6 +261,13 @@ export function ClientDetailClient({
   ).length;
   const overdueInvoices = invoices.filter((i) => i.status === "overdue").length;
   const primaryInstance = instances[0];
+  // Vizitkové akce (podklady, předání) dávají smysl jen klientům s vizitkou.
+  // Nový klient bez jakékoli služby je bere taky (onboarding vizitky začíná formulářem).
+  const cardInstances = instances.filter((i) => i.type === "card");
+  const hasCard = cardInstances.length > 0;
+  const showCardActions = hasCard || (instances.length === 0 && projects.length === 0);
+  const liveProjects = projects.filter((p) => p.status !== "cancelled");
+  const openProjects = projects.filter((p) => p.status === "inquiry" || p.status === "in_progress");
 
   // Domény, kterým se blíží nebo prošlo obnovení (auto-renew se nepřipomíná).
   const domainAlerts = domains
@@ -274,8 +275,9 @@ export function ClientDetailClient({
     .filter(({ d, s }) => !d.autoRenew && (s.level === "urgent" || s.level === "overdue"))
     .sort((a, b) => (a.s.days ?? 0) - (b.s.days ?? 0));
 
+  // Archivace kaskádně archivuje instance, zakázky, tickety a ruší předplatné.
+  // Obnova klienta kaskádu nevrací, proto inline potvrzení místo „Vrátit zpět".
   async function handleArchive() {
-    if (!confirm("Opravdu archivovat tohoto klienta? Instance, tickety a předplatné budou archivovány/zrušeny.")) return;
     setActing(true);
     try {
       const res = await fetch("/api/archive", {
@@ -314,9 +316,9 @@ export function ClientDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/clients"
         items={[{ label: "Klienti", href: "/clients" }, { label: client.name }]}
       />
-      <BackButton href="/clients" className="-ml-2" />
 
       {/* Archived banner */}
       {isArchived && (
@@ -340,7 +342,7 @@ export function ClientDetailClient({
       <div className="rounded-2xl border bg-card p-4 shadow-xs md:p-6">
         <div className="flex items-start gap-3 md:gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-bold text-primary md:size-14 md:text-xl">
-            {getInitials(client.name)}
+            {isCompany ? <Building2 className="h-6 w-6" /> : getInitials(client.name)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -351,10 +353,16 @@ export function ClientDetailClient({
                 {statusLabels[client.status] ?? client.status}
               </Badge>
             </div>
-            {client.company && (
+            {isCompany ? (
               <p className="mt-0.5 text-sm text-muted-foreground md:text-base">
-                {client.company}
+                Firma{client.contactName ? ` · kontakt: ${client.contactName}` : ""}
               </p>
+            ) : (
+              client.company && (
+                <p className="mt-0.5 text-sm text-muted-foreground md:text-base">
+                  {client.company}
+                </p>
+              )
             )}
           </div>
         </div>
@@ -410,80 +418,36 @@ export function ClientDetailClient({
           </button>
         )}
 
-        {/* Akce */}
+        {/* Akce: každá vede na vlastní routu (žádné modály) */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
-          <ClientFormDialog
-            open={editOpen}
-            onOpenChange={setEditOpen}
-            onSuccess={() => {
-              setEditOpen(false);
-              router.refresh();
-            }}
-            trigger={
-              <Button variant="outline" size="sm">
-                <Pencil className="mr-2 h-4 w-4" />
-                Upravit
-              </Button>
-            }
-            defaultValues={{
-              id: client.id,
-              name: client.name,
-              company: client.company ?? "",
-              ico: client.ico ?? "",
-              dic: client.dic ?? "",
-              billingStreet: client.billingStreet ?? "",
-              billingZip: client.billingZip ?? "",
-              billingCity: client.billingCity ?? "",
-              email: client.email,
-              phone: client.phone ?? "",
-              status: client.status as "onboarding" | "active" | "paused" | "churned",
-              notes: client.notes ?? "",
-            }}
-          />
-          <CardFormButton
-            clientId={client.id}
-            clientName={client.name}
-            clientEmail={client.email}
-          />
-          {client.email && instances.length > 0 && !isArchived && (
-            <DeliveryDialog
-              clientId={client.id}
-              clientName={client.name}
-              clientEmail={client.email}
-              instances={instances.map((i) => ({
-                id: i.id,
-                domain: i.domain,
-                status: i.status,
-              }))}
-              lastDelivery={lastDelivery}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Send className="mr-2 h-4 w-4" />
-                  Předat vizitku
-                </Button>
-              }
-            />
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/edit`} />}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Upravit
+          </Button>
+          {showCardActions && client.email && !isArchived && (
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/form`} />}>
+              <FileText className="mr-2 h-4 w-4" />
+              Formulář podkladů
+            </Button>
+          )}
+          {client.email && hasCard && !isArchived && (
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/deliver`} />}>
+              <Send className="mr-2 h-4 w-4" />
+              Předat vizitku
+            </Button>
           )}
           {isAdminOrMember && client.email && !isArchived && (
-            <MarketingEmailDialog
-              clientId={client.id}
-              clientName={client.name}
-              clientEmail={client.email}
-              templates={emailTemplates}
-              defaultLink={primaryInstance?.deployUrl ?? ""}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Poslat e-mail
-                </Button>
-              }
-            />
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/email`} />}>
+              <Mail className="mr-2 h-4 w-4" />
+              Poslat e-mail
+            </Button>
           )}
           {isAdminOrMember && !isArchived && (
-            <Button
+            <ConfirmButton
               variant="ghost"
-              size="sm"
-              onClick={handleArchive}
+              question="Archivovat i služby a tickety a zrušit předplatné?"
+              confirmLabel="Archivovat"
+              onConfirm={handleArchive}
               disabled={acting}
               className="ml-auto text-muted-foreground"
             >
@@ -493,7 +457,7 @@ export function ClientDetailClient({
                 <Archive className="mr-2 h-4 w-4" />
               )}
               Archivovat
-            </Button>
+            </ConfirmButton>
           )}
         </div>
       </div>
@@ -501,9 +465,13 @@ export function ClientDetailClient({
       {/* Přehledové dlaždice — tapnutí přepne na záložku */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile
-          label="Instance"
-          value={instances.length}
-          hint={primaryInstance?.domain ?? "Žádná instance"}
+          label="Služby"
+          value={instances.length + liveProjects.length}
+          hint={
+            openProjects.length > 0
+              ? `Rozpracované zakázky: ${openProjects.length}`
+              : (primaryInstance?.domain ?? (liveProjects.length > 0 ? "Jen zakázky" : "Žádná služba"))
+          }
           onClick={() => setTab("instance")}
         />
         {!isSales && (
@@ -537,7 +505,7 @@ export function ClientDetailClient({
       <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
         <TabsList>
           <TabsTrigger value="prehled">Přehled</TabsTrigger>
-          <TabsTrigger value="instance">Instance</TabsTrigger>
+          <TabsTrigger value="instance">Služby</TabsTrigger>
           <TabsTrigger value="domeny">Domény</TabsTrigger>
           {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
           <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
@@ -587,13 +555,21 @@ export function ClientDetailClient({
                     </dd>
                   </div>
                 )}
+                {hasCard && (
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Advisor Slug</dt>
                   <dd>{client.advisorSlug || "—"}</dd>
                 </div>
+                )}
               </dl>
             </div>
-            {!isSales && <SubscriptionCard clientId={client.id} subscription={subscription} />}
+            {!isSales && (
+              <SubscriptionCard
+                clientId={client.id}
+                subscriptions={subscriptions}
+                instances={instances.map((i) => ({ id: i.id, type: i.type, domain: i.domain }))}
+              />
+            )}
             {!isSales && salesUsers.length > 0 && (
               <div className="rounded-2xl border bg-card p-4 shadow-xs">
                 <h3 className="font-semibold">Obchodní vlastník</h3>
@@ -648,8 +624,14 @@ export function ClientDetailClient({
           )}
         </TabsContent>
 
-        <TabsContent value="instance" className="mt-5 md:mt-6">
+        <TabsContent value="instance" className="mt-5 space-y-8 md:mt-6">
           <InstancesTab clientId={client.id} instances={instances} />
+          <ProjectsSection
+            clientId={client.id}
+            projects={projects}
+            canManage={!isArchived}
+            canInvoice={!isSales}
+          />
         </TabsContent>
 
         <TabsContent value="domeny" className="mt-5 md:mt-6">
@@ -665,7 +647,7 @@ export function ClientDetailClient({
             <ClientInvoicesTab
               invoices={invoices}
               clientId={client.id}
-              subscription={subscription}
+              subscriptions={subscriptions}
             />
           </TabsContent>
         )}
@@ -673,11 +655,10 @@ export function ClientDetailClient({
         <TabsContent value="ukoly" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <ClientTaskDialog
-                clientId={client.id}
-                users={salesUsers}
-                currentUid={currentUid}
-              />
+              <Button size="sm" nativeButton={false} render={<Link href={`/tasks/new?clientId=${client.id}`} />}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Nový úkol
+              </Button>
             </div>
           )}
           {tasks.length === 0 ? (
@@ -709,11 +690,10 @@ export function ClientDetailClient({
         <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <ClientTicketDialog
-                clientId={client.id}
-                users={salesUsers}
-                instances={instances.map((i) => ({ id: i.id, domain: i.domain }))}
-              />
+              <Button size="sm" nativeButton={false} render={<Link href={`/tickets/new?clientId=${client.id}`} />}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Nový ticket
+              </Button>
             </div>
           )}
           {tickets.length === 0 ? (
@@ -721,9 +701,10 @@ export function ClientDetailClient({
           ) : (
             <div className="space-y-2.5">
               {tickets.map((t) => (
-                <div
+                <Link
                   key={t.id}
-                  className="rounded-xl border bg-card p-3.5 shadow-xs"
+                  href={`/tickets/${t.id}?from=client`}
+                  className="block rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-sm font-medium">
@@ -748,7 +729,7 @@ export function ClientDetailClient({
                       </span>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

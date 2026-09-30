@@ -33,16 +33,22 @@ export interface SubmissionView {
   topServices?: string;
   mainAction?: string; // kód, viz MAIN_ACTION_LABELS
   mainActionNote?: string;
+  pricing?: string; // orientační ceník „od"
   // O mně
   aboutText?: string;
   // Pixela
   tone?: string; // kód, viz TONE_LABELS
   address?: string; // kód, viz ADDRESS_LABELS
   ownWords?: string;
+  // Vzhled (sekce 6 formuláře)
+  appearanceColors?: string;
+  appearanceNotes?: string;
   // Poznámky — jen nosič pro doplňková pole legacy záznamů (v2 sekci nemá)
   notes?: string;
   // Vizitka
   profileImageUrl?: string;
+  /** Starší plochý formulář (bez `schemaVersion`). */
+  legacy?: boolean;
 }
 
 /** Surová data z Firestore — superset obou tvarů, vše volitelné. */
@@ -72,9 +78,11 @@ export interface RawSubmission {
     topServices?: string;
     mainAction?: string;
     mainActionNote?: string;
+    pricing?: string;
   };
   about?: { text?: string };
   pixela?: { tone?: string; address?: string; ownWords?: string };
+  appearance?: { colors?: string; notes?: string };
   // legacy — plochá pole
   fullName?: string;
   email?: string;
@@ -125,6 +133,22 @@ export const ADDRESS_LABELS: Record<string, string> = {
   tykani: "Tykání",
 };
 
+/** Co volba hlavní akce znamená na vizitce. */
+export const MAIN_ACTION_HINTS: Record<string, string> = {
+  zavolat: "Hlavní tlačítko vizitky vytočí telefon.",
+  poptavka: "Na vizitce bude formulář pro poptávku.",
+  termin: "Na vizitce bude rezervační kalendář.",
+  jine: "Klient chce něco jiného, viz upřesnění.",
+};
+
+/** Pro koho se tón Pixely hodí (popisek z formuláře). */
+export const TONE_HINTS: Record<string, string> = {
+  profesionalni: "Advokáti, účetní, finance.",
+  pratelska: "Služby, řemesla, péče.",
+  energicka: "Obchod, reality, fitness.",
+  humor: "Kreativci, gastro, mladší publikum.",
+};
+
 /** Kód → lidský text; neznámý kód vrátí beze změny. */
 export function label(map: Record<string, string>, code?: string): string | undefined {
   if (!code) return undefined;
@@ -170,10 +194,13 @@ function normalizeV2(raw: RawSubmission): SubmissionView {
     topServices: sv.topServices,
     mainAction: sv.mainAction,
     mainActionNote: sv.mainActionNote,
+    pricing: sv.pricing,
     aboutText: a.text,
     tone: p.tone,
     address: p.address,
     ownWords: p.ownWords,
+    appearanceColors: raw.appearance?.colors,
+    appearanceNotes: raw.appearance?.notes,
     profileImageUrl: raw.profileImageUrl,
   };
 }
@@ -218,6 +245,7 @@ function normalizeLegacy(raw: RawSubmission): SubmissionView {
     ownWords: raw.motto,
     notes: noteLines.join("\n") || undefined,
     profileImageUrl: raw.profileImageUrl,
+    legacy: true,
   };
 }
 
