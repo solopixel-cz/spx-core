@@ -52,6 +52,7 @@ import { ActivityTab } from "@/components/clients/activity-tab";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySelect } from "./category-select";
 import { toastWithUndo } from "@/lib/undo-toast";
+import { WebInquiryCard } from "./web-inquiry-card";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
 
 interface ActivityData {
@@ -654,6 +655,13 @@ export function ProspectDetailClient({
                   </>
                 )}
               </div>
+
+              {prospect.source === "web" && (
+                <WebInquiryCard
+                  inquiry={prospect.inquiry ?? null}
+                  attribution={prospect.attribution ?? null}
+                />
+              )}
 
               {!isTerminal && canAct && (
                 <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6">

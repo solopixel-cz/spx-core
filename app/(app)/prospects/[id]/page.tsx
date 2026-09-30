@@ -72,6 +72,8 @@ export default async function ProspectDetailPage({
     clientId: (d.clientId as string) ?? null,
     source: d.source as string,
     importBatchId: (d.importBatchId as string) ?? null,
+    inquiry: (d.inquiry as ProspectRow["inquiry"]) ?? null,
+    attribution: (d.attribution as ProspectRow["attribution"]) ?? null,
     claimedAt: serializeTimestamp(d.claimedAt),
     lastTouchAt: serializeTimestamp(d.lastTouchAt),
     nextFollowUpAt: serializeTimestamp(d.nextFollowUpAt),

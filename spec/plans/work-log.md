@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Poptávky z webu: zdroj návštěvy (UTM) a obsah poptávky
+
+Zadání od agenta spx-web (commit `375dd5e` na `feature/reword`). Počítalo s leady, ty jsou zrušené, takže vše míří na kontakt v Oslovení (`source=web`).
+
+- **Příjem** (`/api/leads/intake`, beze změny cesty, autentizace a odpovědí): `webInquirySchema` přijímá `utm_content`, `referrer`, `landing_page` (dosud se tiše zahazovaly; `.strict()` schéma nemělo, poptávky tedy nepadaly). Prázdný řetězec = nevyplněno, limity UTM/referrer 200 znaků.
+- **Uložení:** `prospects.attribution` (`utmSource`, `utmMedium`, `utmCampaign`, `utmContent`, `referrer`, `landingPage`, chybějící `null`) a `prospects.inquiry` (obor, produkt, plán, režim, tým, odkaz, zpráva, poznámka). Z poznámky se odstraní řádek „Zdroj: …=…", který web přidává jako zálohu (vlastní věta klienta začínající „Zdroj:" zůstane). Aktivita kontaktu dál nese čitelný přepis.
+- **Detail kontaktu:** karta „Poptávka z webu" (vyplněné údaje, odkaz, celá poznámka) s blokem „Zdroj" (kampaň, zdroj/médium, varianta, přišel z, první stránka). Starší poptávky kartu nemají, obsah je v aktivitě.
+- **Seznam:** pohled „Poptávky z webu" (`/prospects?source=web`, všechny webové poptávky bez stránkování, bez nového indexu) se souhrnem počtů podle zdroje a kampaně; štítky zároveň filtrují. Sloupec „Zdroj" místo „Firma".
+- **Upozornění:** in-app + Web Push nese zdroj („Jana · jana@x.cz · letak / print · podzim-2026"). **E-mail o nové poptávce CRM neposílá** (jen notifikace adminům); rozhodnutí na uživateli.
+- `data-model.md` doplněn (`inquiry`, `attribution`). Verze 1.13.0 → **1.14.0** (feat). Lint + build čisté. **Zbývá:** nasadit, testovací poptávky z produkčního webu (s UTM i napřímo), pak je smazat.
+
 ## 2026-09-30 — Fáze 33 dokončena (D, G, H, J, K, L): žádné obsahové modály
 
 - **33D Oslovení:** `/prospects/new`, `/prospects/[id]/edit` (`prospect-form`, po vytvoření na detail kontaktu), `/prospects/import` (CSV import, jen admin/member). Na detailu „Zapsat kontakt" a „Nemá zájem / Nedostupný" rozbalí formulář přímo v kartě Akce. Archivace kontaktu bez `confirm()`, s „Vrátit zpět".

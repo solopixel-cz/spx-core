@@ -233,6 +233,16 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
   clientId?: string          // klient vytvořený z kontaktu (status converted = „Klient")
   source: 'import' | 'manual' | 'web'  // web = poptávka z /kontakt (POST /api/leads/intake)
   importBatchId?: string     // dávka CSV importu
+  inquiry?: {                // jen source=web: obsah poptávky z formuláře (chybějící = null)
+    industry, product, plan, teamType, teamSize, link, message,
+    note                     // poznámka klienta celá, bez řádku „Zdroj: …", který přidává web
+  }
+  attribution?: {            // jen source=web: odkud návštěvník přišel (chybějící = null)
+    utmSource                // letak, banner…; „direct" = zdroj neznámý
+    utmMedium, utmCampaign, utmContent,
+    referrer                 // doména, když nepřišel přes UTM
+    landingPage              // první stránka na webu
+  }
   deletedAt?: Timestamp      // archivace (fáze 25), filtruje se ze všech pohledů
   deletedBy?: string
 }
@@ -241,7 +251,7 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
 - **Převod na klienta:** akce „Vytvořit klienta" na detailu otevře předvyplněný formulář klienta → `POST /api/clients` s `prospectId` → klient (`prospectId`, `salesOwnerUid` = vlastník kontaktu), kontakt `status=converted` + `clientId`.
-- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; celý obsah poptávky (obor, plán, zpráva, odkaz, poznámka/UTM) jde do aktivity kontaktu, notifikace `lead.web` míří na detail.
+- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
 - **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
 

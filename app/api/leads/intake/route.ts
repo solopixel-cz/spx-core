@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { webInquirySchema } from "@/lib/schemas/web-inquiry";
+import { stripSourceLine, webInquirySchema } from "@/lib/schemas/web-inquiry";
+import { attributionSummary } from "@/lib/attribution";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 
@@ -41,21 +42,39 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const data = webInquirySchema.parse(body);
 
-    // Odpovědi z formuláře poskládáme do čitelného záznamu v aktivitě kontaktu.
+    // Obsah poptávky a zdroj návštěvy strukturovaně (filtrování, počty podle kampaně).
+    // Chybějící hodnoty = null. Řádek „Zdroj: …" z poznámky se nahrazuje `attribution`.
+    const inquiry = {
+      industry: data.industry ?? null,
+      product: data.product ?? null,
+      plan: data.plan ?? null,
+      teamType: data.teamType ?? null,
+      teamSize: data.teamSize != null && data.teamSize !== "" ? String(data.teamSize) : null,
+      link: data.link ?? null,
+      message: data.message ?? null,
+      note: stripSourceLine(data.note) ?? null,
+    };
+    const attribution = {
+      utmSource: data.utm_source ?? null,
+      utmMedium: data.utm_medium ?? null,
+      utmCampaign: data.utm_campaign ?? null,
+      utmContent: data.utm_content ?? null,
+      referrer: data.referrer ?? null,
+      landingPage: data.landing_page ?? null,
+    };
+    const source = attributionSummary(attribution);
+
+    // Čitelný záznam do aktivity kontaktu.
     const lines: string[] = [];
-    if (data.industry) lines.push(`Obor: ${data.industry}`);
-    if (data.product) lines.push(`Produkt: ${data.product}`);
-    if (data.plan) lines.push(`Plán: ${data.plan}`);
-    if (data.teamType) lines.push(`Režim: ${data.teamType === "team" ? "tým" : "sólo"}`);
-    if (data.teamSize) lines.push(`Velikost týmu: ${data.teamSize}`);
-    if (data.link) lines.push(`Odkaz: ${data.link}`);
-    if (data.message) lines.push(`Zpráva: ${data.message}`);
-    // `note` z proxy už obsahuje i řádek „Zdroj: utm_…"; samostatná utm pole jen když chybí.
-    if (data.note) lines.push(`Poznámka: ${data.note}`);
-    else {
-      const utm = [data.utm_source, data.utm_medium, data.utm_campaign].filter(Boolean);
-      if (utm.length) lines.push(`Zdroj: ${utm.join(" / ")}`);
-    }
+    if (inquiry.industry) lines.push(`Obor: ${inquiry.industry}`);
+    if (inquiry.product) lines.push(`Produkt: ${inquiry.product}`);
+    if (inquiry.plan) lines.push(`Plán: ${inquiry.plan}`);
+    if (inquiry.teamType) lines.push(`Režim: ${inquiry.teamType === "team" ? "tým" : "sólo"}`);
+    if (inquiry.teamSize) lines.push(`Velikost týmu: ${inquiry.teamSize}`);
+    if (inquiry.link) lines.push(`Odkaz: ${inquiry.link}`);
+    if (inquiry.message) lines.push(`Zpráva: ${inquiry.message}`);
+    if (inquiry.note) lines.push(`Poznámka: ${inquiry.note}`);
+    if (source) lines.push(`Zdroj: ${source}`);
 
     const db = getAdminFirestore();
     const docRef = await db.collection("prospects").add({
@@ -69,6 +88,8 @@ export async function POST(request: NextRequest) {
       demoUrl: null,
       status: "new",
       source: "web",
+      inquiry,
+      attribution,
       ownerUid,
       claimedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
@@ -88,7 +109,7 @@ export async function POST(request: NextRequest) {
     await notify({
       type: "lead.web",
       title: "Nová poptávka z webu",
-      body: data.email ? `${data.name} · ${data.email}` : data.name,
+      body: [data.name, data.email, source].filter(Boolean).join(" · "),
       href: `/prospects/${docRef.id}`,
       entityType: "prospect",
       entityId: docRef.id,
