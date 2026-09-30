@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/back-button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Save } from "lucide-react";
@@ -61,9 +61,12 @@ export default function OnboardingPage() {
 
   return (
     <div className="space-y-4">
+      <Breadcrumbs
+        backHref="/settings"
+        items={[{ label: "Nastavení", href: "/settings" }, { label: "Onboarding šablona" }]}
+      />
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <BackButton href="/settings" className="-ml-2 shrink-0" />
           <h2 className="text-xl font-semibold">Onboarding šablona</h2>
         </div>
         <Button size="sm" onClick={handleSave} disabled={saving}>
@@ -73,7 +76,7 @@ export default function OnboardingPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Kroky se automaticky vygenerují jako úkoly při výhře leadu. Offset = počet dní od konverze.
+        Kroky se vygenerují jako úkoly při založení klienta (lze vypnout zaškrtávátkem ve formuláři). Offset = počet dní od založení.
       </p>
 
       <div className="space-y-3">

@@ -78,7 +78,9 @@ const nextConfig: NextConfig = {
       { source: "/fakturace/:path*", destination: "/invoices/:path*", permanent: true },
       // přímé 1:1 překlady (i s dynamickými podcestami)
       { source: "/aktivita/:path*", destination: "/activity/:path*", permanent: true },
-      { source: "/leady/:path*", destination: "/leads/:path*", permanent: true },
+      // Leady zrušené (2026-09-30) → Oslovení; dočasně (307), kdyby se vracely.
+      { source: "/leady/:path*", destination: "/prospects", permanent: false },
+      { source: "/leads/:path*", destination: "/prospects", permanent: false },
       { source: "/prospekti/:path*", destination: "/prospects/:path*", permanent: true },
       { source: "/klienti/:path*", destination: "/clients/:path*", permanent: true },
       { source: "/moje-vizitky/:path*", destination: "/my-cards/:path*", permanent: true },

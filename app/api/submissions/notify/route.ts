@@ -60,13 +60,13 @@ export async function POST(request: NextRequest) {
     const proto = request.headers.get("x-forwarded-proto") ?? "https";
     const host =
       request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-    const podkladyUrl = host ? `${proto}://${host}/submissions` : "";
+    const podkladyUrl = host ? `${proto}://${host}/submissions/${encodeURIComponent(token)}` : "";
 
     const subject = `Nové podklady: ${name}`;
     const html =
       `<p>Klient <strong>${escapeHtml(name)}</strong> vyplnil formulář podkladů.</p>` +
       (podkladyUrl
-        ? `<p><a href="${podkladyUrl}">Otevřít v CRM → Podklady</a></p>`
+        ? `<p><a href="${podkladyUrl}">Otevřít podklady v CRM</a></p>`
         : "");
     const text =
       `Klient ${name} vyplnil formulář podkladů.` +
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       type: "submission.filled",
       title: "Nové podklady",
       body: `${name} vyplnil formulář podkladů`,
-      href: "/submissions",
+      href: `/submissions/${encodeURIComponent(token)}`,
     });
 
     return NextResponse.json({ ok: true });

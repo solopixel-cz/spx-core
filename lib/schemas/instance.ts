@@ -58,3 +58,15 @@ export const instanceFormSchema = instanceFormBase.superRefine((data, ctx) => {
 export const instanceFormPartialSchema = instanceFormBase.partial();
 
 export type InstanceFormData = z.infer<typeof instanceFormBase>;
+
+export const instanceTypeLabels: Record<string, string> = {
+  card: "Vizitka",
+  web: "Web",
+};
+
+export const instanceStatusLabels: Record<string, string> = {
+  setup: "Příprava",
+  live: "Živá",
+  maintenance: "Údržba",
+  offline: "Offline",
+};

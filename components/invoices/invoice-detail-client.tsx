@@ -6,18 +6,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, X, Send, Pencil, Loader2, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmButton } from "@/components/confirm-button";
 import {
   Table,
   TableBody,
@@ -142,11 +135,11 @@ export function InvoiceDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/invoices"
         items={[{ label: "Faktury", href: "/invoices" }, { label: invoice.number }]}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <BackButton href="/invoices" className="shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-mono text-xl font-bold">{invoice.number}</h1>
@@ -220,15 +213,16 @@ export function InvoiceDetailClient({
                 )}
                 Zaplaceno
               </Button>
-              <Button
+              <ConfirmButton
                 variant="outline"
-                size="sm"
-                onClick={() => action("cancelled")}
+                question="Stornovat fakturu?"
+                confirmLabel="Stornovat"
+                onConfirm={() => action("cancelled")}
                 disabled={busy === "cancelled"}
               >
                 <X className="mr-1 h-4 w-4" />
                 Stornovat
-              </Button>
+              </ConfirmButton>
             </>
           )}
           {isAdmin && (
@@ -238,7 +232,7 @@ export function InvoiceDetailClient({
               className="text-destructive hover:text-destructive"
               onClick={() => {
                 setDeleteConfirm("");
-                setDeleteOpen(true);
+                setDeleteOpen((o) => !o);
               }}
             >
               <Trash2 className="mr-1 h-4 w-4" />
@@ -248,13 +242,10 @@ export function InvoiceDetailClient({
         </div>
       </div>
 
-      {/* Potvrzení smazání */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat fakturu {invoice.number}?</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Potvrzení smazání: rozbalovací panel místo modálu, ochrana opsáním čísla */}
+      {deleteOpen && (
+        <div className="space-y-4 rounded-2xl border border-destructive/40 bg-destructive/5 p-4 md:p-6">
+          <p className="font-semibold">Smazat fakturu {invoice.number}?</p>
             <p className="text-sm text-muted-foreground">
               Trvale smaže fakturu i navázané e-maily a provizi. Tuto akci nelze
               vzít zpět a vznikne mezera v číselné řadě. Pro storno (zachování
@@ -271,8 +262,7 @@ export function InvoiceDetailClient({
                 placeholder={invoice.number}
               />
             </div>
-          </div>
-          <DialogFooter>
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               Zrušit
             </Button>
@@ -288,9 +278,9 @@ export function InvoiceDetailClient({
               )}
               Smazat trvale
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
 
       {/* Meta dlaždice */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

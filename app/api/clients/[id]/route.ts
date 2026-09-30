@@ -7,7 +7,7 @@ import { clientFormSchema } from "@/lib/schemas/client";
 import { logActivity } from "@/lib/activity";
 import { renderSubject, sendTransactionalEmail } from "@/lib/email";
 import { renderDeliveryEmail, DEFAULT_DELIVERY_SUBJECT } from "@/lib/email-templates/delivery";
-import { personalizeTemplate, firstName } from "@/lib/marketing/personalize";
+import { personalizeTemplate, greetingName } from "@/lib/marketing/personalize";
 import { htmlToText } from "@/lib/marketing/compose";
 
 // GET /api/clients/[id]
@@ -176,7 +176,7 @@ export async function POST(
       const tplSubject = (tpl.subject as string) || tplName || "SoloPixel";
 
       // Personalizace {{jmeno}}/{{email}}/{{odkaz}} — transakčně (bez marketingové patičky).
-      const jmeno = greeting || firstName(clientData.name as string);
+      const jmeno = greeting || greetingName(clientData);
       const vars = { jmeno, email: clientData.email as string, odkaz };
       const renderedSubject = personalizeTemplate(tplSubject, vars);
       const html = personalizeTemplate(tplHtml, vars);
@@ -253,7 +253,7 @@ export async function POST(
 
     // Render and send
     const greeting = body.greeting as string | undefined;
-    const jmeno = greeting || clientData.name.split(" ")[0];
+    const jmeno = greeting || greetingName(clientData);
     const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
     const { html, text } = renderDeliveryEmail({ jmeno, odkaz });
 

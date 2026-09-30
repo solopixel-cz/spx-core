@@ -2,15 +2,18 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { TicketsPageClient } from "@/components/tickets/tickets-page-client";
 import { getSalesClientIds } from "@/lib/sales-clients";
+import { archivedQuery, byDeletedAtDesc, isArchiveView, toIso, type ArchiveSearchParams } from "@/lib/archive-view";
 
-export default async function TicketyPage() {
+export default async function TicketyPage({ searchParams }: { searchParams: ArchiveSearchParams }) {
   const user = await requireAuth();
   const db = getAdminFirestore();
+  const archived = await isArchiveView(searchParams, user.role);
 
-  const [ticketsSnap, clientsSnap, usersSnap] = await Promise.all([
-    db.collection("tickets").orderBy("createdAt", "desc").get(),
+  const [ticketsSnap, clientsSnap] = await Promise.all([
+    archived
+      ? archivedQuery(db, "tickets").get()
+      : db.collection("tickets").orderBy("createdAt", "desc").get(),
     db.collection("clients").get(),
-    db.collection("users").where("active", "==", true).get(),
   ]);
 
   const ownedClientIds = await getSalesClientIds(user.uid, user.role);
@@ -21,7 +24,7 @@ export default async function TicketyPage() {
   });
 
   const filteredTickets = ticketsSnap.docs.filter((doc) => {
-    if (doc.data().deletedAt) return false;
+    if (!!doc.data().deletedAt !== archived) return false;
     if (!ownedClientIds) return true;
     return ownedClientIds.has(doc.data().clientId as string);
   });
@@ -40,8 +43,10 @@ export default async function TicketyPage() {
       assigneeUid: data.assigneeUid as string | undefined,
       links: (data.links as string[] | undefined) ?? [],
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+      deletedAt: toIso(data.deletedAt),
     };
   });
+  if (archived) tickets.sort(byDeletedAtDesc);
 
   // For sales, only show own clients in the client dropdown
   const clients = clientsSnap.docs
@@ -51,10 +56,12 @@ export default async function TicketyPage() {
       name: doc.data().name as string,
     }));
 
-  const users = usersSnap.docs.map((doc) => ({
-    id: doc.id,
-    displayName: doc.data().displayName as string,
-  }));
-
-  return <TicketsPageClient tickets={tickets} clients={clients} users={users} />;
+  return (
+    <TicketsPageClient
+      tickets={tickets}
+      clients={clients}
+      canArchive={user.role !== "sales"}
+      archived={archived}
+    />
+  );
 }

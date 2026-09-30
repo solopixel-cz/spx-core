@@ -51,17 +51,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Projects — jednorázové zakázky klienta; read for authenticated, write via admin SDK
+    match /projects/{projectId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Domains — vlastní domény klienta; read for authenticated, write via admin SDK
     match /domains/{domainId} {
       allow read: if isAuth();
       allow write: if false;
     }
 
-    // Leads — read for authenticated, stage update for authenticated (drag&drop)
+    // Leads — zrušené (2026-09-30), data zůstávají jen ke čtení; poptávky z webu jdou do prospects
     match /leads/{leadId} {
       allow read: if isAuth();
-      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage', 'updatedAt']);
-      allow create, delete: if false;
+      allow write: if false;
     }
 
     // Subscriptions — read for admin/member only (not sales)

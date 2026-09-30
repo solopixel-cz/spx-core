@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { Camera, Trash2, Save } from "lucide-react";
@@ -74,7 +75,6 @@ const roleLabels: Record<string, string> = {
 
 const defaultPages = [
   { value: "/", label: "Dashboard" },
-  { value: "/leads", label: "Leady" },
   { value: "/clients", label: "Klienti" },
   { value: "/prospects", label: "Oslovení" },
   { value: "/tasks", label: "Úkoly" },
@@ -263,7 +263,11 @@ export default function ProfilPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={profile.displayName} backHref="/settings">
+      <Breadcrumbs
+        backHref="/settings"
+        items={[{ label: "Nastavení", href: "/settings" }, { label: "Profil" }]}
+      />
+      <PageHeader title={profile.displayName}>
         <p className="text-sm text-muted-foreground">{roleLabels[profile.role] ?? profile.role}</p>
       </PageHeader>
 

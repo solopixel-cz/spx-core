@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BackButton } from "@/components/back-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StatusBadge } from "@/components/status-badge";
 import { clientStatus } from "@/lib/status";
@@ -131,7 +131,6 @@ export function ListDetailClient({
   }
 
   async function handleDelete() {
-    if (!confirm("Smazat tento seznam?")) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/marketing/lists/${list.id}`, { method: "DELETE" });
@@ -166,11 +165,11 @@ export function ListDetailClient({
   return (
     <div className="space-y-6">
       <Breadcrumbs
+        backHref="/email-marketing"
         items={[{ label: "Email marketing", href: "/email-marketing" }, { label: list.name }]}
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <BackButton href="/email-marketing" className="shrink-0" />
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -181,15 +180,18 @@ export function ListDetailClient({
           className="h-11 max-w-md text-xl font-bold tracking-tight md:text-2xl"
           aria-label="Název seznamu"
         />
-        <Button
+        <ConfirmButton
           variant="outline"
-          onClick={handleDelete}
+          size="default"
+          question="Smazat seznam?"
+          confirmLabel="Smazat"
+          onConfirm={handleDelete}
           disabled={deleting}
           className="ml-auto shrink-0"
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Smazat
-        </Button>
+        </ConfirmButton>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

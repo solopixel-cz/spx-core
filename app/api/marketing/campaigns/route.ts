@@ -5,7 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { campaignCreateSchema } from "@/lib/schemas/campaign";
 import { sendTransactionalEmail } from "@/lib/email";
 import { statusOrder } from "@/lib/schemas/email-status";
-import { firstName } from "@/lib/marketing/personalize";
+import { firstName, greetingName } from "@/lib/marketing/personalize";
 import { composeMarketingEmail, type CompanyInfo } from "@/lib/marketing/compose";
 
 function serializeTimestamp(val: unknown): string | null {
@@ -21,6 +21,8 @@ interface Recipient {
   id: string;
   name: string;
   email: string;
+  /** Oslovení ({{jmeno}}) — u firmy kontaktní osoba. */
+  greeting: string;
 }
 
 // GET — výpis kampaní s agregovanými statistikami
@@ -160,6 +162,10 @@ export async function POST(request: Request) {
           id: doc.id,
           name: (d.name as string) ?? "",
           email,
+          greeting:
+            doc.ref.parent.id === "prospects"
+              ? firstName((d.name as string) ?? "")
+              : greetingName(d),
         });
       }
     }
@@ -213,7 +219,7 @@ export async function POST(request: Request) {
       const chunk = targets.slice(i, i + CHUNK);
       const results = await Promise.allSettled(
         chunk.map(async (r) => {
-          const jmeno = firstName(r.name);
+          const jmeno = r.greeting;
           // Per-příjemce token pro odhlašovací odkaz v patičce
           const unsubToken = crypto.randomUUID();
           const composed = composeMarketingEmail({

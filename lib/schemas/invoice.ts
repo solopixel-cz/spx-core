@@ -52,6 +52,8 @@ export const invoiceFormSchema = z.object({
   variableSymbol: z.string().optional(),
   note: z.string().optional(),
   asDraft: z.boolean().optional(),
+  projectId: z.string().optional(), // vystaveno ze zakázky → zpětně propojit (projects.invoiceId)
+  subscriptionId: z.string().optional(), // vystaveno z předplatného (ručně, cron ho nastavuje sám)
 });
 
 export type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
