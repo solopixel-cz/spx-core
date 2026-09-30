@@ -55,7 +55,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
-import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySelect } from "./category-select";
 import { ProspectFormDialog } from "./prospect-form-dialog";
@@ -96,7 +95,6 @@ export function ProspectDetailClient({
   const [acting, setActing] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [clientOpen, setClientOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<"not_interested" | "unreachable">("not_interested");
   const [statusNote, setStatusNote] = useState("");
@@ -663,33 +661,15 @@ export function ProspectDetailClient({
                       <Phone className="mr-2 h-4 w-4" />
                       Zapsat kontakt
                     </Button>
-                    <ClientFormDialog
-                      open={clientOpen}
-                      onOpenChange={setClientOpen}
-                      title="Vytvořit klienta z Oslovení"
-                      prospectId={prospect.id}
-                      defaultValues={{
-                        kind: "person",
-                        name: prospect.name,
-                        company: prospect.company ?? "",
-                        email: prospect.email ?? "",
-                        phone: prospect.phone ?? "",
-                        billingCity: prospect.city ?? "",
-                        status: "onboarding",
-                        notes: prospect.portalUrl ? `Z Oslovení. Profil: ${prospect.portalUrl}` : "Z Oslovení.",
-                      }}
-                      onSuccess={(clientId) => {
-                        setClientOpen(false);
-                        if (clientId) router.push(`/clients/${clientId}`);
-                        router.refresh();
-                      }}
-                      trigger={
-                        <Button variant="outline" disabled={acting}>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Vytvořit klienta
-                        </Button>
-                      }
-                    />
+                    <Button
+                      variant="outline"
+                      disabled={acting}
+                      nativeButton={false}
+                      render={<Link href={`/clients/new?prospectId=${prospect.id}`} />}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Vytvořit klienta
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={() => {

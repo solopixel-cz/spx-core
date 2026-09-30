@@ -36,5 +36,6 @@
 | Fáze 31 — Rozšíření fakturace (A–D) | ✅ Hotovo (Fakturoid odstraněn ve fázi 32) | [`../prompts/31-fakturace-rozsireni.md`](../prompts/31-fakturace-rozsireni.md) |
 | Fáze 32 — Odstřižení Fakturoidu (vlastní PDF, QR, evidence) | ✅ Hotovo | [`../prompts/32-fakturace-bez-fakturoidu.md`](../prompts/32-fakturace-bez-fakturoidu.md) |
 | Fáze 34 — Klient osoba/firma, služby a zakázky, víc předplatných | ✅ Hotovo (A, B, C; zakázky na dashboardu odloženy) | [`../prompts/34-klienti-sluzby.md`](../prompts/34-klienti-sluzby.md) — kroky A (typ klienta) → B (služby + zakázky) → C (víc předplatných) |
+| Fáze 33 — Migrace z modálů na routy (bez modálových oken) | 🚧 Rozpracováno (33A, B, E, F hotové v 1.12.0; zbývá D, G, H, J, K, L) | [`../prompts/33-routovani-bez-modalu.md`](../prompts/33-routovani-bez-modalu.md) — plná stránka + Zpět, desktop i mobil |
 
 Stav fází se aktualizuje zde a v [`../prompts/00-prehled.md`](../prompts/00-prehled.md).

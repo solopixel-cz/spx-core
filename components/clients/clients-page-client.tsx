@@ -45,7 +45,6 @@ import {
 } from "@/components/bulk-archive-bar";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
 import { formatCurrency } from "@/lib/format";
-import { ClientFormDialog } from "./client-form-dialog";
 
 export interface ClientRow {
   id: string;
@@ -234,7 +233,6 @@ export function ClientsPageClient({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [segment, setSegment] = useState<Segment>("paying");
   const [kindFilter, setKindFilter] = useState<"all" | "person" | "company">("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   // Resync ze serveru po router.refresh — úprava stavu během renderu.
@@ -361,20 +359,10 @@ export function ClientsPageClient({
         <div className="flex items-center gap-2">
           {canArchive && <ArchiveToggle archived={archived} />}
           {!archived && (
-            <ClientFormDialog
-              open={dialogOpen}
-              onOpenChange={setDialogOpen}
-              onSuccess={() => {
-                setDialogOpen(false);
-                router.refresh();
-              }}
-              trigger={
-                <Button size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nový klient
-                </Button>
-              }
-            />
+            <Button size="sm" nativeButton={false} render={<Link href="/clients/new" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nový klient
+            </Button>
           )}
         </div>
       </div>

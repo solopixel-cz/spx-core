@@ -2,6 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Fáze 33 (A, B, E, F): detail klienta, úkoly a tickety bez modálů
+
+Navazuje na WIP z `wip/33-routovani-bez-modalu` (převzaty `confirm-button` + `undo-toast`, odesílací routy postavené znovu nad současným detailem klienta). Spec: [`../prompts/33-routovani-bez-modalu.md`](../prompts/33-routovani-bez-modalu.md).
+
+- **33A sdílené kameny:** `FormPage` (drobečky + šipka zpět, titulek, popis), `FormActions` (Uložit/Zrušit, na mobilu lepicí lišta dole), `ConfirmButton` (inline potvrzení, spouštěcí a potvrzovací tlačítko mají vlastní vzhled), `toastWithUndo` + nový `deferredDelete` (odložené trvalé smazání s „Vrátit zpět" pro kolekce bez archivu). Loadery `lib/client-route.ts` (guard sales + drobečky + návrat na záložku), `lib/ticket-route.ts`, `lib/form-options.ts`, `lib/subscription-data.ts` (`toSubData` sdílený s detailem).
+- **33B detail klienta → routy:** `/clients/new` (i převod z Oslovení `?prospectId=`, předvyplnění na serveru), `/clients/[id]/edit`, `/send/form` (formulář podkladů, kopírování odkazu se „Zkopírováno"), `/send/deliver`, `/send/email` (dřív „vizitka k náhledu"), `/instances/new|[id]/edit`, `/domains/new|[id]/edit` (odebrání domény inline potvrzením, z tabulky zmizel koš), `/subscriptions/new|[id]/edit`, `/projects/new|[id]/edit` (archivace s Vrátit zpět). Aktivní záložka v URL `?tab=`, podstránky se na ni vracejí. Tickety v záložce klienta vedou na detail ticketu.
+- **Archivace klienta:** `confirm()` → inline potvrzení (ne Undo: obnova klienta nevrací kaskádu, předplatné by zůstalo zrušené).
+- **Oprava:** e-mail ze šablony při otevření přepisoval oslovení firmy na „křestní jméno" z názvu firmy (ignoroval `defaultGreeting`); na routě se bere správné oslovení.
+- **33E úkoly:** `/tasks/new` (`?clientId=` z detailu klienta), `/tasks/[id]/edit`; mazání bez `window.confirm` přes `deferredDelete`. Formulář umí „Bez klienta" (jen dokud vazba není, API ji zrušit neumí).
+- **33F tickety:** detail `/tickets/[id]` místo Sheetu (stav, odkazy, klient, vizitka/web, archivace s Vrátit zpět, obnova archivovaného), `/tickets/new` (`?clientId=`), `/tickets/[id]/edit`; `?from=client` vrací na klienta. Formulář nabízí vizitku/web zvoleného klienta. Archivovat smí jen admin/member (dřív tlačítko viděl i sales).
+- Smazány: `client-form-dialog` (→ `client-form`), `card-form-button`, `delivery-dialog` (→ `deliver-card-form`), `marketing-email-dialog` (→ `send-email-form`), `client-task-dialog`, `client-ticket-dialog`; detail klienta už nenačítá šablony ani poslední předání.
+- Verze 1.11.0 → **1.12.0** (feat). Lint (0 chyb) + build čisté. **Zbývá:** ověřit v prohlížeči (hlavně mobil), pak 33D Oslovení, 33G fakturace, 33H email marketing, 33J provize, 33K nastavení, 33L úklid.
+
 ## 2026-09-30 — Leady zrušené, klient rovnou z Oslovení
 
 - **Leady pryč z aplikace:** smazána stránka `/leads`, `components/leads/*`, `/api/leads` + `[id]`, `lib/schemas/lead.ts`, stavové mapy; odebráno z menu, Cmd+K, hledání, dashboardu, profilu (úvodní stránka), archivu a hromadné archivace. `/leads` a `/leady` → dočasné přesměrování na `/prospects`. Rules `leads` jen čtení (data v DB zůstávají, nic se nemaže ani nepřevádí; index ponechán). Historická aktivita `lead` odkazuje na Oslovení.

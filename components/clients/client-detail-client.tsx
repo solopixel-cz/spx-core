@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -16,6 +17,8 @@ import {
   Phone,
   Globe,
   Repeat,
+  FileText,
+  Plus,
 } from "lucide-react";
 import { taskRecurrenceLabels } from "@/lib/schemas/task";
 import { cn } from "@/lib/utils";
@@ -27,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ClientFormDialog } from "./client-form-dialog";
 import { InstancesTab } from "./instances-tab";
 import { DomainsTab, type DomainData } from "./domains-tab";
 import {
@@ -36,16 +38,11 @@ import {
   domainHref,
 } from "@/lib/domain-renewal";
 import { AlertTriangle, Building2 } from "lucide-react";
-import { contactPersonName, greetingName } from "@/lib/marketing/personalize";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard, type SubData } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
-import { CardFormButton } from "./card-form-button";
 import { ProjectsSection, type ProjectData } from "./projects-section";
-import { DeliveryDialog } from "./delivery-dialog";
-import { MarketingEmailDialog } from "./marketing-email-dialog";
-import { ClientTaskDialog } from "./client-task-dialog";
-import { ClientTicketDialog } from "./client-ticket-dialog";
+import { ConfirmButton } from "@/components/confirm-button";
 
 interface ClientData {
   id: string;
@@ -224,9 +221,6 @@ export function ClientDetailClient({
   tickets = [],
   salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
-  currentUid = "",
-  lastDelivery = null,
-  emailTemplates = [],
 }: {
   client: ClientData;
   instances: InstanceData[];
@@ -239,19 +233,23 @@ export function ClientDetailClient({
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
-  currentUid?: string;
-  lastDelivery?: { id: string; sentAt: string | null; status: string } | null;
-  emailTemplates?: Array<{ id: string; name: string; subject?: string | null }>;
 }) {
   const isSales = userRole === "sales";
   const isAdminOrMember = !isSales;
   const isArchived = !!client.deletedAt;
   const isCompany = client.kind === "company";
   const router = useRouter();
-  const [editOpen, setEditOpen] = useState(false);
   const [acting, setActing] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
-  const [tab, setTab] = useState("prehled");
+  // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový úkol…) vedl zpět na ni.
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [tab, setTabState] = useState(searchParams.get("tab") ?? "prehled");
+  function setTab(next: string) {
+    setTabState(next);
+    router.replace(next === "prehled" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
+  }
+  const base = `/clients/${client.id}`;
 
   // Souhrny pro přehledové dlaždice
   const openTasks = tasks.filter((t) => t.status !== "done").length;
@@ -277,8 +275,9 @@ export function ClientDetailClient({
     .filter(({ d, s }) => !d.autoRenew && (s.level === "urgent" || s.level === "overdue"))
     .sort((a, b) => (a.s.days ?? 0) - (b.s.days ?? 0));
 
+  // Archivace kaskádně archivuje instance, zakázky, tickety a ruší předplatné.
+  // Obnova klienta kaskádu nevrací, proto inline potvrzení místo „Vrátit zpět".
   async function handleArchive() {
-    if (!confirm("Opravdu archivovat tohoto klienta? Instance, zakázky, tickety a předplatné budou archivovány/zrušeny.")) return;
     setActing(true);
     try {
       const res = await fetch("/api/archive", {
@@ -419,86 +418,36 @@ export function ClientDetailClient({
           </button>
         )}
 
-        {/* Akce */}
+        {/* Akce: každá vede na vlastní routu (žádné modály) */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
-          <ClientFormDialog
-            open={editOpen}
-            onOpenChange={setEditOpen}
-            onSuccess={() => {
-              setEditOpen(false);
-              router.refresh();
-            }}
-            trigger={
-              <Button variant="outline" size="sm">
-                <Pencil className="mr-2 h-4 w-4" />
-                Upravit
-              </Button>
-            }
-            defaultValues={{
-              id: client.id,
-              kind: client.kind,
-              name: client.name,
-              contactName: client.contactName ?? "",
-              company: client.company ?? "",
-              ico: client.ico ?? "",
-              dic: client.dic ?? "",
-              billingStreet: client.billingStreet ?? "",
-              billingZip: client.billingZip ?? "",
-              billingCity: client.billingCity ?? "",
-              email: client.email,
-              phone: client.phone ?? "",
-              status: client.status as "onboarding" | "active" | "paused" | "churned",
-              notes: client.notes ?? "",
-            }}
-          />
-          {showCardActions && (
-            <CardFormButton
-              clientId={client.id}
-              clientName={contactPersonName(client)}
-              clientEmail={client.email}
-            />
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/edit`} />}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Upravit
+          </Button>
+          {showCardActions && client.email && !isArchived && (
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/form`} />}>
+              <FileText className="mr-2 h-4 w-4" />
+              Formulář podkladů
+            </Button>
           )}
           {client.email && hasCard && !isArchived && (
-            <DeliveryDialog
-              clientId={client.id}
-              clientName={client.name}
-              defaultGreeting={greetingName(client)}
-              clientEmail={client.email}
-              instances={cardInstances.map((i) => ({
-                id: i.id,
-                domain: i.domain,
-                status: i.status,
-              }))}
-              lastDelivery={lastDelivery}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Send className="mr-2 h-4 w-4" />
-                  Předat vizitku
-                </Button>
-              }
-            />
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/deliver`} />}>
+              <Send className="mr-2 h-4 w-4" />
+              Předat vizitku
+            </Button>
           )}
           {isAdminOrMember && client.email && !isArchived && (
-            <MarketingEmailDialog
-              clientId={client.id}
-              clientName={client.name}
-              defaultGreeting={greetingName(client)}
-              clientEmail={client.email}
-              templates={emailTemplates}
-              defaultLink={primaryInstance?.deployUrl ?? ""}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Poslat e-mail
-                </Button>
-              }
-            />
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/email`} />}>
+              <Mail className="mr-2 h-4 w-4" />
+              Poslat e-mail
+            </Button>
           )}
           {isAdminOrMember && !isArchived && (
-            <Button
+            <ConfirmButton
               variant="ghost"
-              size="sm"
-              onClick={handleArchive}
+              question="Archivovat i služby a tickety a zrušit předplatné?"
+              confirmLabel="Archivovat"
+              onConfirm={handleArchive}
               disabled={acting}
               className="ml-auto text-muted-foreground"
             >
@@ -508,7 +457,7 @@ export function ClientDetailClient({
                 <Archive className="mr-2 h-4 w-4" />
               )}
               Archivovat
-            </Button>
+            </ConfirmButton>
           )}
         </div>
       </div>
@@ -706,11 +655,10 @@ export function ClientDetailClient({
         <TabsContent value="ukoly" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <ClientTaskDialog
-                clientId={client.id}
-                users={salesUsers}
-                currentUid={currentUid}
-              />
+              <Button size="sm" nativeButton={false} render={<Link href={`/tasks/new?clientId=${client.id}`} />}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Nový úkol
+              </Button>
             </div>
           )}
           {tasks.length === 0 ? (
@@ -742,11 +690,10 @@ export function ClientDetailClient({
         <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <ClientTicketDialog
-                clientId={client.id}
-                users={salesUsers}
-                instances={instances.map((i) => ({ id: i.id, domain: i.domain }))}
-              />
+              <Button size="sm" nativeButton={false} render={<Link href={`/tickets/new?clientId=${client.id}`} />}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Nový ticket
+              </Button>
             </div>
           )}
           {tickets.length === 0 ? (
@@ -754,9 +701,10 @@ export function ClientDetailClient({
           ) : (
             <div className="space-y-2.5">
               {tickets.map((t) => (
-                <div
+                <Link
                   key={t.id}
-                  className="rounded-xl border bg-card p-3.5 shadow-xs"
+                  href={`/tickets/${t.id}?from=client`}
+                  className="block rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-sm font-medium">
@@ -781,7 +729,7 @@ export function ClientDetailClient({
                       </span>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

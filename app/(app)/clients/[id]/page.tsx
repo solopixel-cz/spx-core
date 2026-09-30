@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ClientDetailClient } from "@/components/clients/client-detail-client";
+import { toSubData } from "@/lib/subscription-data";
 
 export default async function ClientDetailPage({
   params,
@@ -44,7 +45,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, domains, activity, subscription, invoices in parallel
-  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap, deliverySnap, templatesSnap] =
+  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -72,16 +73,6 @@ export default async function ClientDetailPage({
       db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("users").get(),
-      db
-        .collection("deliveryEmails")
-        .where("clientId", "==", id)
-        .orderBy("sentAt", "desc")
-        .limit(1)
-        .get(),
-      // Email-marketingové šablony pro dialog „Poslat e-mail" (jen admin/member).
-      isSales
-        ? Promise.resolve({ docs: [] })
-        : db.collection("emailTemplates").orderBy("updatedAt", "desc").get(),
     ]);
 
   const instances = instancesSnap.docs.filter((d) => !d.data().deletedAt).map((d) => ({
@@ -120,24 +111,7 @@ export default async function ClientDetailPage({
   }));
 
   // Klient může mít víc předplatných (fáze 34C). Chybějící `service` = vizitka.
-  const subscriptions: SubData[] = subsSnap.docs.map((subDoc) => {
-    const s = subDoc.data();
-    return {
-      id: subDoc.id,
-      service: (s.service as SubData["service"] | undefined) ?? "card",
-      plan: (s.plan as string | undefined) ?? null,
-      label: (s.label as string | undefined) ?? null,
-      instanceId: (s.instanceId as string | undefined) ?? null,
-      priceMonthly: s.priceMonthly as number,
-      billingCycle: s.billingCycle as string,
-      status: s.status as string,
-      startedAt: s.startedAt?.toDate?.()?.toISOString() ?? null,
-      nextInvoiceAt: s.nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
-      discountPercent: (s.discountPercent as number | undefined) ?? 0,
-      discountNote: (s.discountNote as string | undefined) ?? "",
-      internal: (s.internal as boolean | undefined) ?? false,
-    };
-  });
+  const subscriptions: SubData[] = subsSnap.docs.map(toSubData);
 
   const now = new Date();
   const invoices = invoicesSnap.docs.map((d) => {
@@ -186,14 +160,6 @@ export default async function ClientDetailPage({
     .filter((d) => d.data().active)
     .map((d) => ({ id: d.id, displayName: d.data().displayName as string }));
 
-  const emailTemplates = templatesSnap.docs
-    .filter((d) => !d.data().deletedAt)
-    .map((d) => ({
-      id: d.id,
-      name: d.data().name as string,
-      subject: (d.data().subject as string | undefined) ?? null,
-    }));
-
   // Jednorázové zakázky (fáze 34B) — bez orderBy, řadí se v paměti (bez složeného indexu).
   const projectsSnap = await db.collection("projects").where("clientId", "==", id).get();
   const invoiceNumbers = new Map(invoices.map((inv) => [inv.id, inv.number]));
@@ -217,15 +183,6 @@ export default async function ClientDetailPage({
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
-  const lastDeliveryDoc = deliverySnap.docs[0];
-  const lastDelivery = lastDeliveryDoc
-    ? {
-        id: lastDeliveryDoc.id,
-        sentAt: lastDeliveryDoc.data().sentAt?.toDate?.()?.toISOString() ?? null,
-        status: lastDeliveryDoc.data().status as string,
-      }
-    : null;
-
   return (
     <ClientDetailClient
       client={client}
@@ -239,9 +196,6 @@ export default async function ClientDetailPage({
       tickets={clientTickets}
       salesUsers={salesUsers}
       userRole={user.role}
-      currentUid={user.uid}
-      lastDelivery={lastDelivery}
-      emailTemplates={emailTemplates}
     />
   );
 }

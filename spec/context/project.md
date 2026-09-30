@@ -46,7 +46,8 @@ Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `inst
 
 - **Layout:** levý sidebar (Dashboard, Oslovení, Klienti, Fakturace, Úkoly, Tickety, Nastavení) + horní lišta s globálním vyhledáváním (cmd+K) a profilem.
 - **Dashboard:** přehled — MRR, rozpracované zakázky, faktury po splatnosti, otevřené tickety, dnešní úkoly.
-- **Klient = centrální entita:** detail klienta má záložky (Přehled, Instance, Faktury, Úkoly, Tickety, Aktivita). Vše ostatní na něj odkazuje.
+- **Klient = centrální entita:** detail klienta má záložky (Přehled, Služby, Domény, Faktury, Úkoly, Tickety, Aktivita; aktivní záložka v URL `?tab=`). Vše ostatní na něj odkazuje.
+- **Routy, ne modály (fáze 33):** úprava, vytvoření, detail i akce (odeslání e-mailu, předání vizitky) mají vlastní routu s drobečky a šipkou zpět (`FormPage` + `FormActions`, na mobilu lepicí lišta s akcí). Menu a dropdowny jen navigují. Měkké mazání = hned + toast „Vrátit zpět" (`toastWithUndo`, u kolekcí bez archivu `deferredDelete`); nevratné akce = inline potvrzení (`ConfirmButton`). Výjimky: Cmd+K a mobilní navigační Sheet.
 - Tabulky s filtrováním, multiselectem a archivem.
 - **Jazyk UI: čeština.** Interní nástroj, žádná i18n.
 - **Vizuální styl:** čistý, neutrální (shadcn default, zinc), SoloPixel akcent barva. Tmavý režim od začátku (snadné se shadcn).

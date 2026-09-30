@@ -9,12 +9,11 @@ export default async function TicketyPage({ searchParams }: { searchParams: Arch
   const db = getAdminFirestore();
   const archived = await isArchiveView(searchParams, user.role);
 
-  const [ticketsSnap, clientsSnap, usersSnap] = await Promise.all([
+  const [ticketsSnap, clientsSnap] = await Promise.all([
     archived
       ? archivedQuery(db, "tickets").get()
       : db.collection("tickets").orderBy("createdAt", "desc").get(),
     db.collection("clients").get(),
-    db.collection("users").where("active", "==", true).get(),
   ]);
 
   const ownedClientIds = await getSalesClientIds(user.uid, user.role);
@@ -57,16 +56,10 @@ export default async function TicketyPage({ searchParams }: { searchParams: Arch
       name: doc.data().name as string,
     }));
 
-  const users = usersSnap.docs.map((doc) => ({
-    id: doc.id,
-    displayName: doc.data().displayName as string,
-  }));
-
   return (
     <TicketsPageClient
       tickets={tickets}
       clients={clients}
-      users={users}
       canArchive={user.role !== "sales"}
       archived={archived}
     />
