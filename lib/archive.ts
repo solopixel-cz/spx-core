@@ -2,7 +2,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
 
-type ArchivableEntity = "client" | "lead" | "ticket" | "prospect";
+type ArchivableEntity = "client" | "ticket" | "prospect";
 
 export async function archiveDocument(
   collection: string,
@@ -165,19 +165,17 @@ export async function checkDeleteConstraints(
     if (doc.exists && doc.data()?.invoiceId) return "Nelze trvale smazat — zakázka je vyfakturovaná.";
   }
 
-  if (collection === "leads") {
-    const clients = await db.collection("clients").where("leadId", "==", id).limit(1).get();
-    if (!clients.empty) return "Nelze trvale smazat — byl konvertován na klienta.";
-  }
-
   if (collection === "tickets") {
     const tasks = await db.collection("tasks").where("ticketId", "==", id).limit(1).get();
     if (!tasks.empty) return "Nelze trvale smazat — má navázané úkoly.";
   }
 
   if (collection === "prospects") {
-    // Check if converted to lead
+    // Převedený kontakt (na klienta, historicky na lead) se trvale nemaže.
     const doc = await db.collection("prospects").doc(id).get();
+    if (doc.exists && doc.data()?.clientId) {
+      return "Nelze trvale smazat — byl převeden na klienta.";
+    }
     if (doc.exists && doc.data()?.leadId) {
       return "Nelze trvale smazat — byl konvertován na lead.";
     }
@@ -196,7 +194,6 @@ export async function permanentlyDelete(collection: string, id: string) {
   const entityTypeMap: Record<string, string> = {
     clients: "client",
     instances: "instance",
-    leads: "lead",
     tickets: "ticket",
     prospects: "prospect",
   };

@@ -117,7 +117,8 @@ function StatCard({
 }
 
 export function DashboardClient({
-  pipelineValue,
+  openProjectsValue,
+  openProjectsCount = 0,
   mrr,
   paidThisMonth,
   invoicedThisMonth,
@@ -135,7 +136,8 @@ export function DashboardClient({
   unpaidInvoices = 0,
   userRole = "member",
 }: {
-  pipelineValue: number;
+  openProjectsValue: number;
+  openProjectsCount?: number;
   mrr: number;
   paidThisMonth: number;
   invoicedThisMonth: number;
@@ -156,7 +158,7 @@ export function DashboardClient({
   const isSales = userRole === "sales";
 
   const quickActions = [
-    { label: "Lead", href: "/leads", icon: Briefcase },
+    { label: "Oslovení", href: "/prospects", icon: Briefcase },
     { label: "Klient", href: "/clients", icon: UserPlus },
     ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
     { label: "Ticket", href: "/tickets", icon: TicketCheck },
@@ -413,7 +415,11 @@ export function DashboardClient({
               accent="text-emerald-600 dark:text-emerald-400"
             />
             <StatCard label="Vyfakturováno tento měsíc" value={formatCurrency(invoicedThisMonth)} />
-            <StatCard label="Pipeline hodnota" value={formatCurrency(pipelineValue)} href="/leads" />
+            <StatCard
+              label={`Rozpracované zakázky (${openProjectsCount})`}
+              value={formatCurrency(openProjectsValue)}
+              href="/clients"
+            />
             <Card className="col-span-2 min-w-0 md:col-span-4">
               <CardContent className="min-w-0 pt-4">
                 <DashboardChart series={chartSeries} />

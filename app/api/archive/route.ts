@@ -18,10 +18,9 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-const validCollections = ["clients", "instances", "leads", "tickets", "prospects", "projects"];
-const entityTypeMap: Record<string, "client" | "lead" | "ticket" | "prospect"> = {
+const validCollections = ["clients", "instances", "tickets", "prospects", "projects"];
+const entityTypeMap: Record<string, "client" | "ticket" | "prospect"> = {
   clients: "client",
-  leads: "lead",
   tickets: "ticket",
   prospects: "prospect",
 };
@@ -158,7 +157,6 @@ export async function POST(request: Request) {
 
       revalidatePath("/prospects");
       revalidatePath("/clients");
-      revalidatePath("/leads");
       revalidatePath("/tickets");
 
       // Jeden záznam (`id`) — původní chování: chyba = 400.

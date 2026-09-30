@@ -76,7 +76,7 @@ export default function OnboardingPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Kroky se automaticky vygenerují jako úkoly při výhře leadu. Offset = počet dní od konverze.
+        Kroky se vygenerují jako úkoly při založení klienta (lze vypnout zaškrtávátkem ve formuláři). Offset = počet dní od založení.
       </p>
 
       <div className="space-y-3">

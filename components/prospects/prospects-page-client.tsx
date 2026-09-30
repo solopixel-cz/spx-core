@@ -57,7 +57,8 @@ export interface ProspectRow {
   demoUrl: string | null;
   status: string;
   ownerUid: string | null;
-  leadId: string | null;
+  leadId: string | null; // historické (leady zrušené)
+  clientId?: string | null; // klient vytvořený z kontaktu
   source: string;
   importBatchId: string | null;
   claimedAt: string | null;
@@ -83,7 +84,7 @@ const statusLabels: Record<string, string> = {
   responding: "Reaguje",
   not_interested: "Nemá zájem",
   unreachable: "Nedostupný",
-  converted: "Konvertován",
+  converted: "Klient",
 };
 
 export function ProspektiPageClient({

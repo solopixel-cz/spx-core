@@ -75,7 +75,6 @@ const roleLabels: Record<string, string> = {
 
 const defaultPages = [
   { value: "/", label: "Dashboard" },
-  { value: "/leads", label: "Leady" },
   { value: "/clients", label: "Klienti" },
   { value: "/prospects", label: "Oslovení" },
   { value: "/tasks", label: "Úkoly" },

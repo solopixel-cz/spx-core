@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { prospectStatus, prospectChannel, prospectResult, outreachEmailStatus } from "@/lib/status";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
-  ArrowRightLeft,
+  UserPlus,
   Phone,
   ThumbsDown,
   UserX,
@@ -54,6 +55,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ActivityTab } from "@/components/clients/activity-tab";
+import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySelect } from "./category-select";
 import { ProspectFormDialog } from "./prospect-form-dialog";
@@ -94,6 +96,7 @@ export function ProspectDetailClient({
   const [acting, setActing] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<"not_interested" | "unreachable">("not_interested");
   const [statusNote, setStatusNote] = useState("");
@@ -278,25 +281,6 @@ export function ProspectDetailClient({
       router.refresh();
     } catch {
       toast.error("Nepodařilo se zapsat kontakt");
-    } finally {
-      setActing(false);
-    }
-  }
-
-  async function handleConvert() {
-    setActing(true);
-    try {
-      const res = await fetch(`/api/prospects/${prospect.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "convert" }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Kontakt konvertován na lead");
-      router.push("/leads");
-      router.refresh();
-    } catch {
-      toast.error("Nepodařilo se konvertovat");
     } finally {
       setActing(false);
     }
@@ -518,6 +502,12 @@ export function ProspectDetailClient({
             </h1>
             <StatusBadge map={prospectStatus} value={prospect.status} />
             {prospect.source === "import" && <Badge variant="outline">Import</Badge>}
+            {prospect.source === "web" && <Badge variant="outline">Poptávka z webu</Badge>}
+            {prospect.clientId && (
+              <Link href={`/clients/${prospect.clientId}`}>
+                <Badge variant="secondary" className="hover:underline">Klient →</Badge>
+              </Link>
+            )}
             {prospect.lastEmailStatus && (
               <StatusBadge
                 map={outreachEmailStatus}
@@ -673,10 +663,33 @@ export function ProspectDetailClient({
                       <Phone className="mr-2 h-4 w-4" />
                       Zapsat kontakt
                     </Button>
-                    <Button variant="outline" onClick={handleConvert} disabled={acting}>
-                      <ArrowRightLeft className="mr-2 h-4 w-4" />
-                      Převést na lead
-                    </Button>
+                    <ClientFormDialog
+                      open={clientOpen}
+                      onOpenChange={setClientOpen}
+                      title="Vytvořit klienta z Oslovení"
+                      prospectId={prospect.id}
+                      defaultValues={{
+                        kind: "person",
+                        name: prospect.name,
+                        company: prospect.company ?? "",
+                        email: prospect.email ?? "",
+                        phone: prospect.phone ?? "",
+                        billingCity: prospect.city ?? "",
+                        status: "onboarding",
+                        notes: prospect.portalUrl ? `Z Oslovení. Profil: ${prospect.portalUrl}` : "Z Oslovení.",
+                      }}
+                      onSuccess={(clientId) => {
+                        setClientOpen(false);
+                        if (clientId) router.push(`/clients/${clientId}`);
+                        router.refresh();
+                      }}
+                      trigger={
+                        <Button variant="outline" disabled={acting}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Vytvořit klienta
+                        </Button>
+                      }
+                    />
                     <Button
                       variant="outline"
                       onClick={() => {

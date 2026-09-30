@@ -70,30 +70,6 @@ async function main() {
     ...base(),
   });
 
-  // Leady
-  await store.collection("leads").doc("seed-lead-1").set({
-    name: "Jan Nový",
-    email: "jan.novy@example.com",
-    phone: "+420603333333",
-    source: "web",
-    stage: "new",
-    value: null,
-    ownerUid: null,
-    notes: "Testovací lead ze seedu.",
-    ...base(),
-  });
-  await store.collection("leads").doc("seed-lead-2").set({
-    name: "Petra Zájemce",
-    email: "petra@example.com",
-    phone: null,
-    source: "referral",
-    stage: "demo",
-    value: 12000,
-    ownerUid: null,
-    notes: null,
-    ...base(),
-  });
-
   // Koncept faktury
   await store.collection("invoices").doc("seed-invoice-1").set({
     clientId: "seed-client-1",
@@ -108,7 +84,7 @@ async function main() {
     ...base(),
   });
 
-  console.log("✅ Hotovo: 2 klienti, 1 předplatné, 2 leady, 1 koncept faktury.");
+  console.log("✅ Hotovo: 2 klienti, 1 předplatné, 1 koncept faktury.");
 }
 
 main().then(

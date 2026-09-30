@@ -21,14 +21,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
 import { clientFormSchema, type ClientFormData } from "@/lib/schemas/client";
 
 interface ClientFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  /** Po uložení; u nového klienta dostane jeho ID. */
+  onSuccess: (id?: string) => void;
   trigger: React.ReactElement;
   defaultValues?: Partial<ClientFormData> & { id?: string };
+  /** Převod z Oslovení — ID kontaktu (server ho označí jako převedený). */
+  prospectId?: string;
+  /** Vlastní titulek dialogu. */
+  title?: string;
 }
 
 export function ClientFormDialog({
@@ -37,8 +44,12 @@ export function ClientFormDialog({
   onSuccess,
   trigger,
   defaultValues,
+  prospectId,
+  title,
 }: ClientFormDialogProps) {
   const isEdit = !!defaultValues?.id;
+  // Onboarding úkoly ze šablony — jen u nového klienta, výchozí zapnuto.
+  const [createOnboarding, setCreateOnboarding] = useState(true);
 
   const {
     register,
@@ -67,11 +78,12 @@ export function ClientFormDialog({
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         // Osoba nemá kontaktní osobu, firma nemá značku — neplatné pole vyprázdnit.
-        body: JSON.stringify(
-          data.kind === "company"
+        body: JSON.stringify({
+          ...(data.kind === "company"
             ? { ...data, company: "" }
-            : { ...data, contactName: "" }
-        ),
+            : { ...data, contactName: "" }),
+          ...(isEdit ? {} : { createOnboarding, ...(prospectId ? { prospectId } : {}) }),
+        }),
       });
 
       if (!res.ok) {
@@ -79,9 +91,16 @@ export function ClientFormDialog({
         throw new Error(err.error || "Chyba při ukládání");
       }
 
-      toast.success(isEdit ? "Klient aktualizován" : "Klient vytvořen");
+      const result = (await res.json().catch(() => ({}))) as { id?: string; tasksGenerated?: number };
+      toast.success(
+        isEdit
+          ? "Klient aktualizován"
+          : result.tasksGenerated
+            ? `Klient vytvořen, onboarding úkolů: ${result.tasksGenerated}`
+            : "Klient vytvořen"
+      );
       reset();
-      onSuccess();
+      onSuccess(result.id);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Nepodařilo se uložit klienta"
@@ -95,7 +114,7 @@ export function ClientFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Upravit klienta" : "Nový klient"}
+            {title ?? (isEdit ? "Upravit klienta" : "Nový klient")}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -205,6 +224,22 @@ export function ClientFormDialog({
             <Label htmlFor="notes">Poznámky</Label>
             <Input id="notes" {...register("notes")} />
           </div>
+
+          {!isEdit && (
+            <label className="flex items-start gap-3 rounded-xl border p-3">
+              <Checkbox
+                checked={createOnboarding}
+                onCheckedChange={setCreateOnboarding}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                <span className="font-medium">Vytvořit onboarding úkoly</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Podle šablony v Nastavení → Onboarding.
+                </span>
+              </span>
+            </label>
+          )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Ukládám..." : isEdit ? "Uložit" : "Vytvořit"}

@@ -46,7 +46,6 @@ const collectionLabels: Record<string, string> = {
   clients: "Klient",
   instances: "Instance",
   projects: "Zakázka",
-  leads: "Lead",
   tickets: "Ticket",
   prospects: "Oslovení",
 };

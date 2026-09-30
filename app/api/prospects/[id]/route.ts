@@ -4,7 +4,6 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { prospectFormSchema, contactFormSchema } from "@/lib/schemas/prospect";
 import { logActivity } from "@/lib/activity";
-import { leadFormSchema } from "@/lib/schemas/lead";
 import { renderSubject, sendOutreachEmail } from "@/lib/email";
 import { renderOutreachEmail, DEFAULT_OUTREACH_SUBJECT } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail, DEFAULT_FOLLOWUP_SUBJECT } from "@/lib/email-templates/followup";
@@ -138,7 +137,7 @@ export async function PATCH(
   }
 }
 
-// POST /api/prospects/[id] — actions: claim, release, contact, convert, not_interested, unreachable
+// POST /api/prospects/[id] — actions: claim, release, contact, not_interested, unreachable (převod na klienta = POST /api/clients s prospectId)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -267,67 +266,6 @@ export async function POST(
       });
 
       return NextResponse.json({ status: "ok" });
-    }
-
-    if (action === "convert") {
-      const doc = await prospectRef.get();
-      if (!doc.exists) {
-        return NextResponse.json({ error: "Prospekt nenalezen" }, { status: 404 });
-      }
-      const prospectData = doc.data()!;
-
-      // Only owner or admin/member can convert
-      if (
-        prospectData.ownerUid !== user.uid &&
-        user.role !== "admin" &&
-        user.role !== "member"
-      ) {
-        return NextResponse.json({ error: "Nemáte oprávnění" }, { status: 403 });
-      }
-
-      // Create lead
-      const leadData = leadFormSchema.parse({
-        name: prospectData.name,
-        company: prospectData.company || "",
-        email: prospectData.email || "",
-        phone: prospectData.phone || "",
-        source: "outreach",
-        stage: "new",
-        ownerUid: prospectData.ownerUid || user.uid,
-        notes: `Konvertováno z prospekta. ${prospectData.portalUrl ? `Profil: ${prospectData.portalUrl}` : ""}`.trim(),
-      });
-
-      const leadRef = await db.collection("leads").add({
-        ...leadData,
-        value: null,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        createdBy: user.uid,
-      });
-
-      await prospectRef.update({
-        status: "converted",
-        leadId: leadRef.id,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-
-      await logActivity({
-        entityType: "prospect",
-        entityId: id,
-        kind: "status_change",
-        text: `Konvertován na lead`,
-        actorUid: user.uid,
-      });
-
-      await logActivity({
-        entityType: "lead",
-        entityId: leadRef.id,
-        kind: "system",
-        text: `Lead vytvořen z prospekta „${prospectData.name}"`,
-        actorUid: user.uid,
-      });
-
-      return NextResponse.json({ status: "ok", leadId: leadRef.id });
     }
 
     if (action === "not_interested" || action === "unreachable") {

@@ -9,7 +9,7 @@ export default async function DashboardPage() {
   const isSales = user.role === "sales";
 
   const [
-    leadsSnap,
+    projectsSnap,
     invoicesSnap,
     subsSnap,
     tasksSnap,
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     prospectsSnap,
     domainsSnap,
   ] = await Promise.all([
-    db.collection("leads").get(),
+    db.collection("projects").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
     isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
     db.collection("tasks").get(),
@@ -30,14 +30,14 @@ export default async function DashboardPage() {
     db.collection("domains").get(),
   ]);
 
-  // Pipeline hodnota (aktivní leady s očekávanou hodnotou)
-  let pipelineValue = 0;
-  const activeLeadStages = ["new", "contacted", "demo", "offer", "contract", "onboarding"];
-  leadsSnap.docs.filter((d) => !d.data().deletedAt).forEach((doc) => {
+  // Rozpracované zakázky (poptávka / rozpracováno) — hodnota k vyfakturování (nahradila pipeline leadů)
+  let openProjectsValue = 0;
+  let openProjectsCount = 0;
+  projectsSnap.docs.forEach((doc) => {
     const d = doc.data();
-    if (activeLeadStages.includes(d.stage as string) && d.value) {
-      pipelineValue += d.value as number;
-    }
+    if (d.deletedAt || (d.status !== "inquiry" && d.status !== "in_progress")) return;
+    openProjectsCount++;
+    openProjectsValue += (d.price as number | null) ?? 0;
   });
 
   // Financial metrics (admin/member only)
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const et = d.entityType as string;
-      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/leads" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
+      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/prospects" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
       return {
         id: doc.id,
         actorUid: d.actorUid as string,
@@ -330,7 +330,8 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      pipelineValue={pipelineValue}
+      openProjectsValue={openProjectsValue}
+      openProjectsCount={openProjectsCount}
       mrr={mrr}
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}

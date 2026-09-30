@@ -69,6 +69,7 @@ export default async function ProspectDetailPage({
     status: d.status as string,
     ownerUid: (d.ownerUid as string) ?? null,
     leadId: (d.leadId as string) ?? null,
+    clientId: (d.clientId as string) ?? null,
     source: d.source as string,
     importBatchId: (d.importBatchId as string) ?? null,
     claimedAt: serializeTimestamp(d.claimedAt),

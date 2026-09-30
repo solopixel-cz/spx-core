@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-09-30 — Leady zrušené, klient rovnou z Oslovení
+
+- **Leady pryč z aplikace:** smazána stránka `/leads`, `components/leads/*`, `/api/leads` + `[id]`, `lib/schemas/lead.ts`, stavové mapy; odebráno z menu, Cmd+K, hledání, dashboardu, profilu (úvodní stránka), archivu a hromadné archivace. `/leads` a `/leady` → dočasné přesměrování na `/prospects`. Rules `leads` jen čtení (data v DB zůstávají, nic se nemaže ani nepřevádí; index ponechán). Historická aktivita `lead` odkazuje na Oslovení.
+- **Poptávky z webu → Oslovení:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) zakládá kontakt `source=web`, `status=new`, vlastník z env; obsah poptávky do aktivity kontaktu, notifikace na detail. Nové schéma `lib/schemas/web-inquiry.ts` přijímá i `link`, `note`, `utm_*` (dřív je Zod tiše zahazoval). Badge „Poptávka z webu".
+- **Klient z Oslovení:** na detailu kontaktu „Vytvořit klienta" (místo „Převést na lead") → předvyplněný formulář klienta → `POST /api/clients` s `prospectId` (vlastník kontaktu = obchodní vlastník klienta, kontakt `converted` + `clientId`, aktivita na obou) → přesměrování na nového klienta. Stav `converted` se nově jmenuje „Klient", převedený kontakt má odkaz „Klient →" a nejde trvale smazat.
+- **Onboarding úkoly při založení klienta:** `lib/onboarding.ts` (přesunuto z výhry leadu), zaškrtávátko „Vytvořit onboarding úkoly" ve formuláři nového klienta (výchozí zapnuto), platí pro ruční i převod z Oslovení.
+- **Dashboard:** „Pipeline hodnota" (leady) → „Rozpracované zakázky (N)" s hodnotou; rychlá akce „Lead" → „Oslovení".
+- Docs: `data-model.md`, `project.md`. Verze 1.10.0 → **1.11.0** (feat). Lint + build čisté. **Zbývá:** ověřit v prohlížeči (převod, poptávka z webu přes proxy), nasadit rules.
+
 ## 2026-09-30 — Drobnosti: IČO skryté, drobečky všude, klik při výběru
 
 - **IČO v podkladech se nezobrazuje** (dle `data-model.md`): odstraněno z detailu i z přehledu povinných polí; seznam i detail ho do prohlížeče vůbec neposílají.

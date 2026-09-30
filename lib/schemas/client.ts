@@ -21,7 +21,8 @@ export const clientSchema = z.object({
   advisorSlug: z.string().optional(), // jen pro vizitku; klient může mít i jen web (řeší se přes instanci)
   salesOwnerUid: z.string().optional(),
   notes: z.string().optional(),
-  leadId: z.string().optional(),
+  leadId: z.string().optional(), // historické (leady zrušené 2026-09-30)
+  prospectId: z.string().optional(), // klient vznikl převodem z Oslovení
 });
 
 export type Client = z.infer<typeof clientSchema>;

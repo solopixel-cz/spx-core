@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { leadIntakeSchema } from "@/lib/schemas/lead";
+import { webInquirySchema } from "@/lib/schemas/web-inquiry";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 
 /**
  * Veřejný příjem poptávek z marketingového webu (spx-web, /kontakt).
  *
- * Volá se server-to-server z webové proxy routy (`spx-web/pages/api/lead.ts`) —
- * stejný vzor jako `submissions/notify`. Chráněno sdíleným tajemstvím
- * (`x-ingest-secret` / env `WEB_LEAD_INGEST_SECRET`). Vlastník leadu se bere
- * z env `LEADS_DEFAULT_OWNER_UID`, nikdy z payloadu. Zdroj = "web", fáze = "new".
+ * Leady jsou zrušené (2026-09-30) → poptávka vznikne jako kontakt v **Oslovení**
+ * (`prospects`, zdroj „web", stav „new"); celý obsah poptávky jde do aktivity
+ * kontaktu. Cesta `/api/leads/intake` zůstává kvůli webové proxy
+ * (`spx-web/pages/api/lead.ts`, env `LEAD_INGEST_URL`).
+ *
+ * Volá se server-to-server, chráněno sdíleným tajemstvím (`x-ingest-secret` /
+ * env `WEB_LEAD_INGEST_SECRET`). Vlastník z env `LEADS_DEFAULT_OWNER_UID`,
+ * nikdy z payloadu.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -35,47 +39,58 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const data = leadIntakeSchema.parse(body);
+    const data = webInquirySchema.parse(body);
 
-    // Doplňkové odpovědi z formuláře poskládáme do čitelné poznámky.
-    const noteLines: string[] = [];
-    if (data.industry) noteLines.push(`Obor: ${data.industry}`);
-    if (data.product) noteLines.push(`Produkt: ${data.product}`);
-    if (data.plan) noteLines.push(`Plán: ${data.plan}`);
-    if (data.teamType)
-      noteLines.push(`Režim: ${data.teamType === "team" ? "tým" : "sólo"}`);
-    if (data.teamSize) noteLines.push(`Velikost týmu: ${data.teamSize}`);
-    if (data.message) noteLines.push(`Zpráva: ${data.message}`);
+    // Odpovědi z formuláře poskládáme do čitelného záznamu v aktivitě kontaktu.
+    const lines: string[] = [];
+    if (data.industry) lines.push(`Obor: ${data.industry}`);
+    if (data.product) lines.push(`Produkt: ${data.product}`);
+    if (data.plan) lines.push(`Plán: ${data.plan}`);
+    if (data.teamType) lines.push(`Režim: ${data.teamType === "team" ? "tým" : "sólo"}`);
+    if (data.teamSize) lines.push(`Velikost týmu: ${data.teamSize}`);
+    if (data.link) lines.push(`Odkaz: ${data.link}`);
+    if (data.message) lines.push(`Zpráva: ${data.message}`);
+    // `note` z proxy už obsahuje i řádek „Zdroj: utm_…"; samostatná utm pole jen když chybí.
+    if (data.note) lines.push(`Poznámka: ${data.note}`);
+    else {
+      const utm = [data.utm_source, data.utm_medium, data.utm_campaign].filter(Boolean);
+      if (utm.length) lines.push(`Zdroj: ${utm.join(" / ")}`);
+    }
 
     const db = getAdminFirestore();
-    const docRef = await db.collection("leads").add({
+    const docRef = await db.collection("prospects").add({
       name: data.name,
+      company: null,
       email: data.email || null,
       phone: data.phone || null,
+      city: null,
+      category: data.industry || null,
+      portalUrl: data.link || null,
+      demoUrl: null,
+      status: "new",
       source: "web",
-      stage: "new",
-      value: null,
       ownerUid,
-      notes: noteLines.join("\n") || null,
+      claimedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: "web-intake",
     });
 
     await logActivity({
-      entityType: "lead",
+      entityType: "prospect",
       entityId: docRef.id,
       kind: "system",
-      text: `Lead „${data.name}" přišel z webu`,
+      text: `Poptávka z webu${lines.length ? `\n${lines.join("\n")}` : ""}`,
       actorUid: ownerUid,
     });
 
+    // Typ „lead.web" zůstává kvůli uloženým preferencím notifikací.
     await notify({
       type: "lead.web",
       title: "Nová poptávka z webu",
       body: data.email ? `${data.name} · ${data.email}` : data.name,
-      href: "/leads",
-      entityType: "lead",
+      href: `/prospects/${docRef.id}`,
+      entityType: "prospect",
       entityId: docRef.id,
     });
 

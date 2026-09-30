@@ -47,7 +47,7 @@ export function BulkArchiveBar({
   restoreNote,
   onDone,
 }: {
-  collection: "clients" | "leads" | "tickets" | "prospects";
+  collection: "clients" | "tickets" | "prospects";
   selection: RowSelection;
   /** 4. pád, např. ["klienta", "klienty", "klientů"] */
   noun: Plural;

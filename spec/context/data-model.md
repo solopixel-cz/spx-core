@@ -41,11 +41,14 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
   advisorSlug: string        // vazba na spx-dbc instanci
-  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z leadu při výhře, mění jen admin/member. Provize vzniká jen vlastníkům s rolí sales.
+  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z vlastníka kontaktu při převodu z Oslovení (sales = vždy sám), mění jen admin/member. Provize vzniká jen vlastníkům s rolí sales.
   notes?: string
-  leadId?: string            // odkud klient vznikl
+  leadId?: string            // historické: odkud klient vznikl (leady zrušené)
+  prospectId?: string        // klient vznikl převodem z Oslovení
 }
 ```
+
+- **Onboarding úkoly:** při založení klienta (`POST /api/clients`, `createOnboarding` výchozí true, zaškrtávátko ve formuláři) ze šablony `templates/onboarding` → `lib/onboarding.ts`; řešitel = obchodní vlastník, jinak tvůrce.
 
 ### `instances`
 Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisorSlug`), nebo **web** (`type: 'web'`, má `hosting`). Obvykle 1:1 ke klientovi, ale model umožňuje víc.
@@ -104,8 +107,8 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 - **Připomínka obnovení:** odznak na detailu klienta (brzy/po expiraci), widget „Blížící se obnovení domén" na dashboardu, denní cron `/api/cron/domain-renewals` (notifikace adminům 30 dnů předem, throttle 7 dnů přes `renewalReminderSentAt`, přeskakuje `autoRenew`).
 - **Zápis** jen přes Route Handlers s admin SDK (`/api/domains`), klientský SDK jen čte.
 
-### `leads`
-Obchodní pipeline.
+### `leads` (zrušeno 2026-09-30)
+**Leady jsou z aplikace odstraněné** (UI, API, dashboard, hledání, archiv). Data v Firestore zůstávají jen ke čtení (rules: write false), nic je nemaže ani nepřevádí. Nahrazeno: poptávky z webu → `prospects` (source `web`), převod na klienta přímo z Oslovení. Historický tvar:
 
 ```ts
 {
@@ -122,7 +125,7 @@ Obchodní pipeline.
 }
 ```
 
-Stav `won` → vytvoří se `client` + onboarding úkoly ze šablony.
+(Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
 Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`.
@@ -209,7 +212,7 @@ Bugy a požadavky na změnu vizitky.
 ```
 
 ### `prospects`
-Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
+Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva PŘED klienty. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
 
 ```ts
 {
@@ -226,8 +229,9 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
   claimedAt?: Timestamp
   lastTouchAt?: Timestamp    // poslední kontakt
   nextFollowUpAt?: Timestamp // připomínka do attention feedu
-  leadId?: string            // po konverzi na lead
-  source: 'import' | 'manual'
+  leadId?: string            // historické: po konverzi na lead (leady zrušené)
+  clientId?: string          // klient vytvořený z kontaktu (status converted = „Klient")
+  source: 'import' | 'manual' | 'web'  // web = poptávka z /kontakt (POST /api/leads/intake)
   importBatchId?: string     // dávka CSV importu
   deletedAt?: Timestamp      // archivace (fáze 25), filtruje se ze všech pohledů
   deletedBy?: string
@@ -236,7 +240,8 @@ Zásobník oslovení — kontakty z portálu poradců, vrstva PŘED leady. V UI 
 
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
-- **Konverze:** akce „Převést na lead" → vytvoří `lead` (source=`outreach`, ownerUid z prospekta), prospect.status=`converted` + `leadId`.
+- **Převod na klienta:** akce „Vytvořit klienta" na detailu otevře předvyplněný formulář klienta → `POST /api/clients` s `prospectId` → klient (`prospectId`, `salesOwnerUid` = vlastník kontaktu), kontakt `status=converted` + `clientId`.
+- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; celý obsah poptávky (obor, plán, zpráva, odkaz, poznámka/UTM) jde do aktivity kontaktu, notifikace `lead.web` míří na detail.
 - **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
 
