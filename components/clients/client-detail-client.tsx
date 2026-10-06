@@ -37,7 +37,16 @@ import {
   renewalLabel,
   domainHref,
 } from "@/lib/domain-renewal";
-import { AlertTriangle, Building2 } from "lucide-react";
+import { AlertTriangle, Building2, ChevronDown, IdCard, Link2, UserCheck, UserPlus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ActivityTab } from "./activity-tab";
 import { SubscriptionCard, type SubData } from "@/components/subscriptions/subscription-card";
 import { ClientInvoicesTab } from "./client-invoices-tab";
@@ -61,6 +70,8 @@ interface ClientData {
   advisorSlug: string;
   notes?: string;
   salesOwnerUid: string | null;
+  hubInvitedAt: string | null;
+  hubLastSignInAt: string | null;
   deletedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -137,6 +148,16 @@ function getInitials(name: string): string {
 }
 
 /** Kontaktní pill chip — s odkazem (mailto/tel/web) je klikatelný. */
+/** Pojmenovaná skupina chipů v hlavičce klienta. */
+function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
 function ContactChip({
   href,
   icon,
@@ -340,18 +361,31 @@ export function ClientDetailClient({
 
       {/* Hero — vše důležité na první pohled */}
       <div className="rounded-2xl border bg-card p-4 shadow-xs md:p-6">
-        <div className="flex items-start gap-3 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-bold text-primary md:size-14 md:text-xl">
             {isCompany ? <Building2 className="h-6 w-6" /> : getInitials(client.name)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                 {client.name}
               </h1>
               <Badge variant={statusVariants[client.status] ?? "secondary"}>
                 {statusLabels[client.status] ?? client.status}
               </Badge>
+              {client.hubLastSignInAt ? (
+                <Badge className="border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  <UserCheck className="h-3 w-3" />
+                  V hubu
+                </Badge>
+              ) : (
+                client.hubInvitedAt && (
+                  <Badge variant="outline">
+                    <UserPlus className="h-3 w-3" />
+                    Pozván do hubu
+                  </Badge>
+                )
+              )}
             </div>
             {isCompany ? (
               <p className="mt-0.5 text-sm text-muted-foreground md:text-base">
@@ -367,39 +401,75 @@ export function ClientDetailClient({
           </div>
         </div>
 
-        {/* Kontaktní chipy — na mobilu rovnou volat / psát / otevřít vizitku */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <ContactChip
-            href={`mailto:${client.email}`}
-            icon={<Mail className="h-3.5 w-3.5 shrink-0" />}
-          >
-            {client.email}
-          </ContactChip>
-          {client.phone && (
+        {/* Kontakt vs. online přítomnost — na mobilu rovnou volat / psát / otevřít vizitku */}
+        <div className="mt-4 grid gap-4 border-t pt-4 sm:grid-cols-2">
+          <ChipGroup label="Kontakt">
             <ContactChip
-              href={`tel:${client.phone.replace(/\s/g, "")}`}
-              icon={<Phone className="h-3.5 w-3.5 shrink-0" />}
+              href={`mailto:${client.email}`}
+              icon={<Mail className="h-3.5 w-3.5 shrink-0" />}
             >
-              {client.phone}
+              {client.email}
             </ContactChip>
+            {client.phone && (
+              <ContactChip
+                href={`tel:${client.phone.replace(/\s/g, "")}`}
+                icon={<Phone className="h-3.5 w-3.5 shrink-0" />}
+              >
+                {client.phone}
+              </ContactChip>
+            )}
+          </ChipGroup>
+
+          {(instances.length > 0 || domains.length > 0 || client.hubInvitedAt) && (
+            <ChipGroup label="Vizitka a web">
+              {instances.map((inst) => (
+                <ContactChip
+                  key={inst.id}
+                  href={inst.deployUrl || `https://${inst.domain}`}
+                  icon={
+                    inst.type === "card" ? (
+                      <IdCard className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <Globe className="h-3.5 w-3.5 shrink-0" />
+                    )
+                  }
+                >
+                  {inst.domain}
+                </ContactChip>
+              ))}
+              {domains
+                .filter((d) => !instances.some((i) => i.domain === d.name))
+                .map((d) => (
+                  <ContactChip
+                    key={d.id}
+                    href={domainHref(d.name)}
+                    icon={<Link2 className="h-3.5 w-3.5 shrink-0" />}
+                  >
+                    {d.name}
+                  </ContactChip>
+                ))}
+              {(client.hubInvitedAt || client.hubLastSignInAt) && (
+                <p className="flex basis-full items-center gap-1.5 text-xs text-muted-foreground">
+                  <UserCheck className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Klientská zóna
+                    {client.hubInvitedAt &&
+                      ` · pozvánka ${new Date(client.hubInvitedAt).toLocaleDateString("cs-CZ")}`}
+                    {client.hubLastSignInAt
+                      ? ` · naposledy přihlášen ${new Date(client.hubLastSignInAt).toLocaleString("cs-CZ", {
+                          day: "numeric",
+                          month: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Europe/Prague",
+                        })}`
+                      : " · zatím se nepřihlásil"}
+                  </span>
+                </p>
+              )}
+            </ChipGroup>
           )}
-          {primaryInstance && (
-            <ContactChip
-              href={primaryInstance.deployUrl}
-              icon={<Globe className="h-3.5 w-3.5 shrink-0" />}
-            >
-              {primaryInstance.domain}
-            </ContactChip>
-          )}
-          {domains.map((d) => (
-            <ContactChip
-              key={d.id}
-              href={domainHref(d.name)}
-              icon={<Globe className="h-3.5 w-3.5 shrink-0" />}
-            >
-              {d.name}
-            </ContactChip>
-          ))}
         </div>
 
         {/* Připomínka obnovení domény — nejnaléhavější napřed, tapnutí na záložku Domény */}
@@ -420,36 +490,75 @@ export function ClientDetailClient({
 
         {/* Akce: každá vede na vlastní routu (žádné modály) */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/edit`} />}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-primary text-primary hover:bg-primary/10 hover:text-primary dark:border-primary dark:hover:bg-primary/15"
+            nativeButton={false}
+            render={<Link href={`${base}/edit`} />}
+          >
             <Pencil className="mr-2 h-4 w-4" />
             Upravit
           </Button>
-          {showCardActions && client.email && !isArchived && (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/form`} />}>
-              <FileText className="mr-2 h-4 w-4" />
-              Formulář podkladů
-            </Button>
-          )}
-          {client.email && hasCard && !isArchived && (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/deliver`} />}>
-              <Send className="mr-2 h-4 w-4" />
-              Předat vizitku
-            </Button>
-          )}
-          {isAdminOrMember && client.email && !isArchived && (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`${base}/send/email`} />}>
-              <Mail className="mr-2 h-4 w-4" />
-              Poslat e-mail
-            </Button>
+          {/* Všechno, co odchází klientovi e-mailem, v jednom menu */}
+          {client.email && !isArchived && (showCardActions || hasCard || isAdminOrMember) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                <Send className="mr-2 h-4 w-4" />
+                Odeslat klientovi
+                <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-56">
+                {(showCardActions || hasCard) && (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Vizitka</DropdownMenuLabel>
+                    {showCardActions && (
+                      <DropdownMenuItem onClick={() => router.push(`${base}/send/form`)}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Formulář podkladů
+                      </DropdownMenuItem>
+                    )}
+                    {hasCard && (
+                      <DropdownMenuItem onClick={() => router.push(`${base}/send/deliver`)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Předat vizitku
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuGroup>
+                )}
+                {hasCard && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Klientská zóna</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => router.push(`${base}/send/hub`)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        {client.hubInvitedAt ? "Poslat pozvánku znovu" : "Pozvat do hubu"}
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
+                {isAdminOrMember && (
+                  <>
+                    {(showCardActions || hasCard) && <DropdownMenuSeparator />}
+                    <DropdownMenuItem onClick={() => router.push(`${base}/send/email`)}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Poslat e-mail ze šablony
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {isAdminOrMember && !isArchived && (
             <ConfirmButton
               variant="ghost"
               question="Archivovat i služby a tickety a zrušit předplatné?"
               confirmLabel="Archivovat"
+              confirmPhrase={client.name}
               onConfirm={handleArchive}
               disabled={acting}
-              className="ml-auto text-muted-foreground"
+              className="ml-auto text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               {acting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

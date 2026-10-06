@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ClientDetailClient } from "@/components/clients/client-detail-client";
 import { toSubData } from "@/lib/subscription-data";
+import { getHubLastSignIn } from "@/lib/hub";
 
 export default async function ClientDetailPage({
   params,
@@ -22,6 +23,7 @@ export default async function ClientDetailPage({
   if (isSales && doc.data()?.salesOwnerUid !== user.uid) notFound();
 
   const data = doc.data()!;
+  const hubLastSignInAt = await getHubLastSignIn(data.hubUid as string | undefined);
   const client = {
     id: doc.id,
     name: data.name as string,
@@ -39,6 +41,8 @@ export default async function ClientDetailPage({
     advisorSlug: (data.advisorSlug as string | undefined) ?? "",
     notes: data.notes as string | undefined,
     salesOwnerUid: (data.salesOwnerUid as string) ?? null,
+    hubInvitedAt: data.hubInvitedAt?.toDate?.()?.toISOString() ?? null,
+    hubLastSignInAt,
     deletedAt: data.deletedAt?.toDate?.()?.toISOString() ?? null,
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
