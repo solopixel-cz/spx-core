@@ -3,24 +3,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: is user authenticated?
-    function isAuth() {
-      return request.auth != null;
+    // Helper: is user a team member? Auth je sdílený s klientskou zónou
+    // (spx-hub, role 'client') — ta ani účty bez role sem nesmí nic.
+    function isTeam() {
+      return request.auth != null
+        && request.auth.token.get('role', '') in ['admin', 'member', 'sales'];
     }
 
     // Helper: is user admin?
     function isAdmin() {
-      return isAuth() && request.auth.token.role == 'admin';
+      return isTeam() && request.auth.token.role == 'admin';
     }
 
     // Helper: is user admin or member (not sales)?
     function isAdminOrMember() {
-      return isAuth() && request.auth.token.role in ['admin', 'member'];
+      return isTeam() && request.auth.token.role in ['admin', 'member'];
     }
 
-    // Users — read for authenticated, write for admin only
+    // Users — read for team, write for admin only
     match /users/{userId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if isAdmin();
 
       // Push odběry — zapisují/čtou se jen přes admin SDK (route handlers).
@@ -32,8 +34,8 @@ service cloud.firestore {
     // Notifikace — příjemce čte jen svoje a smí měnit jen `readAt`.
     // Vytváří/maže je admin SDK (notify()).
     match /notifications/{notifId} {
-      allow read: if isAuth() && resource.data.recipientUid == request.auth.uid;
-      allow update: if isAuth()
+      allow read: if isTeam() && resource.data.recipientUid == request.auth.uid;
+      allow update: if isTeam()
         && resource.data.recipientUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
       allow create, delete: if false;
@@ -41,31 +43,31 @@ service cloud.firestore {
 
     // Clients — admin/member reads all; sales reads only own (salesOwnerUid == uid)
     match /clients/{clientId} {
-      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesOwnerUid == request.auth.uid);
+      allow read: if isTeam() && (isAdminOrMember() || resource.data.salesOwnerUid == request.auth.uid);
       allow write: if false;
     }
 
-    // Instances — read for authenticated, write denied (opens in later phases)
+    // Instances — read for team, write denied (opens in later phases)
     match /instances/{instanceId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Projects — jednorázové zakázky klienta; read for authenticated, write via admin SDK
+    // Projects — jednorázové zakázky klienta; read for team, write via admin SDK
     match /projects/{projectId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Domains — vlastní domény klienta; read for authenticated, write via admin SDK
+    // Domains — vlastní domény klienta; read for team, write via admin SDK
     match /domains/{domainId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
     // Leads — zrušené (2026-09-30), data zůstávají jen ke čtení; poptávky z webu jdou do prospects
     match /leads/{leadId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
@@ -81,102 +83,102 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Tasks — read for authenticated, status update for authenticated
+    // Tasks — read for team, status update for team
     match /tasks/{taskId} {
-      allow read: if isAuth();
-      allow update: if isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow read: if isTeam();
+      allow update: if isTeam() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
       allow create, delete: if false;
     }
 
-    // Tickets — read for authenticated, create/update for authenticated
+    // Tickets — read for team, create/update for team
     match /tickets/{ticketId} {
-      allow read: if isAuth();
-      allow create, update: if isAuth();
+      allow read: if isTeam();
+      allow create, update: if isTeam();
       allow delete: if false;
     }
 
-    // Templates — read for authenticated, write for admin
+    // Templates — read for team, write for admin
     match /templates/{templateId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if isAdmin();
     }
 
-    // Email marketing templates — vlastní HTML šablony; read for authenticated,
+    // Email marketing templates — vlastní HTML šablony; read for team,
     // write via admin SDK (route handlers, jen admin/member)
     match /emailTemplates/{templateId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Marketing seznamy kontaktů — read for authenticated, write via admin SDK
+    // Marketing seznamy kontaktů — read for team, write via admin SDK
     match /marketingLists/{listId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Marketingové kampaně + jejich e-maily — read for authenticated, write via admin SDK
+    // Marketingové kampaně + jejich e-maily — read for team, write via admin SDK
     match /campaigns/{campaignId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
     match /campaignEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
     // Odhlášení z marketingu — zápis přes admin SDK (veřejná unsubscribe route)
     match /marketingUnsubscribes/{email} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Prospects — read for authenticated, write via admin SDK (route handlers)
+    // Prospects — read for team, write via admin SDK (route handlers)
     match /prospects/{prospectId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Prospect categories — číselník kategorií kontaktů; read for authenticated,
+    // Prospect categories — číselník kategorií kontaktů; read for team,
     // write via admin SDK (route handlers)
     match /prospectCategories/{categoryId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Activity — read for authenticated, append-only (no update/delete)
+    // Activity — read for team, append-only (no update/delete)
     match /activity/{activityId} {
-      allow read: if isAuth();
-      allow create: if isAuth();
+      allow read: if isTeam();
+      allow create: if isTeam();
       allow update, delete: if false;
     }
 
     // Commissions — sales reads own, admin/member reads all, write via admin SDK
     match /commissions/{commId} {
-      allow read: if isAuth() && (isAdminOrMember() || resource.data.salesUid == request.auth.uid);
+      allow read: if isTeam() && (isAdminOrMember() || resource.data.salesUid == request.auth.uid);
       allow write: if false;
     }
 
-    // Settings — read for authenticated, write for admin
+    // Settings — read for team, write for admin
     match /settings/{settingId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if isAdmin();
     }
 
-    // Outreach emails — read for authenticated, write via admin SDK
+    // Outreach emails — read for team, write via admin SDK
     match /outreachEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Delivery emails — read for authenticated, write via admin SDK
+    // Delivery emails — read for team, write via admin SDK
     match /deliveryEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
-    // Invoice emails — read for authenticated, write via admin SDK
+    // Invoice emails — read for team, write via admin SDK
     match /invoiceEmails/{emailId} {
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow write: if false;
     }
 
@@ -192,7 +194,7 @@ service cloud.firestore {
     // server timestamp. Create/delete via admin SDK only.
     match /card-tokens/{token} {
       allow get: if true;
-      allow list: if isAuth();
+      allow list: if isTeam();
       allow update: if resource.data.get('usedAt', null) == null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedAt'])
         && request.resource.data.usedAt == request.time;
@@ -212,7 +214,7 @@ service cloud.firestore {
         && request.resource.data.basic.fullName.size() < 200
         && request.resource.data.basic.email is string
         && request.resource.data.basic.email.size() > 0;
-      allow read: if isAuth();
+      allow read: if isTeam();
       allow update, delete: if false;
     }
   }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "firebase/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,11 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken }),
       });
 
+      if (res.status === 403) {
+        await signOut(auth);
+        setError("Tento účet nemá přístup do SPX Core");
+        return;
+      }
       if (!res.ok) {
         throw new Error("Session creation failed");
       }

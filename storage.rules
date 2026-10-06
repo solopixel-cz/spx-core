@@ -2,10 +2,16 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Ticket attachments — authenticated, max 10 MB, images and PDFs only
+    // Jen tým — klientská zóna (spx-hub, role 'client') sdílí Auth.
+    function isTeam() {
+      return request.auth != null
+        && request.auth.token.get('role', '') in ['admin', 'member', 'sales'];
+    }
+
+    // Ticket attachments — team only, max 10 MB, images and PDFs only
     match /tickets/{ticketId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read: if isTeam();
+      allow write: if isTeam()
         && request.resource.size < 10 * 1024 * 1024
         && (request.resource.contentType.matches('image/.*')
             || request.resource.contentType == 'application/pdf');
@@ -20,15 +26,15 @@ service firebase.storage {
 
     // User avatars — own uid only, max 2 MB, images only
     match /avatars/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read: if isTeam();
+      allow write: if isTeam()
         && request.resource.size < 2 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
 
-    // Default: read for authenticated, write denied
+    // Default: read for team, write denied
     match /{allPaths=**} {
-      allow read: if request.auth != null;
+      allow read: if isTeam();
       allow write: if false;
     }
   }

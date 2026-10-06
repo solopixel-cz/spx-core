@@ -9,6 +9,8 @@ import { renderSubject, sendTransactionalEmail } from "@/lib/email";
 import { renderDeliveryEmail, DEFAULT_DELIVERY_SUBJECT } from "@/lib/email-templates/delivery";
 import { personalizeTemplate, greetingName } from "@/lib/marketing/personalize";
 import { htmlToText } from "@/lib/marketing/compose";
+import { renderHubInviteEmail, DEFAULT_HUB_INVITE_SUBJECT } from "@/lib/email-templates/hub-invite";
+import { grantHubAccess, hubLoginUrl } from "@/lib/hub";
 
 // GET /api/clients/[id]
 export async function GET(
@@ -113,7 +115,7 @@ export async function PATCH(
   }
 }
 
-// POST /api/clients/[id] — actions: send_card
+// POST /api/clients/[id] — actions: send_card, send_marketing_email, hub_invite
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -124,7 +126,7 @@ export async function POST(
     const body = await request.json();
     const action = body.action as string;
 
-    if (action !== "send_card" && action !== "send_marketing_email") {
+    if (action !== "send_card" && action !== "send_marketing_email" && action !== "hub_invite") {
       return NextResponse.json({ error: "Neznámá akce" }, { status: 400 });
     }
 
@@ -213,6 +215,48 @@ export async function POST(
         entityId: id,
         kind: "email",
         text: `Odeslán e-mail „${tplName}" na ${clientData.email}`,
+        actorUid: user.uid,
+      });
+
+      return NextResponse.json({ status: "ok" });
+    }
+
+    // ── Akce: hub_invite (pozvánka do klientské zóny spx-hub) ──
+    if (action === "hub_invite") {
+      if (clientData.deletedAt) {
+        return NextResponse.json({ error: "Klient je archivovaný" }, { status: 400 });
+      }
+
+      const email = (clientData.email as string).trim().toLowerCase();
+      const hubUid = await grantHubAccess(email, id);
+      const odkaz = hubLoginUrl(email);
+
+      const greeting = (body.greeting as string | undefined)?.trim();
+      const jmeno = greeting || greetingName(clientData);
+      const renderedSubject = renderSubject(DEFAULT_HUB_INVITE_SUBJECT, { jmeno, odkaz });
+      const { html, text } = renderHubInviteEmail({ jmeno, odkaz });
+
+      await sendTransactionalEmail({
+        to: email,
+        senderName,
+        senderEmail,
+        subject: renderedSubject,
+        html,
+        text,
+      });
+
+      await db.collection("clients").doc(id).update({
+        hubUid,
+        hubInvitedAt: FieldValue.serverTimestamp(),
+        hubInvitedBy: user.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      await logActivity({
+        entityType: "client",
+        entityId: id,
+        kind: "email",
+        text: `Odeslána pozvánka do klientské zóny na ${email}`,
         actorUid: user.uid,
       });
 

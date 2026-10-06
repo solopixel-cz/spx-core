@@ -2,6 +2,22 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-06 — Pozvánka do klientské zóny (spx-hub), přehlednější detail klienta
+
+- „Pozvat do hubu" (`/clients/[id]/send/hub`, akce `hub_invite`): založí / znovu použije Auth účet s claims `{ role: 'client', clientId }` (`lib/hub.ts`), pošle firemní pozvánku (`lib/email-templates/hub-invite.ts`) s odkazem `HUB_URL/login?email=…`, uloží `hubUid`, `hubInvitedAt`, `hubInvitedBy`, zaloguje aktivitu. Nová env `HUB_URL`.
+- Detail klienta: badge „Pozván do hubu" / „V hubu" (podle posledního přihlášení v Auth), řádek s datem pozvánky a posledního přihlášení.
+- Detail klienta: e-mailové akce v menu „Odeslat klientovi", „Upravit" obrysově v primární barvě, kontakty a vizitka/web ve dvou pojmenovaných skupinách, větší jméno.
+- Archivace klienta: potvrzení opsáním jména (`ConfirmButton` nový prop `confirmPhrase`), tlačítko oranžové.
+- Verze 1.15.0.
+
+## 2026-10-06 — Přístup do SPX Core jen pro tým (příprava na spx-hub)
+
+- Auth sdílí klientská zóna spx-hub (role `client`). `firestore.rules` + `storage.rules`: `isAuth()` / `request.auth != null` nahrazeno `isTeam()` (role admin/member/sales).
+- `lib/auth.ts`: bez výchozí role `member`; netýmová role = nepřihlášený. `/api/auth/session` vrací 403 a login ukáže hlášku.
+- Audit Auth účtů (2026-10-06): všichni z týmu mají roli, nikdo se nezamkne.
+- Po merge nasadit: `firebase deploy --only firestore,storage`.
+- Verze 1.14.1.
+
 ## 2026-09-30 — Poptávky z webu: zdroj návštěvy (UTM) a obsah poptávky
 
 Zadání od agenta spx-web (commit `375dd5e` na `feature/reword`). Počítalo s leady, ty jsou zrušené, takže vše míří na kontakt v Oslovení (`source=web`).
