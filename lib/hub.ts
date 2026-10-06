@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { getAdminAuth } from "@/lib/firebase/admin";
 
 /**
@@ -51,4 +52,21 @@ export async function getHubLastSignIn(uid: string | undefined): Promise<string 
   const user = await getAdminAuth().getUser(uid).catch(() => null);
   const last = user?.metadata.lastSignInTime;
   return last ? new Date(last).toISOString() : null;
+}
+
+/**
+ * Server-to-server požadavek z hubu (např. PDF faktury). Hub posílá
+ * `Authorization: Bearer <HUB_API_SECRET>` a `X-Hub-Client-Id` přihlášeného
+ * klienta — vlastnictví ověřuje hub i spx-core. Vrací clientId, nebo null.
+ */
+export function hubClientIdFromRequest(request: Request): string | null {
+  const secret = process.env.HUB_API_SECRET;
+  const header = request.headers.get("authorization") ?? "";
+  const clientId = request.headers.get("x-hub-client-id");
+  if (!secret || !clientId || !header.startsWith("Bearer ")) return null;
+
+  const given = Buffer.from(header.slice("Bearer ".length));
+  const expected = Buffer.from(secret);
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
+  return clientId;
 }
