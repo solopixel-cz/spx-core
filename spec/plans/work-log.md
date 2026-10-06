@@ -2,6 +2,11 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-06 — PDF faktur pro klientskou zónu (spx-hub)
+
+- `GET /api/invoices/[id]/pdf` přijímá i server-to-server požadavek z hubu (`HUB_API_SECRET`, `X-Hub-Client-Id`, `lib/hub.ts` → `hubClientIdFromRequest`). Hub dostane jen vlastní fakturu klienta, ne koncept / storno. Nová env `HUB_API_SECRET`.
+- Verze 1.16.0.
+
 ## 2026-10-06 — Pozvánka do klientské zóny (spx-hub), přehlednější detail klienta
 
 - „Pozvat do hubu" (`/clients/[id]/send/hub`, akce `hub_invite`): založí / znovu použije Auth účet s claims `{ role: 'client', clientId }` (`lib/hub.ts`), pošle firemní pozvánku (`lib/email-templates/hub-invite.ts`) s odkazem `HUB_URL/login?email=…`, uloží `hubUid`, `hubInvitedAt`, `hubInvitedBy`, zaloguje aktivitu. Nová env `HUB_URL`.

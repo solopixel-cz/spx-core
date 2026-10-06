@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { requireRole } from "@/lib/auth";
+import { hubClientIdFromRequest } from "@/lib/hub";
 import { companySchema } from "@/lib/schemas/company";
 import {
   renderInvoicePdf,
@@ -13,13 +14,16 @@ export const maxDuration = 30;
 /**
  * Vygeneruje PDF faktury (vlastní generátor, nahrazuje Fakturoid).
  * Vrací `application/pdf` inline. Vyžaduje vyplněné `settings/company`.
+ * Přístup: admin/member, nebo klientská zóna (spx-hub) se sdíleným tajemstvím
+ * — ta dostane jen vlastní, odeslanou (ne koncept/storno) fakturu.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole("admin", "member");
+    const hubClientId = hubClientIdFromRequest(request);
+    if (!hubClientId) await requireRole("admin", "member");
     const { id } = await params;
     const db = getAdminFirestore();
 
@@ -28,6 +32,13 @@ export async function GET(
       return NextResponse.json({ error: "Faktura nenalezena" }, { status: 404 });
     }
     const invoice = snap.data()!;
+
+    if (
+      hubClientId &&
+      (invoice.clientId !== hubClientId || ["draft", "cancelled"].includes(invoice.status))
+    ) {
+      return NextResponse.json({ error: "Faktura nenalezena" }, { status: 404 });
+    }
 
     const companyDoc = await db.collection("settings").doc("company").get();
     if (!companyDoc.exists) {
