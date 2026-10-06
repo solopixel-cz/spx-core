@@ -4,7 +4,15 @@ import { getAdminAuth } from "@/lib/firebase/admin";
 const SESSION_COOKIE_NAME = "__session";
 const SESSION_EXPIRY_MS = 60 * 60 * 24 * 5 * 1000; // 5 days
 
-export type UserRole = "admin" | "member" | "sales";
+// Auth je sdílený s klientskou zónou (spx-hub, role 'client'). Do SPX Core
+// smí jen tým — účet s jinou nebo žádnou rolí se bere jako nepřihlášený.
+export const TEAM_ROLES = ["admin", "member", "sales"] as const;
+
+export type UserRole = (typeof TEAM_ROLES)[number];
+
+export function isTeamRole(role: unknown): role is UserRole {
+  return TEAM_ROLES.includes(role as UserRole);
+}
 
 export interface SessionUser {
   uid: string;
@@ -12,8 +20,14 @@ export interface SessionUser {
   role: UserRole;
 }
 
+export class ForbiddenRoleError extends Error {}
+
 export async function createSessionCookie(idToken: string): Promise<string> {
   const auth = getAdminAuth();
+  const decoded = await auth.verifyIdToken(idToken);
+  if (!isTeamRole(decoded.role)) {
+    throw new ForbiddenRoleError("Account has no team role");
+  }
   return auth.createSessionCookie(idToken, {
     expiresIn: SESSION_EXPIRY_MS,
   });
@@ -28,10 +42,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   try {
     const auth = getAdminAuth();
     const decoded = await auth.verifySessionCookie(sessionCookie, true);
+    if (!isTeamRole(decoded.role)) return null;
     return {
       uid: decoded.uid,
       email: decoded.email ?? "",
-      role: (decoded.role as UserRole) ?? "member",
+      role: decoded.role,
     };
   } catch {
     return null;
