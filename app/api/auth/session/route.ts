@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   createSessionCookie,
+  ForbiddenRoleError,
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
 
@@ -29,6 +30,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {
+    if (error instanceof ForbiddenRoleError) {
+      return NextResponse.json(
+        { error: "Tento účet nemá přístup do SPX Core" },
+        { status: 403 }
+      );
+    }
     console.error("Session creation failed:", error);
     return NextResponse.json(
       { error: "Nepodařilo se vytvořit session" },
