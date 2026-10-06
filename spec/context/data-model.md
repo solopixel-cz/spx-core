@@ -176,7 +176,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
 }
 ```
 
-PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GET /api/invoices/[id]/pdf`) — neukládá se. Historické faktury mohou mít reliktní pole `fakturoidId/fakturoidNumber/fakturoidStatus/pdfPath` (fáze 31, Fakturoid odstraněn ve fázi 32) — nová logika je nepoužívá.
+PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GET /api/invoices/[id]/pdf`) — neukládá se. Stejný endpoint obsluhuje i klientskou zónu (spx-hub): s `Authorization: Bearer HUB_API_SECRET` + `X-Hub-Client-Id` vrátí jen vlastní fakturu klienta, ne koncept ani storno (`lib/hub.ts`). Historické faktury mohou mít reliktní pole `fakturoidId/fakturoidNumber/fakturoidStatus/pdfPath` (fáze 31, Fakturoid odstraněn ve fázi 32) — nová logika je nepoužívá.
 
 ### `tasks`
 ```ts
