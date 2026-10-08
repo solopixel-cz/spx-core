@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       // Vizitka má slug, web má hosting — druhé pole se drží prázdné.
       advisorSlug: isWeb ? null : data.advisorSlug?.trim() || null,
       hosting: isWeb ? data.hosting || null : null,
+      ga4PropertyId: data.ga4PropertyId || null,
       repoUrl: data.repoUrl || null,
       deployUrl: data.deployUrl || null,
       features: data.features

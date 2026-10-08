@@ -20,6 +20,7 @@ export const instanceSchema = z.object({
   type: z.enum(instanceTypes).default("card"),
   advisorSlug: z.string().optional(), // povinný jen pro vizitku (type === 'card')
   hosting: z.string().optional(), // jen pro web (type === 'web')
+  ga4PropertyId: z.string().regex(/^\d+$/).optional(), // číselné Property ID z GA4 (statistiky v hubu)
   domain: z.string().min(1),
   status: z.enum(["setup", "live", "maintenance", "offline"]),
   repoUrl: z.string().url().optional(),
@@ -35,6 +36,11 @@ const instanceFormBase = z.object({
   type: z.enum(instanceTypes),
   advisorSlug: z.string().optional(),
   hosting: z.string().optional(),
+  ga4PropertyId: z
+    .string()
+    .trim()
+    .regex(/^\d*$/, "Jen číslice — Property ID z GA4, ne měřicí ID G-…")
+    .optional(),
   domain: z.string().min(1, "Doména je povinná"),
   status: z.enum(["setup", "live", "maintenance", "offline"]),
   repoUrl: z.string().url("Zadejte platné URL").or(z.literal("")).optional(),

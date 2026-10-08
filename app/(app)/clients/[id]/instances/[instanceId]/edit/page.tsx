@@ -29,6 +29,7 @@ export default async function EditInstancePage({
           type: (d.type as string | undefined) ?? "card",
           advisorSlug: (d.advisorSlug as string | undefined) ?? "",
           hosting: d.hosting as string | undefined,
+          ga4PropertyId: d.ga4PropertyId as string | undefined,
           domain: d.domain as string,
           status: d.status as string,
           repoUrl: d.repoUrl as string | undefined,

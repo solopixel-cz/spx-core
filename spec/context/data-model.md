@@ -48,6 +48,10 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   hubUid?: string            // Auth UID klientského účtu ve spx-hub (claims { role: 'client', clientId })
   hubInvitedAt?: Timestamp   // poslední odeslaná pozvánka do hubu
   hubInvitedBy?: string      // uid, kdo pozvánku poslal
+  hubFeatures?: {            // funkce klientské zóny zapnuté týmem (budoucí placený doplněk); chybí = vypnuto
+    stats?: boolean          // Statistiky návštěv vizitky (GA4)
+    references?: boolean     // Reference (sběr a zveřejnění)
+  }
 }
 ```
 
@@ -63,6 +67,7 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
   type: 'card' | 'web'       // 'card' = DBC vizitka (má slug), 'web' = klientský web (má hosting)
   advisorSlug?: string       // povinný jen pro vizitku (type === 'card')
   hosting?: string           // jen pro web: Vercel | Wedos | Forpsi | Netlify | Cloudflare
+  ga4PropertyId?: string     // číselné Property ID z GA4 (ne měřicí ID G-…) — statistiky v hubu; čte ho spx-hub přes service account
   domain: string             // např. jmeno.solopixel.cz (vizitka) nebo vlastní doména (web)
   status: 'setup' | 'live' | 'maintenance' | 'offline'
   repoUrl?: string
