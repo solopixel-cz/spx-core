@@ -602,6 +602,19 @@ Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy logu
 ### `counters`
 `counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci. `seq` je syrové pořadí (1, 2, …); číslo faktury = `RRRR-` + `(7000 + seq)` na 4 místa (`2026-7001`). Blok (7000) je v `lib/invoice-number.ts` (`INVOICE_NUMBER_BLOCK_START`).
 
+### `hubLoginCodes` (spx-hub)
+Jednorázové 6místné kódy pro přihlášení do klientské zóny (vedle magic linku; hlavně aplikace na ploše iPhonu). Zapisuje a čte jen spx-hub přes Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+
+```ts
+// hubLoginCodes/{sha256("email:" + email)}
+{
+  codeHash: string           // sha256("code:" + email + ":" + kód), kód se neukládá
+  attempts: number           // chybné pokusy; po 5 se kód zahodí
+  expiresAt: Timestamp       // platnost 15 min
+  createdAt: Timestamp
+}
+```
+
 ## Security rules — principy
 
 - Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`.
