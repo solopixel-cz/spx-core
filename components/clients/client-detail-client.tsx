@@ -52,6 +52,8 @@ import { SubscriptionCard, type SubData } from "@/components/subscriptions/subsc
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { ProjectsSection, type ProjectData } from "./projects-section";
 import { ConfirmButton } from "@/components/confirm-button";
+import { HubFeaturesToggles } from "./hub-features";
+import type { HubFeatures } from "@/lib/hub-features";
 
 interface ClientData {
   id: string;
@@ -72,6 +74,7 @@ interface ClientData {
   salesOwnerUid: string | null;
   hubInvitedAt: string | null;
   hubLastSignInAt: string | null;
+  hubFeatures: HubFeatures;
   deletedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -467,6 +470,9 @@ export function ClientDetailClient({
                       : " · zatím se nepřihlásil"}
                   </span>
                 </p>
+              )}
+              {(client.hubInvitedAt || instances.some((i) => i.type !== "web")) && (
+                <HubFeaturesToggles clientId={client.id} features={client.hubFeatures} />
               )}
             </ChipGroup>
           )}

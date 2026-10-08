@@ -50,6 +50,7 @@ export async function PATCH(
 
     if (data.repoUrl === "") updates.repoUrl = null;
     if (data.deployUrl === "") updates.deployUrl = null;
+    if (data.ga4PropertyId === "") updates.ga4PropertyId = null;
 
     await docRef.update(updates);
 

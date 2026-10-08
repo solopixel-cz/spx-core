@@ -28,6 +28,7 @@ export interface InstanceFormValues {
   type: string;
   advisorSlug: string;
   hosting?: string;
+  ga4PropertyId?: string;
   domain: string;
   status: string;
   repoUrl?: string;
@@ -66,6 +67,7 @@ export function InstanceForm({
           type: (instance.type as InstanceFormData["type"]) ?? "card",
           advisorSlug: instance.advisorSlug,
           hosting: instance.hosting ?? "",
+          ga4PropertyId: instance.ga4PropertyId ?? "",
           domain: instance.domain,
           status: instance.status as InstanceFormData["status"],
           repoUrl: instance.repoUrl ?? "",
@@ -188,6 +190,26 @@ export function InstanceForm({
             <SelectItem value="offline">Offline</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="ga4PropertyId">GA4 Property ID</Label>
+        <Input
+          id="ga4PropertyId"
+          inputMode="numeric"
+          placeholder="např. 537771866"
+          {...register("ga4PropertyId")}
+        />
+        {errors.ga4PropertyId ? (
+          <p className="text-sm text-destructive">
+            {errors.ga4PropertyId.message}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            GA4 → Admin → Property details. Bez něj klient v hubu nevidí
+            statistiky. Service account hubu musí mít v property roli Viewer.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
