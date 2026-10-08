@@ -63,6 +63,7 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
   type: 'card' | 'web'       // 'card' = DBC vizitka (má slug), 'web' = klientský web (má hosting)
   advisorSlug?: string       // povinný jen pro vizitku (type === 'card')
   hosting?: string           // jen pro web: Vercel | Wedos | Forpsi | Netlify | Cloudflare
+  ga4PropertyId?: string     // číselné Property ID z GA4 (ne měřicí ID G-…) — statistiky v hubu; čte ho spx-hub přes service account
   domain: string             // např. jmeno.solopixel.cz (vizitka) nebo vlastní doména (web)
   status: 'setup' | 'live' | 'maintenance' | 'offline'
   repoUrl?: string

@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-08 — GA4 Property ID u vizitky (statistiky v spx-hub)
+
+- Instance má nepovinné pole `ga4PropertyId` (číselné Property ID z GA4, ne měřicí ID `G-…`). Formulář vizitky / webu ho validuje (jen číslice), prázdné = `null`. Hub podle něj čte statistiky přes service account `spx-hub-analytics` (role Viewer v property).
+- Naplněno skriptem pro 10 vizitek (shoda `G-…` z `spx-dbc/advisors/<slug>/profile.json` s property v GA4). Bez ID zatím: novotna-monika (měří do demo.solopixel.cz), simon-josef a vizitky bez GA.
+- Verze 1.17.0.
+
 ## 2026-10-06 — PDF faktur pro klientskou zónu (spx-hub)
 
 - `GET /api/invoices/[id]/pdf` přijímá i server-to-server požadavek z hubu (`HUB_API_SECRET`, `X-Hub-Client-Id`, `lib/hub.ts` → `hubClientIdFromRequest`). Hub dostane jen vlastní fakturu klienta, ne koncept / storno. Nová env `HUB_API_SECRET`.
