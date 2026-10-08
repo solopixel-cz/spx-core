@@ -1,3 +1,4 @@
+import { hubFeaturesFrom } from "@/lib/hub-features";
 import type { SubData } from "@/components/subscriptions/subscription-card";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
@@ -43,6 +44,7 @@ export default async function ClientDetailPage({
     salesOwnerUid: (data.salesOwnerUid as string) ?? null,
     hubInvitedAt: data.hubInvitedAt?.toDate?.()?.toISOString() ?? null,
     hubLastSignInAt,
+    hubFeatures: hubFeaturesFrom(data),
     deletedAt: data.deletedAt?.toDate?.()?.toISOString() ?? null,
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,

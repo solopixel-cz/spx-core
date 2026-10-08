@@ -2,6 +2,11 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-08 — Zapínání funkcí klientské zóny u klienta
+
+- `clients.hubFeatures` (`stats`, `references`): tým je zapíná přepínači v detailu klienta (skupina „Vizitka a web“, `components/clients/hub-features.tsx`). `PATCH /api/clients/[id]/hub-features`, sales jen u svých klientů, zápis do aktivity. Chybějící hodnota = vypnuto (připraveno na placený doplněk). Hub podle toho funkci ukáže, nebo zobrazí, že není aktivní.
+- Verze 1.18.0.
+
 ## 2026-10-08 — GA4 Property ID u vizitky (statistiky v spx-hub)
 
 - Instance má nepovinné pole `ga4PropertyId` (číselné Property ID z GA4, ne měřicí ID `G-…`). Formulář vizitky / webu ho validuje (jen číslice), prázdné = `null`. Hub podle něj čte statistiky přes service account `spx-hub-analytics` (role Viewer v property).

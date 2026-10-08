@@ -48,6 +48,10 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   hubUid?: string            // Auth UID klientského účtu ve spx-hub (claims { role: 'client', clientId })
   hubInvitedAt?: Timestamp   // poslední odeslaná pozvánka do hubu
   hubInvitedBy?: string      // uid, kdo pozvánku poslal
+  hubFeatures?: {            // funkce klientské zóny zapnuté týmem (budoucí placený doplněk); chybí = vypnuto
+    stats?: boolean          // Statistiky návštěv vizitky (GA4)
+    references?: boolean     // Reference (sběr a zveřejnění)
+  }
 }
 ```
 
