@@ -645,8 +645,8 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
 // hubReferences/{autoId}
 {
   projectSlug: string        // = hubProjects/{advisorSlug}, určuje ho výhradně token formuláře
-  source: 'form'             // později 'invite' (jednorázové osobní odkazy)
-  inviteId?: string
+  source: 'form' | 'invite'  // pevná URL / osobní odkaz (hubInvites)
+  inviteId?: string          // hubInvites/{token} u source 'invite'
   authorName: string         // celé jméno, jak ho zákazník napsal
   rating: 'excellent' | 'good' | 'poor'
   text: string               // max 1000 znaků
@@ -662,6 +662,28 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
 }
 ```
 Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
+
+### `hubInvites` (spx-hub)
+Žádosti o referenci e-mailem: poradce (nebo admin týmu) zadá zákazníka, ten dostane osobní jednorázový odkaz `/p/{token}`. Odkaz jde otevírat, dokud zákazník referenci neodešle; platnost 90 dní od odeslání (připomenutí prodlouží, nejvýš 1 rok od vytvoření). Jen Admin SDK (spx-hub).
+
+```ts
+// hubInvites/{token}         // 32 znaků base64url, tajná část URL
+{
+  projectSlug: string        // = hubProjects/{advisorSlug}
+  name: string               // jméno zákazníka (předvyplní se ve formuláři)
+  email: string              // e-mail zákazníka, normalizovaný; nikdy se nezveřejňuje
+  status: 'draft' | 'sent' | 'opened' | 'submitted' | 'cancelled'   // 'expired' se počítá z expiresAt
+  sendCount: number
+  sentAt?: Timestamp
+  openedAt?: Timestamp
+  expiresAt?: Timestamp
+  submittedAt?: Timestamp
+  referenceId?: string       // hubReferences/{id} po odeslání
+  createdBy: string          // e-mail poradce / admina
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
 
 ### `hubAuditLog` (spx-hub)
 Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admin SDK.
@@ -681,7 +703,7 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
 
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.

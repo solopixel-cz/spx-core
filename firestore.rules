@@ -230,5 +230,9 @@ service cloud.firestore {
     match /hubAuditLog/{entryId} {
       allow read, write: if false;
     }
+    // Žádosti o referenci e-mailem (osobní jednorázové odkazy, e-maily zákazníků).
+    match /hubInvites/{token} {
+      allow read, write: if false;
+    }
   }
 }
