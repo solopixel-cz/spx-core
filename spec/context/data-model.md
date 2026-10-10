@@ -615,9 +615,73 @@ Jednorázové 6místné kódy pro přihlášení do klientské zóny (vedle magi
 }
 ```
 
+### `hubProjects` (spx-hub)
+Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu při prvním otevření Referencí klientem, který má zapnuté `clients.hubFeatures.references`. Vlastník a doména se tu **nevedou** — čtou se vždy z `instances` (jeden zdroj pravdy). Zapisuje a čte jen spx-hub přes Admin SDK.
+
+```ts
+// hubProjects/{advisorSlug}
+{
+  formToken: string          // 32 znaků base64url, tajná část URL veřejného formuláře /r/{formToken}
+  active: boolean            // false = formulář i veřejné API nic nevrací
+  profile: {                 // hlavička veřejného formuláře
+    displayName: string
+    title?: string           // profese, např. "Finanční poradce"
+    photoUrl?: string        // jen https
+    intro?: string
+  }
+  settings: {
+    nameFormat: 'short' | 'full'   // zobrazení jména na vizitce ("Jana N." / celé)
+    serviceTypes: string[]         // nabídka pole „Typ služby" ve formuláři
+  }
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+### `hubReferences` (spx-hub)
+Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní samo — poradce (nebo admin) v hubu ručně zveřejní / skryje / smaže. Text se nikdy neupravuje. Zveřejněné reference čte vizitka (spx-dbc) přes veřejné API hubu podle slugu.
+
+```ts
+// hubReferences/{autoId}
+{
+  projectSlug: string        // = hubProjects/{advisorSlug}, určuje ho výhradně token formuláře
+  source: 'form'             // později 'invite' (jednorázové osobní odkazy)
+  inviteId?: string
+  authorName: string         // celé jméno, jak ho zákazník napsal
+  rating: 'excellent' | 'good' | 'poor'
+  text: string               // max 1000 znaků
+  location?: string
+  serviceType?: string       // jen hodnota z hubProjects.settings.serviceTypes
+  consent: { at: Timestamp; version: string }   // souhlas se zveřejněním (vč. celého jména)
+  status: 'new' | 'published' | 'hidden'
+  publishedAt?: Timestamp
+  publishedBy?: string       // e-mail toho, kdo zveřejnil
+  publishSource?: 'manual'   // později 'auto'
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
+
+### `hubAuditLog` (spx-hub)
+Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admin SDK.
+
+```ts
+// hubAuditLog/{autoId}
+{
+  projectSlug: string
+  referenceId?: string
+  action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
+        | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
+  actorEmail?: string        // prázdné = zákazník přes veřejný formulář
+  actorRole: 'admin' | 'client' | 'public' | 'script'
+  at: Timestamp
+}
+```
+
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.
