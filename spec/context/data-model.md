@@ -31,6 +31,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   kind?: 'person' | 'company'  // chybí = 'person' (stávající klienti)
   name: string               // osoba: jméno a příjmení; firma: název firmy
   contactName?: string       // jen firma: kontaktní osoba (oslovení v e-mailech)
+  greeting?: string          // ruční oslovení v 5. pádě; jen oprava automatiky (`personalGreeting()` skloňuje křestní jméno knihovnou czech-vocative), jinak prázdné
   company?: string           // jen osoba: značka / síť (OVB, ZFP…); u firmy se nepoužívá
   ico?: string               // odběratel na faktuře
   dic?: string
@@ -137,7 +138,7 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 (Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
-Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit.
 
 ```ts
 {
@@ -601,6 +602,19 @@ Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy logu
 
 ### `counters`
 `counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci. `seq` je syrové pořadí (1, 2, …); číslo faktury = `RRRR-` + `(7000 + seq)` na 4 místa (`2026-7001`). Blok (7000) je v `lib/invoice-number.ts` (`INVOICE_NUMBER_BLOCK_START`).
+
+### `hubLoginCodes` (spx-hub)
+Jednorázové 6místné kódy pro přihlášení do klientské zóny (vedle magic linku; hlavně aplikace na ploše iPhonu). Zapisuje a čte jen spx-hub přes Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+
+```ts
+// hubLoginCodes/{sha256("email:" + email)}
+{
+  codeHash: string           // sha256("code:" + email + ":" + kód), kód se neukládá
+  attempts: number           // chybné pokusy; po 5 se kód zahodí
+  expiresAt: Timestamp       // platnost 15 min
+  createdAt: Timestamp
+}
+```
 
 ## Security rules — principy
 

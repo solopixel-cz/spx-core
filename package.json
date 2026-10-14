@@ -1,6 +1,6 @@
 {
   "name": "spx-core",
-  "version": "1.18.0",
+  "version": "1.23.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 7771",
@@ -20,6 +20,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "czech-vocative": "^2.1.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^13.10.0",
     "lucide-react": "^1.17.0",

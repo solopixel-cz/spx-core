@@ -45,6 +45,8 @@ import {
   SelectAllCheckbox,
 } from "@/components/bulk-archive-bar";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
+import { useTableSort } from "@/lib/use-table-sort";
+import { SortableHead } from "@/components/sortable-head";
 import { prospectStatus, outreachEmailStatus } from "@/lib/status";
 import type { OutreachContent } from "@/lib/email-templates/outreach-content";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -94,6 +96,16 @@ const statusLabels: Record<string, string> = {
   unreachable: "Nedostupný",
   converted: "Klient",
 };
+
+// Řazení podle stavu: pořadí pipeline (nový → … → klient).
+const statusRank: Record<string, number> = Object.fromEntries(
+  Object.keys(statusLabels).map((k, i) => [k, i]),
+);
+
+/** Datum jako číslo pro řazení (prázdné → null, řadí se na konec). */
+function toTime(v: string | null | undefined) {
+  return v ? new Date(v).getTime() : null;
+}
 
 export function ProspektiPageClient({
   initialProspects,
@@ -248,6 +260,25 @@ export function ProspektiPageClient({
       setLoadingMore(false);
     }
   }
+
+  // Řazení kliknutím na hlavičku (načtené + vyfiltrované řádky), výchozí abecedně podle jména.
+  const { sorted, sort, toggle } = useTableSort(
+    filtered,
+    {
+      name: (p) => p.name,
+      company: (p) =>
+        webOnly
+          ? attributionSummary(p.attribution) || listSourceLabel(listSourceKey(p.attribution))
+          : p.company,
+      city: (p) => p.city,
+      category: (p) => p.category,
+      status: (p) => statusRank[p.status] ?? 99,
+      owner: (p) => users.find((u) => u.id === p.ownerUid)?.displayName,
+      lastTouch: (p) => toTime(archived ? p.deletedAt : p.lastTouchAt),
+      followUp: (p) => toTime(p.nextFollowUpAt),
+    },
+    { key: "name", dir: "asc" },
+  );
 
   const isAdminOrMember = userRole === "admin" || userRole === "member";
   const visibleIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
@@ -426,7 +457,7 @@ export function ProspektiPageClient({
         {filtered.length === 0 ? (
           <EntityCardEmpty>{archived ? "Archiv je prázdný" : "Žádné kontakty k oslovení"}</EntityCardEmpty>
         ) : (
-          filtered.map((prospect) => {
+          sorted.map((prospect) => {
             const owner = users.find((u) => u.id === prospect.ownerUid);
             const isFollowUpOverdue =
               prospect.nextFollowUpAt &&
@@ -525,17 +556,17 @@ export function ProspektiPageClient({
                   <SelectAllCheckbox selection={selection} />
                 </TableHead>
               )}
-              <TableHead>Jméno</TableHead>
-              <TableHead>{webOnly ? "Zdroj" : "Firma"}</TableHead>
-              <TableHead>Město</TableHead>
-              <TableHead>Kategorie</TableHead>
-              <TableHead>Stav</TableHead>
+              <SortableHead sortKey="name" sort={sort} onSort={toggle}>Jméno</SortableHead>
+              <SortableHead sortKey="company" sort={sort} onSort={toggle}>{webOnly ? "Zdroj" : "Firma"}</SortableHead>
+              <SortableHead sortKey="city" sort={sort} onSort={toggle}>Město</SortableHead>
+              <SortableHead sortKey="category" sort={sort} onSort={toggle}>Kategorie</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
               <TableHead className="w-10"></TableHead>
-              <TableHead>Vlastník</TableHead>
-              <TableHead>{archived ? "Archivováno" : "Poslední kontakt"}</TableHead>
-              <TableHead>Follow-up</TableHead>
+              <SortableHead sortKey="owner" sort={sort} onSort={toggle}>Vlastník</SortableHead>
+              <SortableHead sortKey="lastTouch" sort={sort} onSort={toggle}>{archived ? "Archivováno" : "Poslední kontakt"}</SortableHead>
+              <SortableHead sortKey="followUp" sort={sort} onSort={toggle}>Follow-up</SortableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -547,7 +578,7 @@ export function ProspektiPageClient({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((prospect) => {
+              sorted.map((prospect) => {
                 const owner = users.find((u) => u.id === prospect.ownerUid);
                 const isFollowUpOverdue =
                   prospect.nextFollowUpAt &&

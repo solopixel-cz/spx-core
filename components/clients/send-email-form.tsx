@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Send, Loader2 } from "lucide-react";
-import { personalizeTemplate, firstName } from "@/lib/marketing/personalize";
+import { personalizeTemplate, vocativeFirstName } from "@/lib/marketing/personalize";
 
 interface TemplateSummary {
   id: string;
@@ -55,7 +55,7 @@ export function SendEmailForm({
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId);
   const [odkaz, setOdkaz] = useState(defaultLink);
   const [greeting, setGreeting] = useState(
-    defaultGreeting ?? firstName(clientName),
+    defaultGreeting ?? vocativeFirstName(clientName),
   );
   const [sending, setSending] = useState(false);
   const inFlight = useRef(false);
@@ -100,7 +100,7 @@ export function SendEmailForm({
   }, []);
 
   const previewVars = {
-    jmeno: greeting || firstName(clientName),
+    jmeno: greeting || vocativeFirstName(clientName),
     email: clientEmail,
     odkaz: odkaz.trim(),
   };

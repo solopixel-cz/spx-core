@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Send } from "lucide-react";
 import { renderDeliveryEmail } from "@/lib/email-templates/delivery";
+import { vocativeFirstName } from "@/lib/marketing/personalize";
 
 interface InstanceData {
   id: string;
@@ -187,7 +188,7 @@ export function DeliverCardForm({
               <iframe
                 srcDoc={
                   renderDeliveryEmail({
-                    jmeno: greeting || clientName.split(" ")[0],
+                    jmeno: greeting || vocativeFirstName(clientName),
                     odkaz,
                   }).html
                 }
