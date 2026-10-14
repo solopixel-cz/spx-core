@@ -67,7 +67,7 @@ export function HubInviteForm({
         return;
       }
 
-      toast.success("Pozvánka do klientské zóny odeslána");
+      toast.success("Pozvánka do SoloPixel HUB odeslána");
       router.push(backHref);
       router.refresh();
     } catch {

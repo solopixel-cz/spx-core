@@ -2,6 +2,10 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Pozvánka do SoloPixel HUB: aktuální text, bez dlouhých pomlček
+
+- `lib/email-templates/hub-invite.ts`: dlouhé pomlčky v textu (HTML i textová verze, titulek, preheader, podpis) nahrazené čárkou nebo tečkou. Text aktualizovaný podle toho, co hub umí: přehled, fakturace (PDF s QR), statistiky (pokud jsou aktivní), pomoc, přidání na plochu, přihlášení odkazem i kódem; reference zatím nezmiňuje (v hubu „Připravujeme“), jen že funkce budou postupně přibývat. Místo „klientská zóna“ název „SoloPixel HUB“ (e-mail, předmět, nadpis stránky pozvánky, toast, aktivita). Verze 1.22.1.
+
 ## 2026-10-14 — Oslovení v 5. pádě v e-mailech
 
 - `personalGreeting()` / `greetingName()` v `lib/marketing/personalize.ts`: křestní jméno v 5. pádě přes knihovnu `czech-vocative` („Jana Nováková“ → „Jano“), u firmy kontaktní osoba. Ruční oprava v novém poli klienta `greeting` (formulář „Oslovení v e-mailech“ s náhledem automatického tvaru).
