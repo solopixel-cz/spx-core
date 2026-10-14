@@ -51,7 +51,7 @@ export default async function ClientDetailPage({
   };
 
   // Fetch instances, domains, activity, subscription, invoices in parallel
-  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, tasksSnap, ticketsSnap, usersSnap] =
+  const [instancesSnap, domainsSnap, activitySnap, subsSnap, invoicesSnap, invoiceEmailsSnap, tasksSnap, ticketsSnap, usersSnap] =
     await Promise.all([
       db
         .collection("instances")
@@ -76,6 +76,7 @@ export default async function ClientDetailPage({
         .where("clientId", "==", id)
         .orderBy("issuedAt", "desc")
         .get(),
+      isSales ? Promise.resolve({ docs: [] }) : db.collection("invoiceEmails").where("clientId", "==", id).get(),
       db.collection("tasks").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("tickets").where("clientId", "==", id).orderBy("createdAt", "desc").get(),
       db.collection("users").get(),
@@ -119,6 +120,19 @@ export default async function ClientDetailPage({
   // Klient může mít víc předplatných (fáze 34C). Chybějící `service` = vizitka.
   const subscriptions: SubData[] = subsSnap.docs.map(toSubData);
 
+  // Stav posledního e-mailu per faktura (nejnovější dle sentAt), stejně jako v přehledu faktur.
+  const emailStatusMap: Record<string, string> = {};
+  const emailSentAtMap: Record<string, number> = {};
+  invoiceEmailsSnap.docs.forEach((d) => {
+    const data = d.data();
+    const invoiceId = data.invoiceId as string;
+    const sentMs = data.sentAt?.toMillis?.() ?? 0;
+    if (sentMs >= (emailSentAtMap[invoiceId] ?? -1)) {
+      emailSentAtMap[invoiceId] = sentMs;
+      emailStatusMap[invoiceId] = data.status as string;
+    }
+  });
+
   const now = new Date();
   const invoices = invoicesSnap.docs.map((d) => {
     const iData = d.data();
@@ -135,6 +149,7 @@ export default async function ClientDetailPage({
       dueAt: dueAt?.toISOString() ?? null,
       paidAt: iData.paidAt?.toDate?.()?.toISOString() ?? null,
       status,
+      emailStatus: emailStatusMap[d.id] ?? null,
     };
   });
 

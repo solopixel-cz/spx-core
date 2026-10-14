@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       entityType: "client",
       entityId: id,
       kind: "system",
-      text: `Klientská zóna: ${HUB_FEATURES[feature]} ${enabled ? "zapnuto" : "vypnuto"}`,
+      text: `SoloPixel HUB: ${HUB_FEATURES[feature]} ${enabled ? "zapnuto" : "vypnuto"}`,
       actorUid: user.uid,
     });
 
