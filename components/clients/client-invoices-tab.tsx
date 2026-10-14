@@ -21,6 +21,8 @@ import {
   EntityCardList,
   EntityCardEmpty,
 } from "@/components/entity-card";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 
 interface InvoiceData {
   id: string;
@@ -70,6 +72,19 @@ export function ClientInvoicesTab({
   const billable = subscriptions.filter((s) => !s.internal && s.status !== "cancelled");
   const router = useRouter();
   const [actingId, setActingId] = useState<string | null>(null);
+
+  // Řazení tabulky (výchozí: číslo faktury vzestupně)
+  const { sorted, sort, toggle } = useTableSort(
+    invoices,
+    {
+      number: (inv) => inv.number,
+      amount: (inv) => inv.amount,
+      issuedAt: (inv) => (inv.issuedAt ? new Date(inv.issuedAt) : null),
+      dueAt: (inv) => (inv.dueAt ? new Date(inv.dueAt) : null),
+      status: (inv) => statusLabels[inv.status] ?? inv.status,
+    },
+    { key: "number", dir: "asc" },
+  );
 
   const actions = (
     <div className="flex flex-wrap gap-2">
@@ -158,16 +173,16 @@ export function ClientInvoicesTab({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Číslo</TableHead>
-            <TableHead>Částka</TableHead>
-            <TableHead>Vystaveno</TableHead>
-            <TableHead>Splatnost</TableHead>
-            <TableHead>Stav</TableHead>
+            <SortableHead sortKey="number" sort={sort} onSort={toggle}>Číslo</SortableHead>
+            <SortableHead sortKey="amount" sort={sort} onSort={toggle}>Částka</SortableHead>
+            <SortableHead sortKey="issuedAt" sort={sort} onSort={toggle}>Vystaveno</SortableHead>
+            <SortableHead sortKey="dueAt" sort={sort} onSort={toggle}>Splatnost</SortableHead>
+            <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
             <TableHead className="w-24">Akce</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoices.map((inv) => (
+          {sorted.map((inv) => (
             <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
               <TableCell className="font-mono">{inv.number}</TableCell>
               <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
@@ -192,7 +207,7 @@ export function ClientInvoicesTab({
       </div>
 
       <EntityCardList>
-        {invoices.map((inv) => (
+        {sorted.map((inv) => (
           <EntityCard
             key={inv.id}
             href={`/invoices/${inv.id}`}

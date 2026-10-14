@@ -6,7 +6,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -17,8 +16,10 @@ import {
   EntityCardEmpty,
   EntityCardList,
 } from "@/components/entity-card";
+import { SortableHead } from "@/components/sortable-head";
 import { clientStatus, instanceStatus } from "@/lib/status";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { useTableSort } from "@/lib/use-table-sort";
 
 interface ClientRow {
   id: string;
@@ -61,6 +62,33 @@ export function MojeVizitkyClient({
   monthlyCommission: number;
   rate: number;
 }) {
+  // Řazení tabulek (výchozí: abecedně podle jména / klienta)
+  const clientSort = useTableSort(
+    clients,
+    {
+      name: (c) => c.name,
+      status: (c) => clientStatus[c.status]?.label ?? c.status,
+      instance: (c) => (c.instanceStatus ? (instanceStatus[c.instanceStatus]?.label ?? c.instanceStatus) : null),
+      plan: (c) => c.plan,
+      price: (c) => (c.priceMonthly > 0 ? c.priceMonthly : null),
+      commission: (c) => (c.myCommission > 0 ? c.myCommission : null),
+    },
+    { key: "name", dir: "asc" },
+  );
+  const commissionSort = useTableSort(
+    commissions,
+    {
+      client: (c) => c.clientName,
+      amount: (c) => c.amount,
+      status: (c) => commissionStatusLabels[c.status] ?? c.status,
+      date: (c) => {
+        const d = c.paidAt ?? c.earnedAt;
+        return d ? new Date(d) : null;
+      },
+    },
+    { key: "client", dir: "asc" },
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Moje vizitky" />
@@ -102,7 +130,7 @@ export function MojeVizitkyClient({
           {clients.length === 0 ? (
             <EntityCardEmpty>Zatím žádní klienti</EntityCardEmpty>
           ) : (
-            clients.map((c) => (
+            clientSort.sorted.map((c) => (
               <EntityCard
                 key={c.id}
                 title={c.name}
@@ -136,12 +164,12 @@ export function MojeVizitkyClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Jméno</TableHead>
-                <TableHead>Stav</TableHead>
-                <TableHead>Vizitka</TableHead>
-                <TableHead>Tarif</TableHead>
-                <TableHead className="text-right">Cena/měs.</TableHead>
-                <TableHead className="text-right">Provize/měs.</TableHead>
+                <SortableHead sortKey="name" sort={clientSort.sort} onSort={clientSort.toggle}>Jméno</SortableHead>
+                <SortableHead sortKey="status" sort={clientSort.sort} onSort={clientSort.toggle}>Stav</SortableHead>
+                <SortableHead sortKey="instance" sort={clientSort.sort} onSort={clientSort.toggle}>Vizitka</SortableHead>
+                <SortableHead sortKey="plan" sort={clientSort.sort} onSort={clientSort.toggle}>Tarif</SortableHead>
+                <SortableHead sortKey="price" sort={clientSort.sort} onSort={clientSort.toggle} className="text-right">Cena/měs.</SortableHead>
+                <SortableHead sortKey="commission" sort={clientSort.sort} onSort={clientSort.toggle} className="text-right">Provize/měs.</SortableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,7 +180,7 @@ export function MojeVizitkyClient({
                   </TableCell>
                 </TableRow>
               ) : (
-                clients.map((c) => (
+                clientSort.sorted.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>
@@ -185,7 +213,7 @@ export function MojeVizitkyClient({
           {commissions.length === 0 ? (
             <EntityCardEmpty>Zatím žádné provize</EntityCardEmpty>
           ) : (
-            commissions.map((c) => (
+            commissionSort.sorted.map((c) => (
               <EntityCard
                 key={c.id}
                 className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}
@@ -221,10 +249,10 @@ export function MojeVizitkyClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Klient</TableHead>
-                <TableHead className="text-right">Částka</TableHead>
-                <TableHead>Stav</TableHead>
-                <TableHead>Datum</TableHead>
+                <SortableHead sortKey="client" sort={commissionSort.sort} onSort={commissionSort.toggle}>Klient</SortableHead>
+                <SortableHead sortKey="amount" sort={commissionSort.sort} onSort={commissionSort.toggle} className="text-right">Částka</SortableHead>
+                <SortableHead sortKey="status" sort={commissionSort.sort} onSort={commissionSort.toggle}>Stav</SortableHead>
+                <SortableHead sortKey="date" sort={commissionSort.sort} onSort={commissionSort.toggle}>Datum</SortableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -235,7 +263,7 @@ export function MojeVizitkyClient({
                   </TableCell>
                 </TableRow>
               ) : (
-                commissions.map((c) => (
+                commissionSort.sorted.map((c) => (
                   <TableRow key={c.id} className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}>
                     <TableCell className="font-medium">{c.clientName}</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{formatCurrency(c.amount)}</TableCell>

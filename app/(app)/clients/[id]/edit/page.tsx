@@ -20,6 +20,7 @@ export default async function EditClientPage({
           kind: (data.kind as ClientFormData["kind"] | undefined) ?? "person",
           name: data.name as string,
           contactName: (data.contactName as string | undefined) ?? "",
+          greeting: (data.greeting as string | undefined) ?? "",
           company: (data.company as string | undefined) ?? "",
           ico: (data.ico as string | undefined) ?? "",
           dic: (data.dic as string | undefined) ?? "",

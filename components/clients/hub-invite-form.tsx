@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserPlus } from "lucide-react";
 import { renderHubInviteEmail } from "@/lib/email-templates/hub-invite";
+import { vocativeFirstName } from "@/lib/marketing/personalize";
 
 interface HubInviteFormProps {
   clientId: string;
@@ -107,7 +108,7 @@ export function HubInviteForm({
           <iframe
             srcDoc={
               renderHubInviteEmail({
-                jmeno: greeting || clientName.split(" ")[0],
+                jmeno: greeting || vocativeFirstName(clientName),
                 odkaz,
               }).html
             }

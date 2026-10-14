@@ -46,6 +46,7 @@ export default async function SendEmailPage({
           kind: data.kind as string | undefined,
           name,
           contactName: data.contactName as string | undefined,
+          greeting: data.greeting as string | undefined,
         })}
         clientEmail={clientEmail}
         templates={templates}

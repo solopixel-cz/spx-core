@@ -31,6 +31,8 @@ import {
 import { FilterBar } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { outreachEmailStatus } from "@/lib/status";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 
 interface InvoiceRow {
   id: string;
@@ -61,6 +63,13 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
   cancelled: "secondary",
 };
 
+// Stav řadíme podle životního cyklu (pořadí v statusLabels), neznámé na konec.
+const statusOrder = Object.keys(statusLabels);
+function statusRank(status: string): number | null {
+  const i = statusOrder.indexOf(status);
+  return i === -1 ? null : i;
+}
+
 export function InvoicesPageClient({
   invoices,
   stats,
@@ -79,6 +88,20 @@ export function InvoicesPageClient({
   const [sendingId, setSendingId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
+  // Řazení po filtru; výchozí abecedně podle klienta.
+  const { sorted, sort, toggle } = useTableSort<InvoiceRow, "number" | "client" | "amount" | "issued" | "due" | "status" | "email">(
+    filtered,
+    {
+      number: (i) => i.number,
+      client: (i) => i.clientName,
+      amount: (i) => i.amount,
+      issued: (i) => (i.issuedAt ? new Date(i.issuedAt) : null),
+      due: (i) => (i.dueAt ? new Date(i.dueAt) : null),
+      status: (i) => statusRank(i.status),
+      email: (i) => i.emailStatus,
+    },
+    { key: "client", dir: "asc" },
+  );
 
   async function handleSend(invoiceId: string) {
     setSendingId(invoiceId);
@@ -189,7 +212,7 @@ export function InvoicesPageClient({
         {filtered.length === 0 ? (
           <EntityCardEmpty>Žádné faktury</EntityCardEmpty>
         ) : (
-          filtered.map((inv) => (
+          sorted.map((inv) => (
             <EntityCard
               key={inv.id}
               title={
@@ -279,13 +302,13 @@ export function InvoicesPageClient({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Číslo</TableHead>
-              <TableHead>Klient</TableHead>
-              <TableHead>Částka</TableHead>
-              <TableHead>Vystaveno</TableHead>
-              <TableHead>Splatnost</TableHead>
-              <TableHead>Stav</TableHead>
-              <TableHead>E-mail</TableHead>
+              <SortableHead sortKey="number" sort={sort} onSort={toggle}>Číslo</SortableHead>
+              <SortableHead sortKey="client" sort={sort} onSort={toggle}>Klient</SortableHead>
+              <SortableHead sortKey="amount" sort={sort} onSort={toggle}>Částka</SortableHead>
+              <SortableHead sortKey="issued" sort={sort} onSort={toggle}>Vystaveno</SortableHead>
+              <SortableHead sortKey="due" sort={sort} onSort={toggle}>Splatnost</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
+              <SortableHead sortKey="email" sort={sort} onSort={toggle}>E-mail</SortableHead>
               <TableHead className="w-28">Akce</TableHead>
             </TableRow>
           </TableHeader>
@@ -295,7 +318,7 @@ export function InvoicesPageClient({
                 <TableCell colSpan={8} className="text-center text-muted-foreground">Žádné faktury</TableCell>
               </TableRow>
             ) : (
-              filtered.map((inv) => (
+              sorted.map((inv) => (
                 <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
                   <TableCell className="font-mono">
                     <Link href={`/invoices/${inv.id}`} className="hover:underline">

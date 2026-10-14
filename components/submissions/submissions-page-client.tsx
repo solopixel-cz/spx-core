@@ -6,7 +6,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -19,6 +18,8 @@ import {
 } from "@/components/entity-card";
 import { useRefresh } from "@/components/refresh-context";
 import type { SubmissionView } from "@/lib/submission-view-model";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 
 interface Submission extends SubmissionView {
   id: string;
@@ -71,6 +72,21 @@ export function SubmissionsPageClient() {
 
   useRefresh(fetchData);
 
+  const newSubmissions = submissions.filter((s) => !s.processedAt);
+  const processedSubmissions = submissions.filter((s) => s.processedAt);
+  const rows = tab === "new" ? newSubmissions : processedSubmissions;
+  // Řazení (hook musí běžet před early returnem); výchozí abecedně podle klienta.
+  const { sorted, sort, toggle } = useTableSort<Submission, "name" | "email" | "client" | "created">(
+    rows,
+    {
+      name: (s) => s.fullName,
+      email: (s) => s.email,
+      client: (s) => s.clientName,
+      created: (s) => (s.createdAt ? new Date(s.createdAt) : null),
+    },
+    { key: "client", dir: "asc" },
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -79,10 +95,6 @@ export function SubmissionsPageClient() {
       </div>
     );
   }
-
-  const newSubmissions = submissions.filter((s) => !s.processedAt);
-  const processedSubmissions = submissions.filter((s) => s.processedAt);
-  const rows = tab === "new" ? newSubmissions : processedSubmissions;
 
   return (
     <div className="space-y-6">
@@ -116,7 +128,7 @@ export function SubmissionsPageClient() {
             {tab === "new" ? "Žádné nové podklady" : "Žádné zpracované podklady"}
           </EntityCardEmpty>
         ) : (
-          rows.map((s) => (
+          sorted.map((s) => (
             <EntityCard
               key={s.id}
               href={`/submissions/${s.id}`}
@@ -142,10 +154,10 @@ export function SubmissionsPageClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Jméno</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Klient</TableHead>
-              <TableHead>Odesláno</TableHead>
+              <SortableHead sortKey="name" sort={sort} onSort={toggle}>Jméno</SortableHead>
+              <SortableHead sortKey="email" sort={sort} onSort={toggle}>E-mail</SortableHead>
+              <SortableHead sortKey="client" sort={sort} onSort={toggle}>Klient</SortableHead>
+              <SortableHead sortKey="created" sort={sort} onSort={toggle}>Odesláno</SortableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -156,7 +168,7 @@ export function SubmissionsPageClient() {
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((s) => (
+              sorted.map((s) => (
                 <TableRow key={s.id} href={`/submissions/${s.id}`}>
                   <TableCell className="font-medium">
                     <Link href={`/submissions/${s.id}`} className="hover:underline">

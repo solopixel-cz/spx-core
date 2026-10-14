@@ -54,6 +54,7 @@ import { CategorySelect } from "./category-select";
 import { toastWithUndo } from "@/lib/undo-toast";
 import { WebInquiryCard } from "./web-inquiry-card";
 import type { ProspectRow, UserOption } from "./prospects-page-client";
+import { vocativeFirstName } from "@/lib/marketing/personalize";
 
 interface ActivityData {
   id: string;
@@ -94,12 +95,13 @@ export function ProspectDetailClient({
   const [statusNote, setStatusNote] = useState("");
 
   // Oslovení — výběr šablony, editovatelný obsah, načtené předměty + odesílatel
-  const firstName = prospect.name.split(" ")[0] ?? "";
+  // Výchozí oslovení: křestní jméno v 5. pádě („Jano“), jde přepsat.
+  const defaultGreeting = vocativeFirstName(prospect.name);
   const [emailKind, setEmailKind] = useState<EmailKind>("outreach");
   const [content, setContent] = useState<OutreachContent>(() =>
     withOutreachDefaults({
       ...prospect.outreachContent,
-      greeting: prospect.outreachContent?.greeting || firstName,
+      greeting: prospect.outreachContent?.greeting || defaultGreeting,
     })
   );
   const [cardUrl, setCardUrl] = useState(prospect.demoUrl || "");
@@ -468,7 +470,7 @@ export function ProspectDetailClient({
     !["converted", "not_interested", "unreachable"].includes(prospect.status);
 
   // Živý náhled zvolené šablony s aktuálním obsahem a odkazem na vizitku
-  const previewJmeno = greeting || firstName;
+  const previewJmeno = greeting || defaultGreeting;
   const previewOdkaz = cardUrl || DEFAULT_CARD_URL;
   const previewSubject = subjects[emailKind]
     ? subjects[emailKind]!

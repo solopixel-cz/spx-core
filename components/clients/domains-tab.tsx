@@ -23,6 +23,8 @@ import {
   domainHref,
   type RenewalLevel,
 } from "@/lib/domain-renewal";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 
 export interface DomainData {
   id: string;
@@ -61,6 +63,20 @@ export function DomainsTab({
 }) {
   const base = `/clients/${clientId}/domains`;
 
+  // Řazení tabulky (výchozí: doména A–Z)
+  const { sorted, sort, toggle } = useTableSort(
+    domains,
+    {
+      name: (d) => d.name,
+      registrar: (d) => d.registrar,
+      hosting: (d) => d.hosting,
+      account: (d) => d.account,
+      purchasedAt: (d) => (d.purchasedAt ? new Date(d.purchasedAt) : null),
+      renewalAt: (d) => (d.renewalAt ? new Date(d.renewalAt) : null),
+    },
+    { key: "name", dir: "asc" },
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -81,17 +97,17 @@ export function DomainsTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Doména</TableHead>
-                <TableHead>Registrátor</TableHead>
-                <TableHead>Hosting</TableHead>
-                <TableHead>Účet</TableHead>
-                <TableHead>Zakoupeno</TableHead>
-                <TableHead>Obnovit do</TableHead>
+                <SortableHead sortKey="name" sort={sort} onSort={toggle}>Doména</SortableHead>
+                <SortableHead sortKey="registrar" sort={sort} onSort={toggle}>Registrátor</SortableHead>
+                <SortableHead sortKey="hosting" sort={sort} onSort={toggle}>Hosting</SortableHead>
+                <SortableHead sortKey="account" sort={sort} onSort={toggle}>Účet</SortableHead>
+                <SortableHead sortKey="purchasedAt" sort={sort} onSort={toggle}>Zakoupeno</SortableHead>
+                <SortableHead sortKey="renewalAt" sort={sort} onSort={toggle}>Obnovit do</SortableHead>
                 {canManage && <TableHead className="w-16" />}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {domains.map((d) => {
+              {sorted.map((d) => {
                 const status = renewalStatus(d.renewalAt);
                 return (
                   <TableRow key={d.id}>
@@ -150,7 +166,7 @@ export function DomainsTab({
         </div>
 
         <EntityCardList>
-          {domains.map((d) => {
+          {sorted.map((d) => {
             const status = renewalStatus(d.renewalAt);
             return (
               <EntityCard
