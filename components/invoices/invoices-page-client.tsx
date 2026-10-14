@@ -88,7 +88,7 @@ export function InvoicesPageClient({
   const [sendingId, setSendingId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
-  // Řazení po filtru; výchozí abecedně podle klienta.
+  // Řazení po filtru; výchozí od posledně vystavené faktury.
   const { sorted, sort, toggle } = useTableSort<InvoiceRow, "number" | "client" | "amount" | "issued" | "due" | "status" | "email">(
     filtered,
     {
@@ -100,7 +100,7 @@ export function InvoicesPageClient({
       status: (i) => statusRank(i.status),
       email: (i) => i.emailStatus,
     },
-    { key: "client", dir: "asc" },
+    { key: "issued", dir: "desc" },
   );
 
   async function handleSend(invoiceId: string) {

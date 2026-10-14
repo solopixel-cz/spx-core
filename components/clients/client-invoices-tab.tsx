@@ -73,7 +73,7 @@ export function ClientInvoicesTab({
   const router = useRouter();
   const [actingId, setActingId] = useState<string | null>(null);
 
-  // Řazení tabulky (výchozí: číslo faktury vzestupně)
+  // Řazení tabulky (výchozí: od posledně vystavené faktury)
   const { sorted, sort, toggle } = useTableSort(
     invoices,
     {
@@ -83,7 +83,7 @@ export function ClientInvoicesTab({
       dueAt: (inv) => (inv.dueAt ? new Date(inv.dueAt) : null),
       status: (inv) => statusLabels[inv.status] ?? inv.status,
     },
-    { key: "number", dir: "asc" },
+    { key: "issuedAt", dir: "desc" },
   );
 
   const actions = (
