@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -105,6 +107,18 @@ export function SubscriptionForm({
       router.refresh();
     } catch {
       toast.error("Nepodařilo se uložit předplatné");
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      const res = await fetch(`/api/subscriptions/${subscription!.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+      toast.success("Předplatné smazáno");
+      router.push(backHref);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Nepodařilo se smazat předplatné");
     }
   }
 
@@ -306,7 +320,20 @@ export function SubscriptionForm({
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Založit"}
-      />
+      >
+        {isEdit && (
+          <ConfirmButton
+            variant="ghost"
+            question="Trvale smazat předplatné?"
+            confirmLabel="Smazat"
+            onConfirm={handleDelete}
+            className="text-muted-foreground"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Smazat
+          </ConfirmButton>
+        )}
+      </FormActions>
     </form>
   );
 }

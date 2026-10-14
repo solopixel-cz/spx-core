@@ -7,9 +7,14 @@ import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   flexRender,
   createColumnHelper,
   type ColumnFiltersState,
+  type HeaderContext,
+  type SortingFn,
+  type SortingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Check, Contact, Plus } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -45,6 +50,9 @@ import {
 } from "@/components/bulk-archive-bar";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
 import { formatCurrency } from "@/lib/format";
+import { HUB_FEATURES, type HubFeature } from "@/lib/hub-features";
+import { SortButton } from "@/components/sortable-head";
+import { compareSortValues, type SortValue } from "@/lib/use-table-sort";
 
 export interface ClientRow {
   id: string;
@@ -62,9 +70,41 @@ export interface ClientRow {
   billing: "paying" | "internal" | "none";
   planLabel: string | null;
   priceMonthly: number | null;
+  /** SoloPixel HUB: dostal pozvánku + zapnuté funkce (`clients.hubFeatures`). */
+  hub: { invited: boolean; features: HubFeature[] };
+  /** Přehledy: má vizitku (instance nebo předplatné vizitky) / web, zakázku či jiné předplatné. */
+  hasCard: boolean;
+  hasOther: boolean;
+  createdAt: string | null;
+  ownerName: string | null;
 }
 
-type Segment = "paying" | "other" | "all";
+/**
+ * Přehledy klientů podle toho, co od nás mají (odvozeno z dat, nic se nevyplňuje):
+ * vizitky, weby a zakázky, zájemci bez služby. Klient s obojím je v obou.
+ */
+type Segment = "cards" | "webs" | "leads" | "all";
+const SEGMENTS: Segment[] = ["cards", "webs", "leads", "all"];
+const segmentLabels: Record<Segment, string> = {
+  cards: "Vizitky",
+  webs: "Weby a zakázky",
+  leads: "Zájemci",
+  all: "Vše",
+};
+function inSegment(c: ClientRow, segment: Segment): boolean {
+  if (segment === "cards") return c.hasCard;
+  if (segment === "webs") return c.hasOther;
+  if (segment === "leads") return !c.hasCard && !c.hasOther;
+  return true;
+}
+
+// Sloupce podle přehledu, ať tabulka ukazuje jen to, co k němu patří.
+const HIDDEN_BY_SEGMENT: Record<Segment, string[]> = {
+  cards: ["email", "services", "owner", "createdAt", "leadAction"],
+  webs: ["email", "hub", "owner", "createdAt", "leadAction"],
+  leads: ["billing", "services", "hub"],
+  all: ["owner", "createdAt", "leadAction"],
+};
 
 const statusLabels: Record<string, string> = {
   onboarding: "Onboarding",
@@ -83,7 +123,7 @@ const statusVariants: Record<
   churned: "destructive",
 };
 
-// Pořadí v seznamu: platící → interní → bez předplatného; uvnitř aktivní první.
+// Řazení sloupce Paušál: platící → interní → bez předplatného; Stav: aktivní první.
 const billingRank: Record<ClientRow["billing"], number> = {
   paying: 0,
   internal: 1,
@@ -114,6 +154,34 @@ function BillingCell({ client }: { client: ClientRow }) {
   );
 }
 
+/**
+ * HUB: odznak „HUB“ u pozvaných, „Nepozván“ u klientů se zapnutými funkcemi
+ * bez pozvánky, a menší odznaky zapnutých funkcí.
+ */
+function HubCell({ hub }: { hub: ClientRow["hub"] }) {
+  if (!hub.invited && hub.features.length === 0)
+    return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {hub.invited ? (
+        <Badge className="gap-1 border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300">
+          <Check className="h-3 w-3" />
+          HUB
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="border-dashed font-normal text-muted-foreground">
+          Nepozván
+        </Badge>
+      )}
+      {hub.features.map((f) => (
+        <Badge key={f} variant="outline" className="font-normal text-muted-foreground">
+          {HUB_FEATURES[f]}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
 /** 1 zakázka / 2–4 zakázky / 5+ zakázek */
 function projectsLabel(n: number) {
   return n === 1 ? "zakázka" : n >= 2 && n <= 4 ? "zakázky" : "zakázek";
@@ -139,9 +207,32 @@ function ServicesCell({ services: s }: { services: ClientRow["services"] }) {
 
 const columnHelper = createColumnHelper<ClientRow>();
 
+// Text česky (ch, diakritika); směr aplikuje TanStack sám, proto vždy "asc".
+const czSort: SortingFn<ClientRow> = (a, b, id) =>
+  compareSortValues(a.getValue<SortValue>(id), b.getValue<SortValue>(id), "asc");
+const timeSort: SortingFn<ClientRow> = (a, b, id) =>
+  compareSortValues(
+    new Date(a.getValue<string>(id)).getTime(),
+    new Date(b.getValue<string>(id)).getTime(),
+    "asc",
+  );
+
+/** Řaditelná hlavička: klik řadí vzestupně, další klik přepne směr. */
+function sortHeader(label: string) {
+  return function SortHeader({ column }: HeaderContext<ClientRow, unknown>) {
+    const dir = column.getIsSorted();
+    return (
+      <SortButton dir={dir} onClick={() => column.toggleSorting(dir === "asc")}>
+        {label}
+      </SortButton>
+    );
+  };
+}
+
 const dataColumns = [
   columnHelper.accessor("name", {
-    header: "Jméno / název",
+    header: sortHeader("Jméno / název"),
+    sortingFn: czSort,
     cell: (info) => (
       <Link
         href={`/clients/${info.row.original.id}`}
@@ -154,8 +245,12 @@ const dataColumns = [
       </Link>
     ),
   }),
-  columnHelper.accessor("company", {
-    header: "Značka / kontakt",
+  // U firmy se zobrazuje (a řadí) kontaktní osoba, u osoby značka.
+  columnHelper.accessor((r) => (r.kind === "company" ? r.contactName : r.company) || undefined, {
+    id: "company",
+    header: sortHeader("Značka / kontakt"),
+    sortingFn: czSort,
+    sortUndefined: "last",
     cell: (info) => {
       const c = info.row.original;
       if (c.kind === "company") {
@@ -168,14 +263,17 @@ const dataColumns = [
           "—"
         );
       }
-      return info.getValue() || "—";
+      return c.company || "—";
     },
   }),
   columnHelper.accessor("email", {
-    header: "E-mail",
+    header: sortHeader("E-mail"),
+    sortingFn: czSort,
   }),
   columnHelper.accessor("status", {
-    header: "Stav",
+    header: sortHeader("Stav"),
+    sortingFn: (a, b) =>
+      (statusRank[a.original.status] ?? 9) - (statusRank[b.original.status] ?? 9),
     cell: (info) => (
       <Badge variant={statusVariants[info.getValue()] ?? "secondary"}>
         {statusLabels[info.getValue()] ?? info.getValue()}
@@ -187,27 +285,80 @@ const dataColumns = [
     },
   }),
   columnHelper.accessor("billing", {
-    header: "Paušál",
+    header: sortHeader("Paušál"),
+    sortingFn: (a, b) =>
+      billingRank[a.original.billing] - billingRank[b.original.billing] ||
+      (a.original.priceMonthly ?? 0) - (b.original.priceMonthly ?? 0),
     cell: (info) => <BillingCell client={info.row.original} />,
     enableGlobalFilter: false,
   }),
-  columnHelper.display({
+  // Pozvaní první, pak podle počtu zapnutých funkcí.
+  columnHelper.accessor((r) => (r.hub.invited ? 10 : 0) + r.hub.features.length, {
+    id: "hub",
+    header: sortHeader("HUB"),
+    enableGlobalFilter: false,
+    cell: (info) => <HubCell hub={info.row.original.hub} />,
+  }),
+  // Řadí se podle počtu služeb celkem.
+  columnHelper.accessor((r) => r.services.cards + r.services.webs + r.services.projects, {
     id: "services",
-    header: "Služby",
+    header: sortHeader("Služby"),
+    enableGlobalFilter: false,
     cell: (info) => <ServicesCell services={info.row.original.services} />,
   }),
-  columnHelper.accessor("updatedAt", {
-    header: "Poslední aktivita",
+  columnHelper.accessor((r) => r.updatedAt ?? undefined, {
+    id: "updatedAt",
+    header: sortHeader("Poslední aktivita"),
+    sortingFn: timeSort,
+    sortUndefined: "last",
     cell: (info) => {
       const val = info.getValue();
       if (!val) return "—";
       return new Date(val).toLocaleDateString("cs-CZ");
     },
   }),
+  columnHelper.accessor((r) => r.ownerName ?? undefined, {
+    id: "owner",
+    header: sortHeader("Obchodník"),
+    sortingFn: czSort,
+    sortUndefined: "last",
+    enableGlobalFilter: false,
+    cell: (info) => info.getValue() ?? <span className="text-muted-foreground">—</span>,
+  }),
+  columnHelper.accessor((r) => r.createdAt ?? undefined, {
+    id: "createdAt",
+    header: sortHeader("Založeno"),
+    sortingFn: timeSort,
+    sortUndefined: "last",
+    enableGlobalFilter: false,
+    cell: (info) => {
+      const val = info.getValue();
+      return val ? new Date(val).toLocaleDateString("cs-CZ") : "—";
+    },
+  }),
+  // Zájemce → rovnou založit vizitku (pak sám přejde do přehledu Vizitky).
+  columnHelper.display({
+    id: "leadAction",
+    header: () => null,
+    cell: (info) => (
+      <Button
+        size="sm"
+        variant="outline"
+        nativeButton={false}
+        render={<Link href={`/clients/${info.row.original.id}/instances/new`} />}
+      >
+        <Contact className="mr-1.5 h-3.5 w-3.5" />
+        Založit vizitku
+      </Button>
+    ),
+  }),
 ];
 
-const archivedAtColumn = columnHelper.accessor("deletedAt", {
-  header: "Archivováno",
+const archivedAtColumn = columnHelper.accessor((r) => r.deletedAt ?? undefined, {
+  id: "deletedAt",
+  header: sortHeader("Archivováno"),
+  sortingFn: timeSort,
+  sortUndefined: "last",
   cell: (info) => {
     const val = info.getValue();
     return val ? new Date(val).toLocaleDateString("cs-CZ") : "—";
@@ -231,8 +382,12 @@ export function ClientsPageClient({
   const [clients, setClients] = useState(initialClients);
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [segment, setSegment] = useState<Segment>("paying");
+  const [segment, setSegment] = useState<Segment>("cards");
   const [kindFilter, setKindFilter] = useState<"all" | "person" | "company">("all");
+  // Výchozí abecedně podle jména; archiv drží pořadí ze serveru (podle data archivace).
+  const [sorting, setSorting] = useState<SortingState>(
+    archived ? [] : [{ id: "name", desc: false }],
+  );
   const [hydrated, setHydrated] = useState(false);
 
   // Resync ze serveru po router.refresh — úprava stavu během renderu.
@@ -257,7 +412,8 @@ export function ClientsPageClient({
         if (saved.status && saved.status !== "all") {
           setColumnFilters([{ id: "status", value: saved.status }]);
         }
-        if (saved.segment) setSegment(saved.segment);
+        // Starší uložené hodnoty (platící / neplatící) ignorovat.
+        if (saved.segment && SEGMENTS.includes(saved.segment)) setSegment(saved.segment);
         if (saved.kind) setKindFilter(saved.kind);
       }
     } catch {
@@ -282,33 +438,26 @@ export function ClientsPageClient({
     }
   }, [globalFilter, columnFilters, segment, kindFilter, hydrated]);
 
-  const sorted = useMemo(
-    () =>
-      archived
-        ? clients // server řadí podle data archivace
-        : [...clients].sort(
-            (a, b) =>
-              billingRank[a.billing] - billingRank[b.billing] ||
-              (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9),
-          ),
-    [clients, archived],
-  );
-
   // Typ klienta (osoba / firma) — filtruje ještě před segmenty, ať počty sedí.
   const kindFiltered = useMemo(
-    () => (kindFilter === "all" ? sorted : sorted.filter((c) => c.kind === kindFilter)),
-    [sorted, kindFilter],
+    () => (kindFilter === "all" ? clients : clients.filter((c) => c.kind === kindFilter)),
+    [clients, kindFilter],
   );
 
-  const payingCount = kindFiltered.filter((c) => c.billing === "paying").length;
-  const segmentData = useMemo(
+  const segmentCounts = useMemo(
     () =>
-      archived || segment === "all"
-        ? kindFiltered
-        : kindFiltered.filter(
-            (c) => (c.billing === "paying") === (segment === "paying"),
-          ),
-    [kindFiltered, segment, archived],
+      Object.fromEntries(
+        SEGMENTS.map((s) => [s, kindFiltered.filter((c) => inSegment(c, s)).length]),
+      ) as Record<Segment, number>,
+    [kindFiltered],
+  );
+  const activeSegment: Segment = archived ? "all" : segment;
+  const segmentData = useMemo(
+    () => kindFiltered.filter((c) => inSegment(c, activeSegment)),
+    [kindFiltered, activeSegment],
+  );
+  const columnVisibility: VisibilityState = Object.fromEntries(
+    HIDDEN_BY_SEGMENT[activeSegment].map((id) => [id, false]),
   );
 
   const baseColumns = archived
@@ -330,9 +479,10 @@ export function ClientsPageClient({
   const table = useReactTable({
     data: segmentData,
     columns,
-    state: { globalFilter, columnFilters },
+    state: { globalFilter, columnFilters, sorting, columnVisibility },
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     // Hledání i podle kontaktní osoby firmy (není samostatný sloupec).
     globalFilterFn: (row, _columnId, value) => {
@@ -344,6 +494,7 @@ export function ClientsPageClient({
       );
     },
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   const rows = table.getRowModel().rows;
@@ -372,11 +523,11 @@ export function ClientsPageClient({
       {!archived && (
         <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
           <TabsList>
-            <TabsTrigger value="paying">Platící ({payingCount})</TabsTrigger>
-            <TabsTrigger value="other">
-              Neplatící ({kindFiltered.length - payingCount})
-            </TabsTrigger>
-            <TabsTrigger value="all">Všichni ({kindFiltered.length})</TabsTrigger>
+            {SEGMENTS.map((s) => (
+              <TabsTrigger key={s} value={s}>
+                {segmentLabels[s]} ({segmentCounts[s]})
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
       )}
@@ -471,6 +622,7 @@ export function ClientsPageClient({
                   <>
                     {c.billing !== "none" && <BillingCell client={c} />}
                     <ServicesCell services={c.services} />
+                    {(c.hub.invited || c.hub.features.length > 0) && <HubCell hub={c.hub} />}
                     {c.updatedAt && (
                       <span>
                         {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}
@@ -494,6 +646,13 @@ export function ClientsPageClient({
                   <TableHead
                     key={header.id}
                     className={header.id === "select" ? "w-12" : undefined}
+                    aria-sort={
+                      header.column.getIsSorted() === "asc"
+                        ? "ascending"
+                        : header.column.getIsSorted() === "desc"
+                          ? "descending"
+                          : undefined
+                    }
                   >
                     {flexRender(
                       header.column.columnDef.header,

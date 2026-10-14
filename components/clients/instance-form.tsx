@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Archive, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/form-actions";
+import { toastWithUndo } from "@/lib/undo-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +45,19 @@ const hostingItems: Record<string, string> = Object.fromEntries(
   hostingProviders.map((h) => [h, h])
 );
 
-/** Formulář instance (vizitka / web) na routách `/clients/[id]/instances/...`. */
+async function archiveCall(action: "archive" | "restore", id: string) {
+  const res = await fetch("/api/archive", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, collection: "instances", id }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+}
+
+/**
+ * Formulář instance (vizitka / web) na routách `/clients/[id]/instances/...`.
+ * Archivace se provede hned a jde vrátit z toastu (nebo v Nastavení → Archiv).
+ */
 export function InstanceForm({
   clientId,
   instance,
@@ -53,6 +69,7 @@ export function InstanceForm({
 }) {
   const router = useRouter();
   const isEdit = !!instance;
+  const [archiving, setArchiving] = useState(false);
 
   const {
     register,
@@ -104,6 +121,27 @@ export function InstanceForm({
       toast.error(
         err instanceof Error ? err.message : "Nepodařilo se uložit instanci"
       );
+    }
+  }
+
+  async function archive() {
+    if (!instance) return;
+    setArchiving(true);
+    const label = instance.type === "web" ? "Web" : "Vizitka";
+    try {
+      await archiveCall("archive", instance.id);
+      toastWithUndo({
+        message: `${label} ${instance.domain} archivována`,
+        undo: async () => {
+          await archiveCall("restore", instance.id);
+          router.refresh();
+        },
+      });
+      router.push(backHref);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Archivace se nepodařila");
+      setArchiving(false);
     }
   }
 
@@ -206,8 +244,8 @@ export function InstanceForm({
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            GA4 → Admin → Property details. Bez něj klient v hubu nevidí
-            statistiky. Service account hubu musí mít v property roli Viewer.
+            GA4 → Admin → Property details. Bez něj klient v HUB nevidí
+            statistiky. Service account HUB musí mít v property roli Viewer.
           </p>
         )}
       </div>
@@ -241,7 +279,14 @@ export function InstanceForm({
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Přidat"}
-      />
+      >
+        {isEdit && (
+          <Button type="button" variant="ghost" onClick={archive} disabled={archiving} className="text-muted-foreground">
+            {archiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
+            Archivovat
+          </Button>
+        )}
+      </FormActions>
     </form>
   );
 }

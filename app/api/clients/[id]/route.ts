@@ -256,7 +256,7 @@ export async function POST(
         entityType: "client",
         entityId: id,
         kind: "email",
-        text: `Odeslána pozvánka do klientské zóny na ${email}`,
+        text: `Odeslána pozvánka do SoloPixel HUB na ${email}`,
         actorUid: user.uid,
       });
 

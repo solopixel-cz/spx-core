@@ -1,19 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,15 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X, Loader2, Send, Download } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Download } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
   EntityCardList,
 } from "@/components/entity-card";
-import { FilterBar } from "@/components/filter-bar";
-import { StatusBadge } from "@/components/status-badge";
-import { outreachEmailStatus } from "@/lib/status";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
+import {
+  InvoiceActions,
+  InvoiceDueCell,
+  InvoiceStatusCell,
+  formatAmount,
+  formatInvoiceDate,
+  invoiceStatusLabels,
+  overdueRowClass,
+} from "@/components/invoices/invoice-ui";
 
 interface InvoiceRow {
   id: string;
@@ -45,21 +44,23 @@ interface InvoiceRow {
   emailStatus: string | null;
 }
 
-const statusLabels: Record<string, string> = {
-  draft: "Koncept",
-  sent: "Odesláno",
-  paid: "Zaplaceno",
-  overdue: "Po splatnosti",
-  cancelled: "Stornováno",
-};
+// Filtr jako záložky s počty. „Otevřené" = odeslané i po splatnosti.
+const FILTERS = [
+  { key: "all", label: "Vše", match: () => true },
+  { key: "open", label: "Otevřené", match: (s: string) => s === "sent" || s === "overdue" },
+  { key: "overdue", label: "Po splatnosti", match: (s: string) => s === "overdue" },
+  { key: "paid", label: "Zaplacené", match: (s: string) => s === "paid" },
+  { key: "draft", label: "Koncepty", match: (s: string) => s === "draft" },
+  { key: "cancelled", label: "Storno", match: (s: string) => s === "cancelled" },
+] as const;
+type FilterKey = (typeof FILTERS)[number]["key"];
 
-const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  sent: "secondary",
-  paid: "default",
-  overdue: "destructive",
-  cancelled: "secondary",
-};
+// Stav řadíme podle životního cyklu (pořadí v invoiceStatusLabels), neznámé na konec.
+const statusOrder = Object.keys(invoiceStatusLabels);
+function statusRank(status: string): number | null {
+  const i = statusOrder.indexOf(status);
+  return i === -1 ? null : i;
+}
 
 export function InvoicesPageClient({
   invoices,
@@ -73,46 +74,25 @@ export function InvoicesPageClient({
     paidThisMonthSum: number;
   };
 }) {
-  const router = useRouter();
-  const [filter, setFilter] = useState("all");
-  const [actingId, setActingId] = useState<string | null>(null);
-  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>("all");
 
-  const filtered = filter === "all" ? invoices : invoices.filter((i) => i.status === filter);
-
-  async function handleSend(invoiceId: string) {
-    setSendingId(invoiceId);
-    try {
-      const res = await fetch(`/api/invoices/${invoiceId}/send`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("Faktura odeslána klientovi");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Odeslání se nezdařilo");
-    } finally {
-      setSendingId(null);
-    }
-  }
-
-  async function handleAction(invoiceId: string, action: "paid" | "cancelled") {
-    setActingId(invoiceId);
-    try {
-      const res = await fetch(`/api/invoices/${invoiceId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(action === "paid" ? "Faktura zaplacena" : "Faktura stornována");
-      router.refresh();
-    } catch {
-      toast.error("Akce se nezdařila");
-    } finally {
-      setActingId(null);
-    }
-  }
+  const counts = Object.fromEntries(
+    FILTERS.map((f) => [f.key, invoices.filter((i) => f.match(i.status)).length]),
+  ) as Record<FilterKey, number>;
+  const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
+  const filtered = useMemo(() => invoices.filter((i) => activeFilter.match(i.status)), [invoices, activeFilter]);
+  // Řazení po filtru; výchozí od posledně vystavené faktury.
+  const { sorted, sort, toggle } = useTableSort<InvoiceRow, "client" | "amount" | "issued" | "due" | "status">(
+    filtered,
+    {
+      client: (i) => i.clientName,
+      amount: (i) => i.amount,
+      issued: (i) => (i.issuedAt ? new Date(i.issuedAt) : null),
+      due: (i) => (i.dueAt ? new Date(i.dueAt) : null),
+      status: (i) => statusRank(i.status),
+    },
+    { key: "issued", dir: "desc" },
+  );
 
   return (
     <div className="space-y-6">
@@ -167,107 +147,37 @@ export function InvoicesPageClient({
         </Card>
       </div>
 
-      {/* Filter */}
-      <FilterBar>
-        <Select
-          items={{ all: "Všechny", ...statusLabels }}
-          value={filter}
-          onValueChange={(val) => setFilter(val ?? "all")}
-        >
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Všechny</SelectItem>
-            {Object.entries(statusLabels).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FilterBar>
+      {/* Filtr */}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
+        <TabsList>
+          {FILTERS.map((f) => (
+            <TabsTrigger key={f.key} value={f.key}>
+              {f.label} <span className="ml-1 tabular-nums opacity-60">{counts[f.key]}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* Mobil: karty */}
       <EntityCardList>
         {filtered.length === 0 ? (
           <EntityCardEmpty>Žádné faktury</EntityCardEmpty>
         ) : (
-          filtered.map((inv) => (
+          sorted.map((inv) => (
             <EntityCard
               key={inv.id}
-              title={
-                <Link href={`/invoices/${inv.id}`} className="font-mono text-sm font-medium hover:underline">
-                  {inv.number}
-                </Link>
-              }
-              badge={
-                <Badge variant={statusVariants[inv.status] ?? "secondary"}>
-                  {statusLabels[inv.status] ?? inv.status}
-                </Badge>
-              }
-              subtitle={inv.clientName}
-              meta={
-                <>
-                  <span className="font-medium text-foreground">
-                    {inv.amount.toLocaleString("cs-CZ")} Kč
-                  </span>
-                  {inv.issuedAt && (
-                    <span>
-                      Vystaveno {new Date(inv.issuedAt).toLocaleDateString("cs-CZ")}
-                    </span>
-                  )}
-                  {inv.dueAt && (
-                    <span>
-                      Splatnost {new Date(inv.dueAt).toLocaleDateString("cs-CZ")}
-                    </span>
-                  )}
-                </>
-              }
+              href={`/invoices/${inv.id}`}
+              className={inv.status === "overdue" ? "border-l-4 border-l-destructive" : undefined}
+              title={inv.clientName}
+              badge={<span className="font-semibold tabular-nums">{formatAmount(inv.amount)}</span>}
+              subtitle={<span className="font-mono text-xs">{inv.number}</span>}
             >
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {inv.emailStatus && (
-                  <StatusBadge map={outreachEmailStatus} value={inv.emailStatus} />
-                )}
-                {inv.status !== "paid" && inv.status !== "cancelled" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSend(inv.id)}
-                    disabled={sendingId === inv.id}
-                  >
-                    {sendingId === inv.id ? (
-                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Send className="mr-1 h-3.5 w-3.5" />
-                    )}
-                    {inv.emailStatus ? "Odeslat znovu" : "Odeslat"}
-                  </Button>
-                )}
-                {(inv.status === "sent" || inv.status === "overdue") && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="relative"
-                      onClick={() => handleAction(inv.id, "paid")}
-                      disabled={actingId === inv.id}
-                    >
-                      {actingId === inv.id ? (
-                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Check className="mr-1 h-3.5 w-3.5" />
-                      )}
-                      Zaplaceno
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="relative"
-                      onClick={() => handleAction(inv.id, "cancelled")}
-                      disabled={actingId === inv.id}
-                    >
-                      <X className="mr-1 h-3.5 w-3.5" />
-                      Stornovat
-                    </Button>
-                  </>
-                )}
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <div className="space-y-2 text-sm">
+                  <InvoiceStatusCell status={inv.status} emailStatus={inv.emailStatus} />
+                  <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
+                </div>
+                <InvoiceActions invoice={inv} className="relative z-10" />
               </div>
             </EntityCard>
           ))
@@ -279,69 +189,38 @@ export function InvoicesPageClient({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Číslo</TableHead>
-              <TableHead>Klient</TableHead>
-              <TableHead>Částka</TableHead>
-              <TableHead>Vystaveno</TableHead>
-              <TableHead>Splatnost</TableHead>
-              <TableHead>Stav</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead className="w-28">Akce</TableHead>
+              <SortableHead sortKey="client" sort={sort} onSort={toggle}>Klient / číslo</SortableHead>
+              <SortableHead sortKey="amount" sort={sort} onSort={toggle} className="text-right">Částka</SortableHead>
+              <SortableHead sortKey="issued" sort={sort} onSort={toggle}>Vystaveno</SortableHead>
+              <SortableHead sortKey="due" sort={sort} onSort={toggle}>Splatnost</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
+              <TableHead className="text-right">Akce</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">Žádné faktury</TableCell>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">Žádné faktury</TableCell>
               </TableRow>
             ) : (
-              filtered.map((inv) => (
-                <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
-                  <TableCell className="font-mono">
-                    <Link href={`/invoices/${inv.id}`} className="hover:underline">
-                      {inv.number}
+              sorted.map((inv) => (
+                <TableRow key={inv.id} href={`/invoices/${inv.id}`} className={overdueRowClass(inv.status)}>
+                  <TableCell>
+                    <Link href={`/invoices/${inv.id}`} className="font-medium hover:underline">
+                      {inv.clientName}
                     </Link>
+                    <div className="font-mono text-xs text-muted-foreground">{inv.number}</div>
                   </TableCell>
-                  <TableCell>{inv.clientName}</TableCell>
-                  <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
-                  <TableCell>{inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ") : "—"}</TableCell>
-                  <TableCell>{inv.dueAt ? new Date(inv.dueAt).toLocaleDateString("cs-CZ") : "—"}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">{formatAmount(inv.amount)}</TableCell>
+                  <TableCell className="tabular-nums">{formatInvoiceDate(inv.issuedAt)}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariants[inv.status] ?? "secondary"}>
-                      {statusLabels[inv.status] ?? inv.status}
-                    </Badge>
+                    <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
                   </TableCell>
                   <TableCell>
-                    {inv.emailStatus ? (
-                      <StatusBadge map={outreachEmailStatus} value={inv.emailStatus} />
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    <InvoiceStatusCell status={inv.status} emailStatus={inv.emailStatus} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {inv.status !== "paid" && inv.status !== "cancelled" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleSend(inv.id)}
-                          title={inv.emailStatus ? "Odeslat znovu" : "Odeslat"}
-                          disabled={sendingId === inv.id}
-                        >
-                          {sendingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
-                      )}
-                      {(inv.status === "sent" || inv.status === "overdue") && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "paid")} title="Zaplaceno" disabled={actingId === inv.id}>
-                            {actingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleAction(inv.id, "cancelled")} title="Stornovat" disabled={actingId === inv.id}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    <InvoiceActions invoice={inv} />
                   </TableCell>
                 </TableRow>
               ))
