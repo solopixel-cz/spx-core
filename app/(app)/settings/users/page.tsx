@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 import { Plus, UserX, UserCheck, KeyRound, Loader2 } from "lucide-react";
 
 interface UserRow {
@@ -36,6 +38,12 @@ interface UserRow {
   senderEmail?: string;
   senderName?: string;
 }
+
+const roleLabels: Record<UserRow["role"], string> = {
+  member: "Člen",
+  sales: "Obchodník",
+  admin: "Administrátor",
+};
 
 export default function UzivatelePage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -60,6 +68,19 @@ export default function UzivatelePage() {
   }, [fetchUsers]);
 
   useRefresh(fetchUsers);
+
+  // Řazení tabulky (výchozí: jméno A–Z)
+  const { sorted, sort, toggle } = useTableSort(
+    users,
+    {
+      name: (u) => u.displayName,
+      email: (u) => u.email,
+      role: (u) => roleLabels[u.role] ?? u.role,
+      sender: (u) => u.senderEmail || u.email,
+      active: (u) => (u.active ? "Aktivní" : "Neaktivní"),
+    },
+    { key: "name", dir: "asc" },
+  );
 
   async function handleToggleActive(user: UserRow) {
     setActingKey(`${user.id}-toggle`);
@@ -151,16 +172,16 @@ export default function UzivatelePage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Jméno</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Odesílatel</TableHead>
-              <TableHead>Stav</TableHead>
+              <SortableHead sortKey="name" sort={sort} onSort={toggle}>Jméno</SortableHead>
+              <SortableHead sortKey="email" sort={sort} onSort={toggle}>E-mail</SortableHead>
+              <SortableHead sortKey="role" sort={sort} onSort={toggle}>Role</SortableHead>
+              <SortableHead sortKey="sender" sort={sort} onSort={toggle}>Odesílatel</SortableHead>
+              <SortableHead sortKey="active" sort={sort} onSort={toggle}>Stav</SortableHead>
               <TableHead className="w-24">Akce</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {sorted.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">
                   {user.displayName}

@@ -9,6 +9,7 @@ export const clientSchema = z.object({
   kind: clientKindSchema.optional(), // chybí = osoba
   name: z.string().min(1), // osoba: jméno a příjmení; firma: název firmy
   contactName: z.string().optional(), // jen firma: kontaktní osoba
+  greeting: z.string().optional(), // ruční oslovení v 5. pádě (jen oprava automatiky, jinak prázdné)
   company: z.string().optional(), // jen osoba: značka / síť
   ico: z.string().optional(),
   dic: z.string().optional(),
@@ -32,6 +33,7 @@ export const clientFormSchema = z.object({
   kind: clientKindSchema.optional(),
   name: z.string().min(1, "Vyplňte jméno / název"),
   contactName: z.string().optional(),
+  greeting: z.string().max(60).optional(),
   company: z.string().optional(),
   ico: z.string().optional(),
   dic: z.string().optional(),

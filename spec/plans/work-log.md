@@ -2,6 +2,40 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Přehledy klientů (Vizitky, Weby a zakázky, Zájemci) a sloupec HUB
+
+- Stránka Klienti: místo záložek Platící / Neplatící / Všichni přehledy **Vizitky** (vizitka nebo předplatné vizitky), **Weby a zakázky** (web, zakázka nebo jiné předplatné), **Zájemci** (bez služby) a **Vše**. Odvozeno z dat (`hasCard` / `hasOther` v `app/(app)/clients/page.tsx`), klient s obojím je v obou. Výchozí Vizitky, poslední volba se pamatuje (staré hodnoty se ignorují).
+- Sloupce podle přehledu (TanStack `columnVisibility`): Vizitky bez e-mailu a služeb, s Paušálem a HUB; Weby se službami a Paušálem, bez HUB; Zájemci s e-mailem, novými sloupci Obchodník a Založeno a akcí **Založit vizitku**.
+- Stránka Klienti: nový řaditelný sloupec **HUB** (i v mobilních kartách). Pozvaný klient (`hubInvitedAt`) má odznak „HUB“, klient se zapnutými funkcemi bez pozvánky „Nepozván“, vedle odznaky zapnutých funkcí (`hubFeatures`: Statistiky, Reference). Řazení: pozvaní první, pak počet funkcí.
+- Hub neukládá poslední přihlášení, „v HUB“ tedy znamená „dostal pozvánku“. Verze 1.23.0.
+
+## 2026-10-14 — Pozvánka do SoloPixel HUB: aktuální text, bez dlouhých pomlček
+
+- `lib/email-templates/hub-invite.ts`: dlouhé pomlčky v textu (HTML i textová verze, titulek, preheader, podpis) nahrazené čárkou nebo tečkou. Text aktualizovaný podle toho, co hub umí: přehled, fakturace (PDF s QR), statistiky (pokud jsou aktivní), pomoc, přidání na plochu, přihlášení odkazem i kódem; reference zatím nezmiňuje (v hubu „Připravujeme“), jen že funkce budou postupně přibývat. Místo „klientská zóna“ název „SoloPixel HUB“ (e-mail, předmět, nadpis stránky pozvánky, toast, aktivita). Verze 1.22.1.
+
+## 2026-10-14 — Oslovení v 5. pádě v e-mailech
+
+- `personalGreeting()` / `greetingName()` v `lib/marketing/personalize.ts`: křestní jméno v 5. pádě přes knihovnu `czech-vocative` („Jana Nováková“ → „Jano“), u firmy kontaktní osoba. Ruční oprava v novém poli klienta `greeting` (formulář „Oslovení v e-mailech“ s náhledem automatického tvaru).
+- Faktura: „Dobrý den, Jano,“, firma bez kontaktní osoby jen „Dobrý den,“. Pozvánka do hubu, předání vizitky, ruční e-mail, kampaně ({{jmeno}}) a oslovení prospektů předvyplňují 5. pád.
+- Ověřeno na všech klientech (správně kromě „Renturi s.r.o.“ vedené jako osoba). Verze 1.22.0.
+
+## 2026-10-14 — Řazení v tabulkách
+
+- Společný `useTableSort` (`lib/use-table-sort.ts`, čeština přes `Intl.Collator`, prázdné na konec, stabilní) + `SortableHead` / `SortButton` (`components/sortable-head.tsx`). Klienti přes řazení TanStack Table.
+- Výchozí abecedně: Klienti, Kontakty, Moje vizitky, Uživatelé podle jména; Faktury, Tickety, Poptávky, Provize podle klienta; e-mail marketing podle názvu; v detailu klienta domény a faktury. Klik na hlavičku přepíná sloupec a směr, platí i pro mobilní kartičky. Kontakty řadí jen načtené řádky.
+- Verze 1.21.0.
+
+## 2026-10-14 — Smazání omylem založeného předplatného
+
+- `DELETE /api/subscriptions/[id]`: jen admin a jen předplatné bez faktur (jinak 409, zrušit stavem Zrušeno), zaloguje se u klienta. Ve formuláři úpravy předplatného tlačítko Smazat s potvrzením.
+- Verze 1.20.0.
+
+## 2026-10-14 — Archivace vizitek a webů u klienta
+
+- Ve formuláři úpravy instance (`components/clients/instance-form.tsx`) tlačítko **Archivovat**, stejně jako u zakázek: měkké smazání přes `POST /api/archive` (`collection: "instances"`), vrácení z toastu nebo v Nastavení → Archiv, trvalé smazání tam (jen admin, bez vazeb). Backend archivaci instancí uměl už dřív, chybělo jen UI.
+- Archivovaná vizitka zmizí z detailu klienta i z admin náhledu v spx-hub. Navázané předplatné se nemění, je třeba ho ukončit zvlášť.
+- Verze 1.19.0.
+
 ## 2026-10-08 — Zapínání funkcí klientské zóny u klienta
 
 - `clients.hubFeatures` (`stats`, `references`): tým je zapíná přepínači v detailu klienta (skupina „Vizitka a web“, `components/clients/hub-features.tsx`). `PATCH /api/clients/[id]/hub-features`, sales jen u svých klientů, zápis do aktivity. Chybějící hodnota = vypnuto (připraveno na placený doplněk). Hub podle toho funkci ukáže, nebo zobrazí, že není aktivní.

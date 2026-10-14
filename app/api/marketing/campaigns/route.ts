@@ -5,7 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { campaignCreateSchema } from "@/lib/schemas/campaign";
 import { sendTransactionalEmail } from "@/lib/email";
 import { statusOrder } from "@/lib/schemas/email-status";
-import { firstName, greetingName } from "@/lib/marketing/personalize";
+import { firstName, greetingName, vocativeFirstName } from "@/lib/marketing/personalize";
 import { composeMarketingEmail, type CompanyInfo } from "@/lib/marketing/compose";
 
 function serializeTimestamp(val: unknown): string | null {
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
           email,
           greeting:
             doc.ref.parent.id === "prospects"
-              ? firstName((d.name as string) ?? "")
+              ? vocativeFirstName((d.name as string) ?? "")
               : greetingName(d),
         });
       }
