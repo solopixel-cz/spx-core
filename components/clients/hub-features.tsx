@@ -7,7 +7,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HUB_FEATURES, type HubFeature, type HubFeatures } from "@/lib/hub-features";
 
-/** Přepínače funkcí klientské zóny (Statistiky, Reference) u klienta. */
+/** Přepínače funkcí SoloPixel HUB (Statistiky, Reference) u klienta. */
 export function HubFeaturesToggles({ clientId, features }: { clientId: string; features: HubFeatures }) {
   const router = useRouter();
   const [state, setState] = useState(features);
@@ -24,7 +24,7 @@ export function HubFeaturesToggles({ clientId, features }: { clientId: string; f
         body: JSON.stringify({ feature, enabled }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Nepodařilo se uložit");
-      toast.success(`${HUB_FEATURES[feature]} v klientské zóně ${enabled ? "zapnuto" : "vypnuto"}`);
+      toast.success(`${HUB_FEATURES[feature]} v SoloPixel HUB ${enabled ? "zapnuto" : "vypnuto"}`);
       router.refresh();
     } catch (err) {
       setState((s) => ({ ...s, [feature]: !enabled }));

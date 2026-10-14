@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { getAdminAuth } from "@/lib/firebase/admin";
 
 /**
- * Klientská zóna (spx-hub) — samostatná aplikace nad stejným Firebase.
+ * SoloPixel HUB (spx-hub) — samostatná aplikace nad stejným Firebase.
  * Klientský účet = Auth uživatel s claims `{ role: 'client', clientId }`.
  */
 
@@ -10,7 +10,7 @@ export class HubInviteError extends Error {}
 
 function hubUrl(): string {
   const url = process.env.HUB_URL;
-  if (!url) throw new HubInviteError("Chybí HUB_URL (adresa klientské zóny)");
+  if (!url) throw new HubInviteError("Chybí HUB_URL (adresa SoloPixel HUB)");
   return url.replace(/\/+$/, "");
 }
 
@@ -34,7 +34,7 @@ export async function grantHubAccess(email: string, clientId: string): Promise<s
       throw new HubInviteError("E-mail patří účtu z týmu — klienta pozvěte na jiný e-mail");
     }
     if (claims.role === "client" && claims.clientId !== clientId) {
-      throw new HubInviteError("E-mail už má přístup do klientské zóny u jiného klienta");
+      throw new HubInviteError("E-mail už má přístup do SoloPixel HUB u jiného klienta");
     }
     if (existing.disabled) {
       await auth.updateUser(existing.uid, { disabled: false });

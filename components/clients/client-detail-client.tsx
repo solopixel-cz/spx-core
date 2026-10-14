@@ -379,13 +379,13 @@ export function ClientDetailClient({
               {client.hubLastSignInAt ? (
                 <Badge className="border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                   <UserCheck className="h-3 w-3" />
-                  V hubu
+                  V HUB
                 </Badge>
               ) : (
                 client.hubInvitedAt && (
                   <Badge variant="outline">
                     <UserPlus className="h-3 w-3" />
-                    Pozván do hubu
+                    Pozván do HUB
                   </Badge>
                 )
               )}
@@ -455,7 +455,7 @@ export function ClientDetailClient({
                 <p className="flex basis-full items-center gap-1.5 text-xs text-muted-foreground">
                   <UserCheck className="h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Klientská zóna
+                    SoloPixel HUB
                     {client.hubInvitedAt &&
                       ` · pozvánka ${new Date(client.hubInvitedAt).toLocaleDateString("cs-CZ")}`}
                     {client.hubLastSignInAt
@@ -536,10 +536,10 @@ export function ClientDetailClient({
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
-                      <DropdownMenuLabel>Klientská zóna</DropdownMenuLabel>
+                      <DropdownMenuLabel>SoloPixel HUB</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => router.push(`${base}/send/hub`)}>
                         <UserPlus className="mr-2 h-4 w-4" />
-                        {client.hubInvitedAt ? "Poslat pozvánku znovu" : "Pozvat do hubu"}
+                        {client.hubInvitedAt ? "Poslat pozvánku znovu" : "Pozvat do HUB"}
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                   </>
