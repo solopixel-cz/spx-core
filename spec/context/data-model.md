@@ -137,7 +137,7 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 (Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
-Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit.
 
 ```ts
 {

@@ -2,6 +2,11 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Smazání omylem založeného předplatného
+
+- `DELETE /api/subscriptions/[id]`: jen admin a jen předplatné bez faktur (jinak 409, zrušit stavem Zrušeno), zaloguje se u klienta. Ve formuláři úpravy předplatného tlačítko Smazat s potvrzením.
+- Verze 1.20.0.
+
 ## 2026-10-14 — Archivace vizitek a webů u klienta
 
 - Ve formuláři úpravy instance (`components/clients/instance-form.tsx`) tlačítko **Archivovat**, stejně jako u zakázek: měkké smazání přes `POST /api/archive` (`collection: "instances"`), vrácení z toastu nebo v Nastavení → Archiv, trvalé smazání tam (jen admin, bez vazeb). Backend archivaci instancí uměl už dřív, chybělo jen UI.
