@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { clientFormSchema, type ClientFormData } from "@/lib/schemas/client";
+import { vocativeFirstName } from "@/lib/marketing/personalize";
 
 interface ClientFormProps {
   defaultValues?: Partial<ClientFormData> & { id?: string };
@@ -54,6 +55,9 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
   });
 
   const isCompany = watch("kind") === "company";
+  // Automatické oslovení (5. pád) z osoby, kterou e-maily oslovují — náhled v poli Oslovení.
+  const autoGreeting = vocativeFirstName((isCompany ? watch("contactName") : watch("name")) ?? "");
+  const usedGreeting = watch("greeting")?.trim() || autoGreeting;
 
   async function onSubmit(data: ClientFormData) {
     try {
@@ -128,6 +132,18 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
             <Input id="company" placeholder="např. OVB, ZFP" {...register("company")} />
           </div>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="greeting">Oslovení v e-mailech</Label>
+        <Input
+          id="greeting"
+          placeholder={autoGreeting ? `automaticky: ${autoGreeting}` : "automaticky z křestního jména"}
+          {...register("greeting")}
+        />
+        <p className="text-sm text-muted-foreground">
+          E-maily oslovují „{usedGreeting ? `Dobrý den, ${usedGreeting},` : "Dobrý den,"}“. Vyplňte, jen když je automatický tvar špatně (např. cizí jméno).
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

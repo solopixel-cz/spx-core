@@ -17,6 +17,7 @@ import {
   MAX_OUTREACH_REFERENCES,
 } from "@/lib/email-templates/outreach-content";
 import { sanitizeRichHtml, stripHtml } from "@/lib/sanitize-html";
+import { vocativeFirstName } from "@/lib/marketing/personalize";
 
 /** Sanitizace editovatelného obsahu oslovení před uložením do DB. */
 function sanitizeOutreachContent(input: unknown): OutreachContent {
@@ -337,7 +338,7 @@ export async function POST(
       const savedContent = prospectData.outreachContent as Partial<OutreachContent> | undefined;
 
       // Render and send
-      const jmeno = greeting || savedContent?.greeting || prospectData.name.split(" ")[0];
+      const jmeno = greeting || savedContent?.greeting || vocativeFirstName(prospectData.name);
       const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
       const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
       const { html, text } = renderOutreachEmail({
@@ -454,7 +455,7 @@ export async function POST(
       const senderEmail = (userData?.senderEmail as string) || user.email;
 
       // Render and send
-      const jmeno = greeting || prospectData.name.split(" ")[0];
+      const jmeno = greeting || vocativeFirstName(prospectData.name);
       const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
       const renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
       const { html, text } = renderFollowupEmail({ jmeno, odkaz });
@@ -530,7 +531,7 @@ export async function POST(
       const senderPhone = (userData?.phone as string) || undefined;
 
       const savedContent = prospectData.outreachContent as Partial<OutreachContent> | undefined;
-      const jmeno = greeting || savedContent?.greeting || prospectData.name.split(" ")[0];
+      const jmeno = greeting || savedContent?.greeting || vocativeFirstName(prospectData.name);
       const odkaz = prospectData.demoUrl || "https://demo.solopixel.cz";
 
       // Subject dle šablony + prefix [TEST]

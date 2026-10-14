@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Oslovení v 5. pádě v e-mailech
+
+- `personalGreeting()` / `greetingName()` v `lib/marketing/personalize.ts`: křestní jméno v 5. pádě přes knihovnu `czech-vocative` („Jana Nováková“ → „Jano“), u firmy kontaktní osoba. Ruční oprava v novém poli klienta `greeting` (formulář „Oslovení v e-mailech“ s náhledem automatického tvaru).
+- Faktura: „Dobrý den, Jano,“, firma bez kontaktní osoby jen „Dobrý den,“. Pozvánka do hubu, předání vizitky, ruční e-mail, kampaně ({{jmeno}}) a oslovení prospektů předvyplňují 5. pád.
+- Ověřeno na všech klientech (správně kromě „Renturi s.r.o.“ vedené jako osoba). Verze 1.22.0.
+
 ## 2026-10-14 — Řazení v tabulkách
 
 - Společný `useTableSort` (`lib/use-table-sort.ts`, čeština přes `Intl.Collator`, prázdné na konec, stabilní) + `SortableHead` / `SortButton` (`components/sortable-head.tsx`). Klienti přes řazení TanStack Table.

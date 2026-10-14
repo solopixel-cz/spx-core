@@ -59,6 +59,7 @@ export default async function DeliverCardPage({
           kind: data.kind as string | undefined,
           name,
           contactName: data.contactName as string | undefined,
+          greeting: data.greeting as string | undefined,
         })}
         clientEmail={clientEmail}
         instances={instances}

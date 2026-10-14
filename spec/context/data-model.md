@@ -31,6 +31,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   kind?: 'person' | 'company'  // chybí = 'person' (stávající klienti)
   name: string               // osoba: jméno a příjmení; firma: název firmy
   contactName?: string       // jen firma: kontaktní osoba (oslovení v e-mailech)
+  greeting?: string          // ruční oslovení v 5. pádě; jen oprava automatiky (`personalGreeting()` skloňuje křestní jméno knihovnou czech-vocative), jinak prázdné
   company?: string           // jen osoba: značka / síť (OVB, ZFP…); u firmy se nepoužívá
   ico?: string               // odběratel na faktuře
   dic?: string
