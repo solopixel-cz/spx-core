@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Archivace vizitek a webů u klienta
+
+- Ve formuláři úpravy instance (`components/clients/instance-form.tsx`) tlačítko **Archivovat**, stejně jako u zakázek: měkké smazání přes `POST /api/archive` (`collection: "instances"`), vrácení z toastu nebo v Nastavení → Archiv, trvalé smazání tam (jen admin, bez vazeb). Backend archivaci instancí uměl už dřív, chybělo jen UI.
+- Archivovaná vizitka zmizí z detailu klienta i z admin náhledu v spx-hub. Navázané předplatné se nemění, je třeba ho ukončit zvlášť.
+- Verze 1.19.0.
+
 ## 2026-10-08 — Zapínání funkcí klientské zóny u klienta
 
 - `clients.hubFeatures` (`stats`, `references`): tým je zapíná přepínači v detailu klienta (skupina „Vizitka a web“, `components/clients/hub-features.tsx`). `PATCH /api/clients/[id]/hub-features`, sales jen u svých klientů, zápis do aktivity. Chybějící hodnota = vypnuto (připraveno na placený doplněk). Hub podle toho funkci ukáže, nebo zobrazí, že není aktivní.
