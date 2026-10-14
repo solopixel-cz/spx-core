@@ -22,7 +22,7 @@ export default async function HubInvitePage({
       backHref={backHref}
       breadcrumbs={crumbs("Pozvat do hubu")}
       title="Pozvat do SoloPixel HUB"
-      description="Klient dostane přístup do SoloPixel Hub a e-mail s návodem, jak se přihlásit."
+      description="Klient dostane přístup do SoloPixel HUB a e-mail s návodem, jak se přihlásit."
       wide
     >
       <HubInviteForm

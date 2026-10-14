@@ -37,6 +37,7 @@ interface InvoiceData {
   dueAt: string | null;
   paidAt: string | null;
   status: string;
+  emailStatus?: string | null;
 }
 
 interface SubInfo {
@@ -132,7 +133,7 @@ export function ClientInvoicesTab({
                   <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
                 </TableCell>
                 <TableCell>
-                  <InvoiceStatusCell status={inv.status} />
+                  <InvoiceStatusCell status={inv.status} emailStatus={inv.emailStatus} />
                 </TableCell>
                 <TableCell>
                   <InvoiceActions invoice={inv} />
@@ -155,7 +156,7 @@ export function ClientInvoicesTab({
           >
             <div className="mt-3 flex items-end justify-between gap-3">
               <div className="space-y-2 text-sm">
-                <InvoiceStatusCell status={inv.status} />
+                <InvoiceStatusCell status={inv.status} emailStatus={inv.emailStatus} />
                 <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
               </div>
               <InvoiceActions invoice={inv} className="relative z-10" />

@@ -244,8 +244,8 @@ export function InstanceForm({
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            GA4 → Admin → Property details. Bez něj klient v hubu nevidí
-            statistiky. Service account hubu musí mít v property roli Viewer.
+            GA4 → Admin → Property details. Bez něj klient v HUB nevidí
+            statistiky. Service account HUB musí mít v property roli Viewer.
           </p>
         )}
       </div>
