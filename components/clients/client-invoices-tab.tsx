@@ -1,10 +1,6 @@
 "use client";
 
 import { subscriptionLabel } from "@/lib/plans";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
-import { Check, X, Loader2, Plus, Repeat } from "lucide-react";
+import { Plus, Repeat } from "lucide-react";
 import {
   EntityCard,
   EntityCardList,
@@ -23,6 +19,15 @@ import {
 } from "@/components/entity-card";
 import { SortableHead } from "@/components/sortable-head";
 import { useTableSort } from "@/lib/use-table-sort";
+import {
+  InvoiceActions,
+  InvoiceDueCell,
+  InvoiceStatusCell,
+  formatAmount,
+  formatInvoiceDate,
+  invoiceStatusLabels,
+  overdueRowClass,
+} from "@/components/invoices/invoice-ui";
 
 interface InvoiceData {
   id: string;
@@ -43,22 +48,6 @@ interface SubInfo {
   internal?: boolean;
 }
 
-const statusLabels: Record<string, string> = {
-  draft: "Koncept",
-  sent: "Odesláno",
-  paid: "Zaplaceno",
-  overdue: "Po splatnosti",
-  cancelled: "Stornováno",
-};
-
-const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  sent: "secondary",
-  paid: "default",
-  overdue: "destructive",
-  cancelled: "secondary",
-};
-
 export function ClientInvoicesTab({
   invoices,
   clientId,
@@ -70,10 +59,8 @@ export function ClientInvoicesTab({
 }) {
   // Fakturovat jde jen běžící, neinterní předplatné — každé má vlastní tlačítko.
   const billable = subscriptions.filter((s) => !s.internal && s.status !== "cancelled");
-  const router = useRouter();
-  const [actingId, setActingId] = useState<string | null>(null);
 
-  // Řazení tabulky (výchozí: číslo faktury vzestupně)
+  // Řazení tabulky (výchozí: od posledně vystavené faktury)
   const { sorted, sort, toggle } = useTableSort(
     invoices,
     {
@@ -81,9 +68,9 @@ export function ClientInvoicesTab({
       amount: (inv) => inv.amount,
       issuedAt: (inv) => (inv.issuedAt ? new Date(inv.issuedAt) : null),
       dueAt: (inv) => (inv.dueAt ? new Date(inv.dueAt) : null),
-      status: (inv) => statusLabels[inv.status] ?? inv.status,
+      status: (inv) => invoiceStatusLabels[inv.status] ?? inv.status,
     },
-    { key: "number", dir: "asc" },
+    { key: "issuedAt", dir: "desc" },
   );
 
   const actions = (
@@ -111,24 +98,6 @@ export function ClientInvoicesTab({
     </div>
   );
 
-  async function handleAction(invoiceId: string, action: "paid" | "cancelled") {
-    setActingId(invoiceId);
-    try {
-      const res = await fetch(`/api/invoices/${invoiceId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(action === "paid" ? "Faktura zaplacena" : "Faktura stornována");
-      router.refresh();
-    } catch {
-      toast.error("Akce se nezdařila");
-    } finally {
-      setActingId(null);
-    }
-  }
-
   if (invoices.length === 0) {
     return (
       <div className="space-y-3">
@@ -138,72 +107,40 @@ export function ClientInvoicesTab({
     );
   }
 
-  const invoiceActions = (inv: InvoiceData) =>
-    (inv.status === "sent" || inv.status === "overdue") && (
-      <>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => handleAction(inv.id, "paid")}
-          title="Zaplaceno"
-          disabled={actingId === inv.id}
-        >
-          {actingId === inv.id ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => handleAction(inv.id, "cancelled")}
-          title="Stornovat"
-          disabled={actingId === inv.id}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </>
-    );
-
   return (
     <div className="space-y-3">
       {actions}
       <div className="hidden overflow-x-auto rounded-md border md:block">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <SortableHead sortKey="number" sort={sort} onSort={toggle}>Číslo</SortableHead>
-            <SortableHead sortKey="amount" sort={sort} onSort={toggle}>Částka</SortableHead>
-            <SortableHead sortKey="issuedAt" sort={sort} onSort={toggle}>Vystaveno</SortableHead>
-            <SortableHead sortKey="dueAt" sort={sort} onSort={toggle}>Splatnost</SortableHead>
-            <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
-            <TableHead className="w-24">Akce</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((inv) => (
-            <TableRow key={inv.id} href={`/invoices/${inv.id}`}>
-              <TableCell className="font-mono">{inv.number}</TableCell>
-              <TableCell>{inv.amount.toLocaleString("cs-CZ")} Kč</TableCell>
-              <TableCell>
-                {inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ") : "—"}
-              </TableCell>
-              <TableCell>
-                {inv.dueAt ? new Date(inv.dueAt).toLocaleDateString("cs-CZ") : "—"}
-              </TableCell>
-              <TableCell>
-                <Badge variant={statusVariants[inv.status] ?? "secondary"}>
-                  {statusLabels[inv.status] ?? inv.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-1">{invoiceActions(inv)}</div>
-              </TableCell>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <SortableHead sortKey="number" sort={sort} onSort={toggle}>Číslo</SortableHead>
+              <SortableHead sortKey="amount" sort={sort} onSort={toggle} className="text-right">Částka</SortableHead>
+              <SortableHead sortKey="issuedAt" sort={sort} onSort={toggle}>Vystaveno</SortableHead>
+              <SortableHead sortKey="dueAt" sort={sort} onSort={toggle}>Splatnost</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
+              <TableHead className="text-right">Akce</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {sorted.map((inv) => (
+              <TableRow key={inv.id} href={`/invoices/${inv.id}`} className={overdueRowClass(inv.status)}>
+                <TableCell className="font-mono">{inv.number}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{formatAmount(inv.amount)}</TableCell>
+                <TableCell className="tabular-nums">{formatInvoiceDate(inv.issuedAt)}</TableCell>
+                <TableCell>
+                  <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
+                </TableCell>
+                <TableCell>
+                  <InvoiceStatusCell status={inv.status} />
+                </TableCell>
+                <TableCell>
+                  <InvoiceActions invoice={inv} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       <EntityCardList>
@@ -211,43 +148,18 @@ export function ClientInvoicesTab({
           <EntityCard
             key={inv.id}
             href={`/invoices/${inv.id}`}
+            className={inv.status === "overdue" ? "border-l-4 border-l-destructive" : undefined}
             title={<span className="font-mono">{inv.number}</span>}
-            badge={
-              <Badge variant={statusVariants[inv.status] ?? "secondary"}>
-                {statusLabels[inv.status] ?? inv.status}
-              </Badge>
-            }
+            badge={<span className="font-semibold tabular-nums">{formatAmount(inv.amount)}</span>}
+            subtitle={`Vystaveno ${formatInvoiceDate(inv.issuedAt)}`}
           >
-            <dl className="mt-2 space-y-1 text-sm">
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Částka</dt>
-                <dd className="font-medium">
-                  {inv.amount.toLocaleString("cs-CZ")} Kč
-                </dd>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div className="space-y-2 text-sm">
+                <InvoiceStatusCell status={inv.status} />
+                <InvoiceDueCell dueAt={inv.dueAt} status={inv.status} />
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Vystaveno</dt>
-                <dd>
-                  {inv.issuedAt
-                    ? new Date(inv.issuedAt).toLocaleDateString("cs-CZ")
-                    : "—"}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Splatnost</dt>
-                <dd>
-                  {inv.dueAt
-                    ? new Date(inv.dueAt).toLocaleDateString("cs-CZ")
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
-
-            {(inv.status === "sent" || inv.status === "overdue") && (
-              <div className="relative mt-3 flex gap-1">
-                {invoiceActions(inv)}
-              </div>
-            )}
+              <InvoiceActions invoice={inv} className="relative z-10" />
+            </div>
           </EntityCard>
         ))}
       </EntityCardList>
