@@ -31,6 +31,8 @@ import {
   EntityCardList,
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Copy, CreditCard, Save } from "lucide-react";
 
@@ -102,6 +104,23 @@ export function ProvizePageClient({
   if (statusFilter !== "all") {
     filtered = filtered.filter((c) => c.status === statusFilter);
   }
+
+  // Řazení po filtrech (výchozí: klient A–Z)
+  const { sorted, sort, toggle } = useTableSort(
+    filtered,
+    {
+      sales: (c) => c.salesName,
+      client: (c) => c.clientName,
+      invoice: (c) => c.invoiceNumber,
+      base: (c) => c.baseAmount,
+      rate: (c) => c.rate,
+      amount: (c) => c.amount,
+      status: (c) => statusLabels[c.status] ?? c.status,
+      // Sloupec „Zaplaceno dne“ zobrazuje earnedAt
+      date: (c) => (c.earnedAt ? new Date(c.earnedAt) : null),
+    },
+    { key: "client", dir: "asc" },
+  );
 
   // Per-user summary
   const summaryMap = new Map<string, { name: string; rate?: number; pending: number; paidThisYear: number }>();
@@ -348,7 +367,7 @@ export function ProvizePageClient({
         {filtered.length === 0 ? (
           <EntityCardEmpty>Žádné provize</EntityCardEmpty>
         ) : (
-          filtered.map((c) => (
+          sorted.map((c) => (
             <EntityCard
               key={c.id}
               className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}
@@ -399,14 +418,14 @@ export function ProvizePageClient({
                   />
                 )}
               </TableHead>
-              <TableHead>Obchodník</TableHead>
-              <TableHead>Klient</TableHead>
-              <TableHead>Faktura</TableHead>
-              <TableHead className="text-right">Základ</TableHead>
-              <TableHead className="text-right">%</TableHead>
-              <TableHead className="text-right">Provize</TableHead>
-              <TableHead>Stav</TableHead>
-              <TableHead>Zaplaceno dne</TableHead>
+              <SortableHead sortKey="sales" sort={sort} onSort={toggle}>Obchodník</SortableHead>
+              <SortableHead sortKey="client" sort={sort} onSort={toggle}>Klient</SortableHead>
+              <SortableHead sortKey="invoice" sort={sort} onSort={toggle}>Faktura</SortableHead>
+              <SortableHead sortKey="base" sort={sort} onSort={toggle} className="text-right">Základ</SortableHead>
+              <SortableHead sortKey="rate" sort={sort} onSort={toggle} className="text-right">%</SortableHead>
+              <SortableHead sortKey="amount" sort={sort} onSort={toggle} className="text-right">Provize</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
+              <SortableHead sortKey="date" sort={sort} onSort={toggle}>Zaplaceno dne</SortableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -417,7 +436,7 @@ export function ProvizePageClient({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
+              sorted.map((c) => (
                 <TableRow key={c.id} className={c.amount < 0 ? "text-red-600 dark:text-red-400" : ""}>
                   <TableCell>
                     {c.status === "pending" && (

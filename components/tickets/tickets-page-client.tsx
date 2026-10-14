@@ -40,7 +40,10 @@ import {
   ticketPriorityLabels as priorityLabels,
   ticketStatusLabels as statusLabels,
   ticketPriorityVariants as priorityVariants,
+  TICKET_STATUSES,
 } from "@/lib/ticket-labels";
+import { SortableHead } from "@/components/sortable-head";
+import { useTableSort } from "@/lib/use-table-sort";
 
 interface TicketRow {
   id: string;
@@ -58,6 +61,13 @@ interface TicketRow {
 }
 
 interface ClientOption { id: string; name: string }
+
+// Priorita a stav se řadí podle pořadí (nízká → urgentní, otevřený → uzavřený), neznámé na konec.
+const priorityOrder = Object.keys(priorityLabels);
+function rank(order: string[], value: string): number | null {
+  const i = order.indexOf(value);
+  return i === -1 ? null : i;
+}
 
 export function TicketsPageClient({
   tickets,
@@ -85,6 +95,21 @@ export function TicketsPageClient({
     if (clientFilter !== "all" && t.clientId !== clientFilter) return false;
     return true;
   });
+  // Řazení po filtrech; výchozí abecedně podle klienta.
+  const { sorted, sort, toggle } = useTableSort<TicketRow, "type" | "title" | "client" | "priority" | "status" | "age" | "archivedAt">(
+    filtered,
+    {
+      type: (t) => typeLabels[t.type] ?? t.type,
+      title: (t) => t.title,
+      client: (t) => t.clientName,
+      priority: (t) => rank(priorityOrder, t.priority),
+      status: (t) => rank(TICKET_STATUSES, t.status),
+      // Stáří: vzestupně = nejmladší první.
+      age: (t) => (t.createdAt ? -new Date(t.createdAt).getTime() : null),
+      archivedAt: (t) => (t.deletedAt ? new Date(t.deletedAt) : null),
+    },
+    { key: "client", dir: "asc" },
+  );
   const visibleIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const selection = useRowSelection(visibleIds, archived ? "tickets:archive" : "tickets");
 
@@ -158,7 +183,7 @@ export function TicketsPageClient({
         {filtered.length === 0 ? (
           <EntityCardEmpty>{archived ? "Archiv je prázdný" : "Žádné tickety"}</EntityCardEmpty>
         ) : (
-          filtered.map((t) => (
+          sorted.map((t) => (
             <EntityCard
               key={t.id}
               onClick={selection.active ? () => selection.toggle(t.id) : () => openTicket(t.id)}
@@ -192,19 +217,21 @@ export function TicketsPageClient({
                   <SelectAllCheckbox selection={selection} />
                 </TableHead>
               )}
-              <TableHead>Typ</TableHead>
-              <TableHead>Titul</TableHead>
-              <TableHead>Klient</TableHead>
-              <TableHead>Priorita</TableHead>
-              <TableHead>Stav</TableHead>
-              <TableHead>{archived ? "Archivováno" : "Stáří"}</TableHead>
+              <SortableHead sortKey="type" sort={sort} onSort={toggle}>Typ</SortableHead>
+              <SortableHead sortKey="title" sort={sort} onSort={toggle}>Titul</SortableHead>
+              <SortableHead sortKey="client" sort={sort} onSort={toggle}>Klient</SortableHead>
+              <SortableHead sortKey="priority" sort={sort} onSort={toggle}>Priorita</SortableHead>
+              <SortableHead sortKey="status" sort={sort} onSort={toggle}>Stav</SortableHead>
+              <SortableHead sortKey={archived ? "archivedAt" : "age"} sort={sort} onSort={toggle}>
+                {archived ? "Archivováno" : "Stáří"}
+              </SortableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow><TableCell colSpan={canArchive ? 7 : 6} className="text-center text-muted-foreground">Žádné tickety</TableCell></TableRow>
             ) : (
-              filtered.map((t) => (
+              sorted.map((t) => (
                 <TableRow
                   key={t.id}
                   onRowClick={selection.active ? () => selection.toggle(t.id) : () => openTicket(t.id)}

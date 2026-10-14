@@ -9,7 +9,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -19,7 +18,9 @@ import {
   EntityCardEmpty,
   EntityCardList,
 } from "@/components/entity-card";
+import { SortableHead } from "@/components/sortable-head";
 import { formatDateTime } from "@/lib/format";
+import { useTableSort } from "@/lib/use-table-sort";
 import { Plus, FileCode, Users2, BarChart3, Contact, Send } from "lucide-react";
 
 interface TemplateRow {
@@ -112,6 +113,39 @@ export function EmailMarketingClient({
   const searchParams = useSearchParams();
   const [tab, setTab] = useState(searchParams.get("tab") ?? "overview");
 
+  // Řazení tabulek (výchozí: abecedně podle názvu)
+  const campaignSort = useTableSort(
+    campaigns,
+    {
+      name: (c) => c.name,
+      source: (c) => [c.templateName, c.listName].filter(Boolean).join(" → "),
+      sent: (c) => c.sentCount,
+      opened: (c) => c.opened,
+      clicked: (c) => c.clicked,
+      sentAt: (c) => (c.sentAt ? new Date(c.sentAt) : null),
+    },
+    { key: "name", dir: "asc" },
+  );
+  const templateSort = useTableSort(
+    templates,
+    {
+      name: (t) => t.name,
+      subject: (t) => t.subject,
+      updatedAt: (t) => (t.updatedAt ? new Date(t.updatedAt) : null),
+    },
+    { key: "name", dir: "asc" },
+  );
+  const listSort = useTableSort(
+    lists,
+    {
+      name: (l) => l.name,
+      description: (l) => l.description,
+      members: (l) => l.memberCount,
+      updatedAt: (l) => (l.updatedAt ? new Date(l.updatedAt) : null),
+    },
+    { key: "name", dir: "asc" },
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Email marketing" />
@@ -189,7 +223,7 @@ export function EmailMarketingClient({
             {campaigns.length === 0 ? (
               <EntityCardEmpty>Zatím žádné kampaně</EntityCardEmpty>
             ) : (
-              campaigns.map((c) => (
+              campaignSort.sorted.map((c) => (
                 <EntityCard
                   key={c.id}
                   onClick={() => router.push(`/email-marketing/campaigns/${c.id}`)}
@@ -211,12 +245,12 @@ export function EmailMarketingClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kampaň</TableHead>
-                  <TableHead>Šablona → seznam</TableHead>
-                  <TableHead>Odesláno</TableHead>
-                  <TableHead>Otevřeno</TableHead>
-                  <TableHead>Prokliky</TableHead>
-                  <TableHead>Odesláno dne</TableHead>
+                  <SortableHead sortKey="name" sort={campaignSort.sort} onSort={campaignSort.toggle}>Kampaň</SortableHead>
+                  <SortableHead sortKey="source" sort={campaignSort.sort} onSort={campaignSort.toggle}>Šablona → seznam</SortableHead>
+                  <SortableHead sortKey="sent" sort={campaignSort.sort} onSort={campaignSort.toggle}>Odesláno</SortableHead>
+                  <SortableHead sortKey="opened" sort={campaignSort.sort} onSort={campaignSort.toggle}>Otevřeno</SortableHead>
+                  <SortableHead sortKey="clicked" sort={campaignSort.sort} onSort={campaignSort.toggle}>Prokliky</SortableHead>
+                  <SortableHead sortKey="sentAt" sort={campaignSort.sort} onSort={campaignSort.toggle}>Odesláno dne</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -227,7 +261,7 @@ export function EmailMarketingClient({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  campaigns.map((c) => (
+                  campaignSort.sorted.map((c) => (
                     <TableRow key={c.id} href={`/email-marketing/campaigns/${c.id}`}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell className="text-muted-foreground">
@@ -266,7 +300,7 @@ export function EmailMarketingClient({
             {templates.length === 0 ? (
               <EntityCardEmpty>Zatím žádné šablony</EntityCardEmpty>
             ) : (
-              templates.map((t) => (
+              templateSort.sorted.map((t) => (
                 <EntityCard
                   key={t.id}
                   onClick={() => router.push(`/email-marketing/${t.id}`)}
@@ -282,9 +316,9 @@ export function EmailMarketingClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Název</TableHead>
-                  <TableHead>Předmět</TableHead>
-                  <TableHead>Upraveno</TableHead>
+                  <SortableHead sortKey="name" sort={templateSort.sort} onSort={templateSort.toggle}>Název</SortableHead>
+                  <SortableHead sortKey="subject" sort={templateSort.sort} onSort={templateSort.toggle}>Předmět</SortableHead>
+                  <SortableHead sortKey="updatedAt" sort={templateSort.sort} onSort={templateSort.toggle}>Upraveno</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,7 +329,7 @@ export function EmailMarketingClient({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  templates.map((t) => (
+                  templateSort.sorted.map((t) => (
                     <TableRow key={t.id} href={`/email-marketing/${t.id}`}>
                       <TableCell className="font-medium">{t.name}</TableCell>
                       <TableCell className="text-muted-foreground">
@@ -325,7 +359,7 @@ export function EmailMarketingClient({
             {lists.length === 0 ? (
               <EntityCardEmpty>Zatím žádné seznamy</EntityCardEmpty>
             ) : (
-              lists.map((l) => (
+              listSort.sorted.map((l) => (
                 <EntityCard
                   key={l.id}
                   onClick={() => router.push(`/email-marketing/lists/${l.id}`)}
@@ -341,10 +375,10 @@ export function EmailMarketingClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Název</TableHead>
-                  <TableHead>Popis</TableHead>
-                  <TableHead>Kontaktů</TableHead>
-                  <TableHead>Upraveno</TableHead>
+                  <SortableHead sortKey="name" sort={listSort.sort} onSort={listSort.toggle}>Název</SortableHead>
+                  <SortableHead sortKey="description" sort={listSort.sort} onSort={listSort.toggle}>Popis</SortableHead>
+                  <SortableHead sortKey="members" sort={listSort.sort} onSort={listSort.toggle}>Kontaktů</SortableHead>
+                  <SortableHead sortKey="updatedAt" sort={listSort.sort} onSort={listSort.toggle}>Upraveno</SortableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -355,7 +389,7 @@ export function EmailMarketingClient({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  lists.map((l) => (
+                  listSort.sorted.map((l) => (
                     <TableRow key={l.id} href={`/email-marketing/lists/${l.id}`}>
                       <TableCell className="font-medium">{l.name}</TableCell>
                       <TableCell className="text-muted-foreground">

@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Řazení v tabulkách
+
+- Společný `useTableSort` (`lib/use-table-sort.ts`, čeština přes `Intl.Collator`, prázdné na konec, stabilní) + `SortableHead` / `SortButton` (`components/sortable-head.tsx`). Klienti přes řazení TanStack Table.
+- Výchozí abecedně: Klienti, Kontakty, Moje vizitky, Uživatelé podle jména; Faktury, Tickety, Poptávky, Provize podle klienta; e-mail marketing podle názvu; v detailu klienta domény a faktury. Klik na hlavičku přepíná sloupec a směr, platí i pro mobilní kartičky. Kontakty řadí jen načtené řádky.
+- Verze 1.21.0.
+
 ## 2026-10-14 — Smazání omylem založeného předplatného
 
 - `DELETE /api/subscriptions/[id]`: jen admin a jen předplatné bez faktur (jinak 409, zrušit stavem Zrušeno), zaloguje se u klienta. Ve formuláři úpravy předplatného tlačítko Smazat s potvrzením.
