@@ -14,6 +14,7 @@ import {
   type HeaderContext,
   type SortingFn,
   type SortingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Check, Contact, Plus } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -49,6 +50,7 @@ import {
 } from "@/components/bulk-archive-bar";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
 import { formatCurrency } from "@/lib/format";
+import { HUB_FEATURES, type HubFeature } from "@/lib/hub-features";
 import { SortButton } from "@/components/sortable-head";
 import { compareSortValues, type SortValue } from "@/lib/use-table-sort";
 
@@ -68,9 +70,41 @@ export interface ClientRow {
   billing: "paying" | "internal" | "none";
   planLabel: string | null;
   priceMonthly: number | null;
+  /** SoloPixel HUB: dostal pozvánku + zapnuté funkce (`clients.hubFeatures`). */
+  hub: { invited: boolean; features: HubFeature[] };
+  /** Přehledy: má vizitku (instance nebo předplatné vizitky) / web, zakázku či jiné předplatné. */
+  hasCard: boolean;
+  hasOther: boolean;
+  createdAt: string | null;
+  ownerName: string | null;
 }
 
-type Segment = "paying" | "other" | "all";
+/**
+ * Přehledy klientů podle toho, co od nás mají (odvozeno z dat, nic se nevyplňuje):
+ * vizitky, weby a zakázky, zájemci bez služby. Klient s obojím je v obou.
+ */
+type Segment = "cards" | "webs" | "leads" | "all";
+const SEGMENTS: Segment[] = ["cards", "webs", "leads", "all"];
+const segmentLabels: Record<Segment, string> = {
+  cards: "Vizitky",
+  webs: "Weby a zakázky",
+  leads: "Zájemci",
+  all: "Vše",
+};
+function inSegment(c: ClientRow, segment: Segment): boolean {
+  if (segment === "cards") return c.hasCard;
+  if (segment === "webs") return c.hasOther;
+  if (segment === "leads") return !c.hasCard && !c.hasOther;
+  return true;
+}
+
+// Sloupce podle přehledu, ať tabulka ukazuje jen to, co k němu patří.
+const HIDDEN_BY_SEGMENT: Record<Segment, string[]> = {
+  cards: ["email", "services", "owner", "createdAt", "leadAction"],
+  webs: ["email", "hub", "owner", "createdAt", "leadAction"],
+  leads: ["billing", "services", "hub"],
+  all: ["owner", "createdAt", "leadAction"],
+};
 
 const statusLabels: Record<string, string> = {
   onboarding: "Onboarding",
@@ -116,6 +150,34 @@ function BillingCell({ client }: { client: ClientRow }) {
           · {formatCurrency(client.priceMonthly)}/měs
         </span>
       )}
+    </span>
+  );
+}
+
+/**
+ * HUB: odznak „HUB“ u pozvaných, „Nepozván“ u klientů se zapnutými funkcemi
+ * bez pozvánky, a menší odznaky zapnutých funkcí.
+ */
+function HubCell({ hub }: { hub: ClientRow["hub"] }) {
+  if (!hub.invited && hub.features.length === 0)
+    return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {hub.invited ? (
+        <Badge className="gap-1 border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300">
+          <Check className="h-3 w-3" />
+          HUB
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="border-dashed font-normal text-muted-foreground">
+          Nepozván
+        </Badge>
+      )}
+      {hub.features.map((f) => (
+        <Badge key={f} variant="outline" className="font-normal text-muted-foreground">
+          {HUB_FEATURES[f]}
+        </Badge>
+      ))}
     </span>
   );
 }
@@ -230,6 +292,13 @@ const dataColumns = [
     cell: (info) => <BillingCell client={info.row.original} />,
     enableGlobalFilter: false,
   }),
+  // Pozvaní první, pak podle počtu zapnutých funkcí.
+  columnHelper.accessor((r) => (r.hub.invited ? 10 : 0) + r.hub.features.length, {
+    id: "hub",
+    header: sortHeader("HUB"),
+    enableGlobalFilter: false,
+    cell: (info) => <HubCell hub={info.row.original.hub} />,
+  }),
   // Řadí se podle počtu služeb celkem.
   columnHelper.accessor((r) => r.services.cards + r.services.webs + r.services.projects, {
     id: "services",
@@ -247,6 +316,41 @@ const dataColumns = [
       if (!val) return "—";
       return new Date(val).toLocaleDateString("cs-CZ");
     },
+  }),
+  columnHelper.accessor((r) => r.ownerName ?? undefined, {
+    id: "owner",
+    header: sortHeader("Obchodník"),
+    sortingFn: czSort,
+    sortUndefined: "last",
+    enableGlobalFilter: false,
+    cell: (info) => info.getValue() ?? <span className="text-muted-foreground">—</span>,
+  }),
+  columnHelper.accessor((r) => r.createdAt ?? undefined, {
+    id: "createdAt",
+    header: sortHeader("Založeno"),
+    sortingFn: timeSort,
+    sortUndefined: "last",
+    enableGlobalFilter: false,
+    cell: (info) => {
+      const val = info.getValue();
+      return val ? new Date(val).toLocaleDateString("cs-CZ") : "—";
+    },
+  }),
+  // Zájemce → rovnou založit vizitku (pak sám přejde do přehledu Vizitky).
+  columnHelper.display({
+    id: "leadAction",
+    header: () => null,
+    cell: (info) => (
+      <Button
+        size="sm"
+        variant="outline"
+        nativeButton={false}
+        render={<Link href={`/clients/${info.row.original.id}/instances/new`} />}
+      >
+        <Contact className="mr-1.5 h-3.5 w-3.5" />
+        Založit vizitku
+      </Button>
+    ),
   }),
 ];
 
@@ -278,7 +382,7 @@ export function ClientsPageClient({
   const [clients, setClients] = useState(initialClients);
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [segment, setSegment] = useState<Segment>("paying");
+  const [segment, setSegment] = useState<Segment>("cards");
   const [kindFilter, setKindFilter] = useState<"all" | "person" | "company">("all");
   // Výchozí abecedně podle jména; archiv drží pořadí ze serveru (podle data archivace).
   const [sorting, setSorting] = useState<SortingState>(
@@ -308,7 +412,8 @@ export function ClientsPageClient({
         if (saved.status && saved.status !== "all") {
           setColumnFilters([{ id: "status", value: saved.status }]);
         }
-        if (saved.segment) setSegment(saved.segment);
+        // Starší uložené hodnoty (platící / neplatící) ignorovat.
+        if (saved.segment && SEGMENTS.includes(saved.segment)) setSegment(saved.segment);
         if (saved.kind) setKindFilter(saved.kind);
       }
     } catch {
@@ -339,15 +444,20 @@ export function ClientsPageClient({
     [clients, kindFilter],
   );
 
-  const payingCount = kindFiltered.filter((c) => c.billing === "paying").length;
-  const segmentData = useMemo(
+  const segmentCounts = useMemo(
     () =>
-      archived || segment === "all"
-        ? kindFiltered
-        : kindFiltered.filter(
-            (c) => (c.billing === "paying") === (segment === "paying"),
-          ),
-    [kindFiltered, segment, archived],
+      Object.fromEntries(
+        SEGMENTS.map((s) => [s, kindFiltered.filter((c) => inSegment(c, s)).length]),
+      ) as Record<Segment, number>,
+    [kindFiltered],
+  );
+  const activeSegment: Segment = archived ? "all" : segment;
+  const segmentData = useMemo(
+    () => kindFiltered.filter((c) => inSegment(c, activeSegment)),
+    [kindFiltered, activeSegment],
+  );
+  const columnVisibility: VisibilityState = Object.fromEntries(
+    HIDDEN_BY_SEGMENT[activeSegment].map((id) => [id, false]),
   );
 
   const baseColumns = archived
@@ -369,7 +479,7 @@ export function ClientsPageClient({
   const table = useReactTable({
     data: segmentData,
     columns,
-    state: { globalFilter, columnFilters, sorting },
+    state: { globalFilter, columnFilters, sorting, columnVisibility },
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
@@ -413,11 +523,11 @@ export function ClientsPageClient({
       {!archived && (
         <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
           <TabsList>
-            <TabsTrigger value="paying">Platící ({payingCount})</TabsTrigger>
-            <TabsTrigger value="other">
-              Neplatící ({kindFiltered.length - payingCount})
-            </TabsTrigger>
-            <TabsTrigger value="all">Všichni ({kindFiltered.length})</TabsTrigger>
+            {SEGMENTS.map((s) => (
+              <TabsTrigger key={s} value={s}>
+                {segmentLabels[s]} ({segmentCounts[s]})
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
       )}
@@ -512,6 +622,7 @@ export function ClientsPageClient({
                   <>
                     {c.billing !== "none" && <BillingCell client={c} />}
                     <ServicesCell services={c.services} />
+                    {(c.hub.invited || c.hub.features.length > 0) && <HubCell hub={c.hub} />}
                     {c.updatedAt && (
                       <span>
                         {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}

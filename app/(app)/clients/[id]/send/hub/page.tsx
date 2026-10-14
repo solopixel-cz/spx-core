@@ -21,7 +21,7 @@ export default async function HubInvitePage({
     <FormPage
       backHref={backHref}
       breadcrumbs={crumbs("Pozvat do hubu")}
-      title="Pozvat do klientské zóny"
+      title="Pozvat do SoloPixel HUB"
       description="Klient dostane přístup do SoloPixel Hub a e-mail s návodem, jak se přihlásit."
       wide
     >

@@ -2,6 +2,17 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-14 — Přehledy klientů (Vizitky, Weby a zakázky, Zájemci) a sloupec HUB
+
+- Stránka Klienti: místo záložek Platící / Neplatící / Všichni přehledy **Vizitky** (vizitka nebo předplatné vizitky), **Weby a zakázky** (web, zakázka nebo jiné předplatné), **Zájemci** (bez služby) a **Vše**. Odvozeno z dat (`hasCard` / `hasOther` v `app/(app)/clients/page.tsx`), klient s obojím je v obou. Výchozí Vizitky, poslední volba se pamatuje (staré hodnoty se ignorují).
+- Sloupce podle přehledu (TanStack `columnVisibility`): Vizitky bez e-mailu a služeb, s Paušálem a HUB; Weby se službami a Paušálem, bez HUB; Zájemci s e-mailem, novými sloupci Obchodník a Založeno a akcí **Založit vizitku**.
+- Stránka Klienti: nový řaditelný sloupec **HUB** (i v mobilních kartách). Pozvaný klient (`hubInvitedAt`) má odznak „HUB“, klient se zapnutými funkcemi bez pozvánky „Nepozván“, vedle odznaky zapnutých funkcí (`hubFeatures`: Statistiky, Reference). Řazení: pozvaní první, pak počet funkcí.
+- Hub neukládá poslední přihlášení, „v HUB“ tedy znamená „dostal pozvánku“. Verze 1.23.0.
+
+## 2026-10-14 — Pozvánka do SoloPixel HUB: aktuální text, bez dlouhých pomlček
+
+- `lib/email-templates/hub-invite.ts`: dlouhé pomlčky v textu (HTML i textová verze, titulek, preheader, podpis) nahrazené čárkou nebo tečkou. Text aktualizovaný podle toho, co hub umí: přehled, fakturace (PDF s QR), statistiky (pokud jsou aktivní), pomoc, přidání na plochu, přihlášení odkazem i kódem; reference zatím nezmiňuje (v hubu „Připravujeme“), jen že funkce budou postupně přibývat. Místo „klientská zóna“ název „SoloPixel HUB“ (e-mail, předmět, nadpis stránky pozvánky, toast, aktivita). Verze 1.22.1.
+
 ## 2026-10-14 — Oslovení v 5. pádě v e-mailech
 
 - `personalGreeting()` / `greetingName()` v `lib/marketing/personalize.ts`: křestní jméno v 5. pádě přes knihovnu `czech-vocative` („Jana Nováková“ → „Jano“), u firmy kontaktní osoba. Ruční oprava v novém poli klienta `greeting` (formulář „Oslovení v e-mailech“ s náhledem automatického tvaru).
