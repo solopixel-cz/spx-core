@@ -51,6 +51,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   hubInvitedBy?: string      // uid, kdo pozvánku poslal
   hubFeatures?: {            // funkce klientské zóny zapnuté týmem (budoucí placený doplněk); chybí = vypnuto
     stats?: boolean          // Statistiky návštěv vizitky (GA4)
+    statsPlus?: boolean      // Rozšířené statistiky (placený doplněk, zadání #22); platí jen se stats, vypnutí stats vypne i statsPlus
     references?: boolean     // Reference (sběr a zveřejnění)
   }
 }

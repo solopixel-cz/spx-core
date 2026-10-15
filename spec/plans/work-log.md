@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
+
+- Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.
+- `lib/hub-features.ts`: nová funkce `statsPlus` „Rozšířené statistiky“ (chybí = vypnuto), `hubFeaturesFrom` čte všechny funkce z `HUB_FEATURES`. Závislost `HUB_FEATURE_REQUIRES` (`statsPlus` → `stats`) a `hubFeatureDependents`.
+- API `PATCH /api/clients/[id]/hub-features`: zapnutí Rozšířených statistik bez Statistik vrátí 409 s upozorněním; vypnutí Statistik vypne i Rozšířené statistiky (jeden zápis, jedna aktivita „Statistiky a Rozšířené statistiky vypnuto“).
+- Detail klienta: třetí přepínač mezi Statistikami a Referencemi; bez Statistik je zašedlý a klik ukáže upozornění. Seznam klientů ukáže odznak automaticky.
+- Pravidla databáze beze změny (pole v `clients`, čte server). Data model doplněn. Verze 1.27.0 (1.26.0 je ve větvi `feat/cena-start-349`; kdo se mergne druhý, srovná `package.json`).
+- Lint a build čisté. V prohlížeči neověřeno: přepnutí by zapisovalo do ostrého Firestore, ověří Lukáš na preview.
+
 ## 2026-10-14 — Přehledy klientů (Vizitky, Weby a zakázky, Zájemci) a sloupec HUB
 
 - Stránka Klienti: místo záložek Platící / Neplatící / Všichni přehledy **Vizitky** (vizitka nebo předplatné vizitky), **Weby a zakázky** (web, zakázka nebo jiné předplatné), **Zájemci** (bez služby) a **Vše**. Odvozeno z dat (`hasCard` / `hasOther` v `app/(app)/clients/page.tsx`), klient s obojím je v obou. Výchozí Vizitky, poslední volba se pamatuje (staré hodnoty se ignorují).
