@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-15 — Cena Start (Základní) 349 Kč
+
+- Výchozí cena tarifu Základní (na webu Start) v `lib/plans.ts` 399 → **349 Kč**, aby mezi tarify byl vždy rozdíl 200 Kč (349 → 549 → 749). Pokyn Lukáše 15. 10.
+- Jen předvyplněná cena nového předplatného. Stávající předplatná a faktury beze změny (klienti si nechávají 399 Kč, rozhodl Lukáš). Bez migrace dat.
+- Verze 1.26.0. Větev `feat/cena-start-349` z `origin/devel`. Web (spx-web `feat/web-redesign`) má cenu taky.
+
 ## 2026-10-14 — Přehledy klientů (Vizitky, Weby a zakázky, Zájemci) a sloupec HUB
 
 - Stránka Klienti: místo záložek Platící / Neplatící / Všichni přehledy **Vizitky** (vizitka nebo předplatné vizitky), **Weby a zakázky** (web, zakázka nebo jiné předplatné), **Zájemci** (bez služby) a **Vše**. Odvozeno z dat (`hasCard` / `hasOther` v `app/(app)/clients/page.tsx`), klient s obojím je v obou. Výchozí Vizitky, poslední volba se pamatuje (staré hodnoty se ignorují).
