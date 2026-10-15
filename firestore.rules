@@ -217,5 +217,22 @@ service cloud.firestore {
       allow read: if isTeam();
       allow update, delete: if false;
     }
+
+    // Reference v klientské zóně (spx-hub): projekty referencí vizitek, samotné
+    // reference a audit. Čte i zapisuje výhradně spx-hub přes Admin SDK (veřejný
+    // formulář i správa jdou přes jeho route handlery), klientský SDK nic.
+    match /hubProjects/{slug} {
+      allow read, write: if false;
+    }
+    match /hubReferences/{referenceId} {
+      allow read, write: if false;
+    }
+    match /hubAuditLog/{entryId} {
+      allow read, write: if false;
+    }
+    // Žádosti o referenci e-mailem (osobní jednorázové odkazy, e-maily zákazníků).
+    match /hubInvites/{token} {
+      allow read, write: if false;
+    }
   }
 }
