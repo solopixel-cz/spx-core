@@ -4,9 +4,10 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
-import { HUB_FEATURES, isHubFeature } from "@/lib/hub-features";
+import { HUB_FEATURES, HUB_FEATURE_REQUIRES, hubFeatureDependents, hubFeaturesFrom, isHubFeature } from "@/lib/hub-features";
 
-// PATCH /api/clients/[id]/hub-features — { feature: 'stats' | 'references', enabled: boolean }
+// PATCH /api/clients/[id]/hub-features — { feature: 'stats' | 'statsPlus' | 'references', enabled: boolean }
+// Rozšířené statistiky jdou zapnout jen se Statistikami; vypnutí Statistik vypne i je.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth();
@@ -28,21 +29,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
     }
 
+    const current = hubFeaturesFrom(data);
+    const required = HUB_FEATURE_REQUIRES[feature];
+    if (enabled && required && !current[required]) {
+      return NextResponse.json(
+        { error: `Nejdřív zapněte ${HUB_FEATURES[required]}, ${HUB_FEATURES[feature]} na ně navazují.` },
+        { status: 409 }
+      );
+    }
+    // Vypnutí funkce zhasne i ty, které na ní stojí.
+    const alsoOff = enabled ? [] : hubFeatureDependents(feature).filter((f) => current[f]);
+
     await ref.update({
       [`hubFeatures.${feature}`]: enabled,
+      ...Object.fromEntries(alsoOff.map((f) => [`hubFeatures.${f}`, false])),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
+    const changed = [feature, ...alsoOff].map((f) => HUB_FEATURES[f]).join(" a ");
     await logActivity({
       entityType: "client",
       entityId: id,
       kind: "system",
-      text: `SoloPixel HUB: ${HUB_FEATURES[feature]} ${enabled ? "zapnuto" : "vypnuto"}`,
+      text: `SoloPixel HUB: ${changed} ${enabled ? "zapnuto" : "vypnuto"}`,
       actorUid: user.uid,
     });
 
     revalidatePath(`/clients/${id}`);
-    return NextResponse.json({ status: "ok" });
+    return NextResponse.json({ status: "ok", alsoOff });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
