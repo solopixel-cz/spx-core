@@ -719,13 +719,15 @@ Průvodce v hubu („Jak z vizitky vytěžit maximum“): herní checklist „Na
   }>
   level?: number                       // nejvyšší dosažená úroveň 1–3 (Nastaveno, Sdíleno, Naplno), neklesá
   levelAt?: Timestamp
+  introSeenAt?: Timestamp              // uvítací okno viděno (jednou za život účtu, nepřepisuje se)
   counters?: {
     open?: number                       // otevření stránky Průvodce (guide_open)
-    openFrom?: Record<'header' | 'bubble' | 'dashboard' | 'references' | 'stats', number>
+    openFrom?: Record<'header' | 'bubble' | 'intro' | 'dashboard' | 'references' | 'stats', number>
     section?: Record<SectionId, number> // rozbalení sekce (guide_section_open)
     copy?: Record<TemplateId, number>   // zkopírování / sdílení šablony (guide_copy)
     check?: Record<TaskId, { manual?: number; auto?: number }>   // odškrtnutí úkolu (guide_check)
     level?: Record<'1' | '2' | '3', number>                     // dosažení úrovně (guide_level)
+    intro?: { shown?: number; cta?: number; later?: number }    // uvítací okno (guide_intro_*)
   }
   lastOpenAt?: Timestamp
   updatedAt: Timestamp
