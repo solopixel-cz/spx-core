@@ -1,5 +1,5 @@
 export const PLANS = {
-  basic: { label: "Základní", defaultPrice: 399 },
+  basic: { label: "Základní", defaultPrice: 349 },
   pro: { label: "Pro růst", defaultPrice: 549 },
 } as const;
 

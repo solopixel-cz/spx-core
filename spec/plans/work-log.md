@@ -8,8 +8,14 @@ Nejnovější záznamy nahoře.
 - `lib/hub-features.ts`: nová funkce `statsPlus` „Rozšířené statistiky“ (chybí = vypnuto), `hubFeaturesFrom` čte všechny funkce z `HUB_FEATURES`. Závislost `HUB_FEATURE_REQUIRES` (`statsPlus` → `stats`) a `hubFeatureDependents`.
 - API `PATCH /api/clients/[id]/hub-features`: zapnutí Rozšířených statistik bez Statistik vrátí 409 s upozorněním; vypnutí Statistik vypne i Rozšířené statistiky (jeden zápis, jedna aktivita „Statistiky a Rozšířené statistiky vypnuto“).
 - Detail klienta: třetí přepínač mezi Statistikami a Referencemi; bez Statistik je zašedlý a klik ukáže upozornění. Seznam klientů ukáže odznak automaticky.
-- Pravidla databáze beze změny (pole v `clients`, čte server). Data model doplněn. Verze 1.27.0 (1.26.0 je ve větvi `feat/cena-start-349`; kdo se mergne druhý, srovná `package.json`).
+- Pravidla databáze beze změny (pole v `clients`, čte server). Data model doplněn. Verze 1.27.0 (navazuje na 1.26.0 z `feat/cena-start-349`).
 - Lint a build čisté. V prohlížeči neověřeno: přepnutí by zapisovalo do ostrého Firestore, ověří Lukáš na preview.
+
+## 2026-10-15 — Cena Start (Základní) 349 Kč
+
+- Výchozí cena tarifu Základní (na webu Start) v `lib/plans.ts` 399 → **349 Kč**, aby mezi tarify byl vždy rozdíl 200 Kč (349 → 549 → 749). Pokyn Lukáše 15. 10.
+- Jen předvyplněná cena nového předplatného. Stávající předplatná a faktury beze změny (klienti si nechávají 399 Kč, rozhodl Lukáš). Bez migrace dat.
+- Verze 1.26.0. Větev `feat/cena-start-349` z `origin/devel`. Web (spx-web `feat/web-redesign`) má cenu taky.
 
 ## 2026-10-14 — Přehledy klientů (Vizitky, Weby a zakázky, Zájemci) a sloupec HUB
 
