@@ -687,15 +687,20 @@ Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
 ```
 
 ### `hubAuditLog` (spx-hub)
-Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admin SDK.
+Kdo, kdy a co udělal s referencemi a projekty referencí, a s checklistem Průvodce. Jen zápis přes Admin SDK.
 
 ```ts
 // hubAuditLog/{autoId}
 {
-  projectSlug: string
+  projectSlug: string        // u akcí guide.* místo něj clientId (průvodce patří klientovi)
+  clientId?: string          // jen guide.*
+  task?: string              // guide.task_*: id úkolu
+  source?: 'manual' | 'auto' // guide.task_*: ručně / automaticky podle akce v hubu
+  level?: number             // guide.level: dosažená úroveň 1–3
   referenceId?: string
   action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
         | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
+        | 'guide.task_done' | 'guide.task_undone' | 'guide.level'
   actorEmail?: string        // prázdné = zákazník přes veřejný formulář
   actorRole: 'admin' | 'client' | 'public' | 'script'
   at: Timestamp
@@ -703,23 +708,31 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
 ```
 
 ### `hubGuide` (spx-hub)
-Průvodce v hubu („Jak z vizitky vytěžit maximum“): odškrtnuté kroky checklistu „Prvních 7 dní“ a počítadla, které části průvodce klient používá (hub nemá vlastní GA4). Jeden dokument na klienta, zapisuje jen klient sám (`POST /api/guide`), ne demo účet ani admin v náhledu. Jen Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+Průvodce v hubu („Jak z vizitky vytěžit maximum“): herní checklist „Nastavte si vizitku“ (7 úkolů ve 3 úrovních) a počítadla, které části průvodce klient používá (hub nemá vlastní GA4). Jeden dokument na klienta. Zapisuje jen klient sám: ručně přes `POST /api/guide`, automaticky podle akcí v hubu (HUB z plochy, stažený QR kód, první žádost / odkaz na referenci, otevřené Statistiky). Demo účet ani admin v náhledu nic nezapisují. Jen Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
 
 ```ts
 // hubGuide/{clientId}
 {
-  checklist?: Record<StepId, true>     // hotové kroky; zrušené odškrtnutí pole smaže
+  tasks?: Record<TaskId, {             // hotové úkoly; vrácení ručního úkolu pole smaže
+    source: 'manual' | 'auto'          // ručně (Hotovo), nebo automaticky podle akce
+    at: Timestamp
+  }>
+  level?: number                       // nejvyšší dosažená úroveň 1–3 (Nastaveno, Sdíleno, Naplno), neklesá
+  levelAt?: Timestamp
   counters?: {
     open?: number                       // otevření stránky Průvodce (guide_open)
+    openFrom?: Record<'header' | 'bubble' | 'dashboard' | 'references' | 'stats', number>
     section?: Record<SectionId, number> // rozbalení sekce (guide_section_open)
     copy?: Record<TemplateId, number>   // zkopírování / sdílení šablony (guide_copy)
-    check?: Record<StepId, number>      // odškrtnutí kroku (guide_check)
+    check?: Record<TaskId, { manual?: number; auto?: number }>   // odškrtnutí úkolu (guide_check)
+    level?: Record<'1' | '2' | '3', number>                     // dosažení úrovně (guide_level)
   }
   lastOpenAt?: Timestamp
   updatedAt: Timestamp
+  // checklist: pole z první verze průvodce (nenasazená), hub ho ignoruje
 }
 ```
-Id kroků, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `podpis`, `reference`, `po-schuzce`); server přijme jen známá id.
+Id úkolů, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `kontrola`, `qr`, `reference`, `po-schuzce`); server přijme jen známá id. Úkoly vázané na funkci (`reference` → Reference, `statistiky` → Statistiky) se klientovi bez funkce nepočítají do postupu.
 
 ## Security rules — principy
 

@@ -7,6 +7,7 @@ Nejnovější záznamy nahoře.
 - Zadání spx-hub `spec/assign/zadani-hub-pruvodce.md` (tabule #18). Průvodce sám je ve spx-hub (`feat/pruvodce`, 1.20.0, podrobnosti v `spec/pruvodce-progress.md` hubu).
 - Data model: nová kolekce `hubGuide/{clientId}` (checklist „Prvních 7 dní“ a počítadla používání průvodce), jen Admin SDK. Rules beze změny, kolekce spadá pod výchozí zákaz jako `hubLoginCodes`; doplněna do výčtu zakázaných kolekcí hubu.
 - Jen dokumentace, verze se nemění. Větev `docs/hub-pruvodce` z `origin/devel`.
+- Verze 2 průvodce (spx-hub 1.21.0): `hubGuide` místo `checklist` nese `tasks` (zdroj ručně / automaticky), `level` a počítadla `openFrom`, `check.<úkol>.<zdroj>`, `level`. `hubAuditLog` má nové akce `guide.task_done`, `guide.task_undone`, `guide.level` s `clientId` místo `projectSlug`.
 
 ## 2026-10-15 — Cena Start (Základní) 349 Kč
 
