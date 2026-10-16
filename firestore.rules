@@ -234,5 +234,19 @@ service cloud.firestore {
     match /hubInvites/{token} {
       allow read, write: if false;
     }
+    // Ověřování referencí (e-maily autorů, otisky zařízení, signály, jednorázové
+    // odkazy). Jen spx-hub přes Admin SDK, nikdy klientský SDK.
+    match /hubReferenceChecks/{referenceId} {
+      allow read, write: if false;
+    }
+    match /hubReferenceIndex/{referenceId} {
+      allow read, write: if false;
+    }
+    match /hubTrustTokens/{tokenHash} {
+      allow read, write: if false;
+    }
+    match /hubAdvisorDevices/{deviceId} {
+      allow read, write: if false;
+    }
   }
 }

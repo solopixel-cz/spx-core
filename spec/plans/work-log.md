@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-16: Důvěra referencí (#23), rules a datový model pro spx-hub
+
+- `firestore.rules`: čtyři nové kolekce spx-hub `hubReferenceChecks`, `hubReferenceIndex`, `hubTrustTokens` a `hubAdvisorDevices`, všechny `if false` (jen Admin SDK hubu). Po merge nasadit `firebase deploy --only firestore`.
+- `spec/context/data-model.md`: nové kolekce.
+  - `hubReferences` má nově `trustLevel`, `contentHash` a `hiddenBy`.
+  - `hubProjects` má `trust` (vypnutý pevný odkaz, pozastavené zveřejňování).
+  - `hubInvites` má `senderDevice` a `bouncedAt`.
+  - `hubAuditLog` má nové akce a pole.
+- Hlavní část je ve spx-hub (`feat/reference-duvera`, 1.19.0, `spec/reference-duvera-progress.md`), štítek Ověřeno ve spx-dbc. Verze core se nemění (jen rules a dokumentace).
+
 ## 2026-10-15 — Cena Start (Základní) 349 Kč
 
 - Výchozí cena tarifu Základní (na webu Start) v `lib/plans.ts` 399 → **349 Kč**, aby mezi tarify byl vždy rozdíl 200 Kč (349 → 549 → 749). Pokyn Lukáše 15. 10.

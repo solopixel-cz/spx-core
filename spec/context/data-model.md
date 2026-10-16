@@ -634,7 +634,11 @@ Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu 
     nameFormat: 'short' | 'full'   // zobrazení jména na vizitce ("Jana N." / celé)
     serviceTypes: string[]         // nabídka pole „Typ služby" ve formuláři
   }
-  createdAt: Timestamp
+  trust?: {                  // opatření z ověřování referencí, po uplynutí se samo obnoví (cron pole smaže)
+    formPausedUntil?: Timestamp     // pevný odkaz / QR nepřijímá reference (>30 % Zadržených+Stažených za 90 dní, aspoň 3)
+    publishPausedUntil?: Timestamp  // zveřejňování pozastavené (2 stažené za 90 dní)
+  }
+  createdAt: Timestamp       // zároveň „zapnutí funkce“ pro signál nával
   updatedAt: Timestamp
 }
 ```
@@ -658,11 +662,67 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
   publishedAt?: Timestamp
   publishedBy?: string       // e-mail toho, kdo zveřejnil
   publishSource?: 'manual'   // později 'auto'
+  hiddenBy?: 'trust'         // skryto automaticky (Zadržená / Stažená)
+  contentHash: string        // SHA-256 obsahu při uložení; neshoda → reference nejde do veřejného API
+  trustLevel: 'pending' | 'verified' | 'unverified' | 'held' | 'withdrawn'   // chybí = starší reference, cron doplní
+  trustLevelAt?: Timestamp
   createdAt: Timestamp
   updatedAt: Timestamp
 }
 ```
-Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
+Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu. Úroveň určuje jen automat (spx-hub `lib/trust.ts`): Ověřená = pozvánka nebo potvrzený e-mail a žádná červená; Zadržená (`held`) a Stažená nejdou zveřejnit. Veřejné API vrací jen `verified: boolean`.
+
+### `hubReferenceChecks` (spx-hub)
+Interní stav ověřování jedné reference (ID = ID reference). Nikdy nejde ven, poradce vidí jen `trustLevel`. Jen Admin SDK.
+
+```ts
+// hubReferenceChecks/{referenceId}
+{
+  referenceId: string
+  projectSlug: string
+  email?: string             // e-mail autora (pozvánka / nepovinný z formuláře), malá písmena
+  emailKey?: string          // bez +štítku, Gmail bez teček (duplicitní autor)
+  emailSource?: 'invite' | 'form'
+  inviteId?: string
+  device?: string            // HMAC otisk sítě + rodiny prohlížeče a systému; smaže se po 90 dnech
+  fpPurgeAt?: Timestamp
+  fillMs?: number            // doba vyplnění formuláře (-1 = podpis času chybí)
+  signals: { [signal: string]: Timestamp }   // invite, email_confirmed, author_yes, advisor_email, duplicate_author,
+                                            // advisor_device, similar_text, disposable_email, no_mx, too_fast, burst, author_no, bounced
+  clearedAt?: Timestamp      // potvrzení z jiného zařízení než poradce (smaže advisor_device, similar_text)
+  level: string; levelAt?: Timestamp
+  legacy?: true              // reference z doby před ověřováním (bez otisků, bez zpětného dotazu)
+  verifyRequestedAt?: Timestamp   // „Požádat autora o ověření“ (nejvýš 1× za 24 h)
+  feedbackDueAt?: Timestamp       // zpětný dotaz 3 dny po zveřejnění (cron)
+  feedbackSentAt?: Timestamp; feedbackAnswer?: 'yes' | 'no'; feedbackAnsweredAt?: Timestamp
+  referenceDeletedAt?: Timestamp; purgeAt?: Timestamp   // e-mail max. 12 měsíců po smazání reference
+  createdAt: Timestamp
+}
+```
+
+### `hubReferenceIndex` (spx-hub)
+Otisky textu pro podobnost referencí (FNV-1a 5znakových shingles normalizovaného textu). Porovnává se s posledními 500, drží se posledních 1000; smaže se se smazáním reference. Jen Admin SDK.
+
+```ts
+// hubReferenceIndex/{referenceId}
+{ projectSlug: string; shingles: number[]; createdAt: Timestamp }
+```
+
+### `hubTrustTokens` (spx-hub)
+Jednorázové odkazy z e-mailů autorovi: potvrzení e-mailu `/v/{token}` (30 dní) a zpětný dotaz `/o/{token}` (60 dní). Ukládá se jen otisk tokenu. Jen Admin SDK.
+
+```ts
+// hubTrustTokens/{sha256("trust:" + token)}
+{ kind: 'confirm' | 'feedback'; referenceId: string; createdAt: Timestamp; expiresAt: Timestamp; usedAt?: Timestamp; answer?: 'yes' | 'no' }
+```
+
+### `hubAdvisorDevices` (spx-hub)
+Otisky poradcových přihlášení do hubu (při přihlášení a načtení aplikace, nejvýš 1× za 6 h; admin ani demo ne). Signál „stejné zařízení / síť jako poradce“. Mažou se po 90 dnech. Jen Admin SDK.
+
+```ts
+// hubAdvisorDevices/{sha256(clientId + ":" + fingerprint).slice(0, 40)}
+{ clientId: string; fingerprint: string; lastSeenAt: Timestamp; expiresAt: Timestamp }
+```
 
 ### `hubInvites` (spx-hub)
 Žádosti o referenci e-mailem: poradce (nebo admin týmu) zadá zákazníka, ten dostane osobní jednorázový odkaz `/p/{token}`. Odkaz jde otevírat, dokud zákazník referenci neodešle; platnost 90 dní od odeslání (připomenutí prodlouží, nejvýš 1 rok od vytvoření). Jen Admin SDK (spx-hub).
@@ -680,6 +740,8 @@ Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
   expiresAt?: Timestamp
   submittedAt?: Timestamp
   referenceId?: string       // hubReferences/{id} po odeslání
+  senderDevice?: string      // otisk zařízení poradce při odeslání (signál „příliš rychle“)
+  bouncedAt?: Timestamp      // e-mail se vrátil (Resend webhook) → pozvánka neověřuje
   createdBy: string          // e-mail poradce / admina
   createdAt: Timestamp
   updatedAt: Timestamp
@@ -695,7 +757,12 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
   projectSlug: string
   referenceId?: string
   action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
+        | 'reference.trust' | 'reference.verify_requested' | 'reference.feedback_sent'
         | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
+        | 'project.form_paused' | 'project.publish_paused' | 'project.measure_ended'
+  level?: string; fromLevel?: string   // reference.trust: nová a předchozí úroveň
+  signals?: string[]; reason?: string  // reference.trust: interní důvod (poradce ho nevidí)
+  until?: string; measure?: 'form' | 'publish'   // opatření vůči vizitce
   actorEmail?: string        // prázdné = zákazník přes veřejný formulář
   actorRole: 'admin' | 'client' | 'public' | 'script'
   at: Timestamp
@@ -704,7 +771,7 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
 
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubReferenceChecks`, `hubReferenceIndex`, `hubTrustTokens`, `hubAdvisorDevices`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.
