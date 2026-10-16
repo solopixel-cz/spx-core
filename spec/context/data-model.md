@@ -702,9 +702,28 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
 }
 ```
 
+### `hubGuide` (spx-hub)
+Průvodce v hubu („Jak z vizitky vytěžit maximum“): odškrtnuté kroky checklistu „Prvních 7 dní“ a počítadla, které části průvodce klient používá (hub nemá vlastní GA4). Jeden dokument na klienta, zapisuje jen klient sám (`POST /api/guide`), ne demo účet ani admin v náhledu. Jen Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+
+```ts
+// hubGuide/{clientId}
+{
+  checklist?: Record<StepId, true>     // hotové kroky; zrušené odškrtnutí pole smaže
+  counters?: {
+    open?: number                       // otevření stránky Průvodce (guide_open)
+    section?: Record<SectionId, number> // rozbalení sekce (guide_section_open)
+    copy?: Record<TemplateId, number>   // zkopírování / sdílení šablony (guide_copy)
+    check?: Record<StepId, number>      // odškrtnutí kroku (guide_check)
+  }
+  lastOpenAt?: Timestamp
+  updatedAt: Timestamp
+}
+```
+Id kroků, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `podpis`, `reference`, `po-schuzce`); server přijme jen známá id.
+
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.

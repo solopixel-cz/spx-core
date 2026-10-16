@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-16 — Průvodce v SoloPixel HUB: datový model
+
+- Zadání spx-hub `spec/assign/zadani-hub-pruvodce.md` (tabule #18). Průvodce sám je ve spx-hub (`feat/pruvodce`, 1.20.0, podrobnosti v `spec/pruvodce-progress.md` hubu).
+- Data model: nová kolekce `hubGuide/{clientId}` (checklist „Prvních 7 dní“ a počítadla používání průvodce), jen Admin SDK. Rules beze změny, kolekce spadá pod výchozí zákaz jako `hubLoginCodes`; doplněna do výčtu zakázaných kolekcí hubu.
+- Jen dokumentace, verze se nemění. Větev `docs/hub-pruvodce` z `origin/devel`.
+
 ## 2026-10-15 — Cena Start (Základní) 349 Kč
 
 - Výchozí cena tarifu Základní (na webu Start) v `lib/plans.ts` 399 → **349 Kč**, aby mezi tarify byl vždy rozdíl 200 Kč (349 → 549 → 749). Pokyn Lukáše 15. 10.
