@@ -10,6 +10,15 @@ Nejnovější záznamy nahoře.
 - Verze 2 průvodce (spx-hub 1.21.0): `hubGuide` místo `checklist` nese `tasks` (zdroj ručně / automaticky), `level` a počítadla `openFrom`, `check.<úkol>.<zdroj>`, `level`. `hubAuditLog` má nové akce `guide.task_done`, `guide.task_undone`, `guide.level` s `clientId` místo `projectSlug`.
 - Uvítací okno průvodce (spx-hub 1.22.0): `hubGuide.introSeenAt` a počítadla `counters.intro`, `openFrom.intro`.
 
+## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
+
+- Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.
+- `lib/hub-features.ts`: nová funkce `statsPlus` „Rozšířené statistiky“ (chybí = vypnuto), `hubFeaturesFrom` čte všechny funkce z `HUB_FEATURES`. Závislost `HUB_FEATURE_REQUIRES` (`statsPlus` → `stats`) a `hubFeatureDependents`.
+- API `PATCH /api/clients/[id]/hub-features`: zapnutí Rozšířených statistik bez Statistik vrátí 409 s upozorněním; vypnutí Statistik vypne i Rozšířené statistiky (jeden zápis, jedna aktivita „Statistiky a Rozšířené statistiky vypnuto“).
+- Detail klienta: třetí přepínač mezi Statistikami a Referencemi; bez Statistik je zašedlý a klik ukáže upozornění. Seznam klientů ukáže odznak automaticky.
+- Pravidla databáze beze změny (pole v `clients`, čte server). Data model doplněn. Verze 1.27.0 (navazuje na 1.26.0 z `feat/cena-start-349`).
+- Lint a build čisté. V prohlížeči neověřeno: přepnutí by zapisovalo do ostrého Firestore, ověří Lukáš na preview.
+
 ## 2026-10-15 — Cena Start (Základní) 349 Kč
 
 - Výchozí cena tarifu Základní (na webu Start) v `lib/plans.ts` 399 → **349 Kč**, aby mezi tarify byl vždy rozdíl 200 Kč (349 → 549 → 749). Pokyn Lukáše 15. 10.
