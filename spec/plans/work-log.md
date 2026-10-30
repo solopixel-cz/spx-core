@@ -2,10 +2,19 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-30 — Safari: rozepsané formuláře se neztratí, nová verze se jen nabídne
+
+- Hlášení Lukáše: v Safari na MacBooku se rozepsaný ticket po čase sám obnoví a data zmizí. V kódu CRM nic periodicky neobnovuje, jediný programový reload byl v `sw-register` po `controllerchange` (nová verze service workeru); Safari se u SW chová nespolehlivě. Druhá možná příčina je reload záložky Safari kvůli paměti.
+- `sw-register`: místo automatického `location.reload()` trvalý toast „Je dostupná nová verze CRM“ s tlačítkem Obnovit.
+- Nový hook `lib/hooks/use-form-draft.ts`: koncept formuláře v localStorage (`spx-draft:*`), ukládá se až po první ruční změně (ne při programovém předvyplnění), po znovunačtení se vrátí s toastem „Obnoven rozepsaný koncept“ a volbou Zahodit; po uložení nebo „Zrušit“ se maže, starší než 7 dní se ignoruje. `FormActions` má nový `onCancel`.
+- Zapojeno do formulářů ticketu, úkolu, klienta, domény, instance, zakázky, předplatného a faktury (nové i úpravy; klíč podle ID záznamu nebo kontextu nového).
+- Ověřeno v Chromiu na dočasných stránkách: ticket (pole i odkazy) a faktura (víc položek) se po reloadu obnoví, Zahodit koncept smaže a nezaloží znovu. Safari samotné neověřeno.
+- Verze 1.30.1.
+
 ## 2026-10-30 — Dashboard: bez Moje úkoly, Blížící se fakturace a Aktivity, nové KPI a grafy
 
 - Pokyn Lukáše: na dashboardu je nechce. Odebrán hero widget **Moje úkoly** i karta **Blížící se fakturace**; server už nenačítá `tasks` a nepočítá nadcházející fakturace.
-- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a graf, Poslední aktivita.
+- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a grafy.
 - KPI okénka (`StatCard`) propracovanější: barevná ikona, jemný barevný přechod a linka nahoře, větší hodnota a doplňující řádek (např. MRR „ročně …“, zakázky „N zakázek k vyfakturování“). Druhá řada má 3 okénka.
 - Jeden graf s přepínači rozdělen na dva (`DashboardCharts`): **Finance za 12 měsíců** (vystaveno vs. přijato, sloupce vedle sebe, součty v hlavičce) a **Klienti a předplatná** (plochy, legenda s aktuální hodnotou slouží jako přepínač). Bez popisků nad body a bez přepínače sloupce/čáry, měsíce česky.
 - Odebrána i karta **Aktivita** (poslední aktivita); server už nenačítá `activity` ani `users`. Celá historie zůstává na `/activity`.
