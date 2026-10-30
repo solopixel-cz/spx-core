@@ -247,7 +247,7 @@ export function InvoiceDetailClient({
         <div className="space-y-4 rounded-2xl border border-destructive/40 bg-destructive/5 p-4 md:p-6">
           <p className="font-semibold">Smazat fakturu {invoice.number}?</p>
             <p className="text-sm text-muted-foreground">
-              Trvale smaže fakturu i navázané e-maily a provizi. Tuto akci nelze
+              Trvale smaže fakturu i navázané e-maily. Tuto akci nelze
               vzít zpět a vznikne mezera v číselné řadě. Pro storno (zachování
               dokladu) použij tlačítko Stornovat.
             </p>

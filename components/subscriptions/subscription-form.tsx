@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -66,6 +67,8 @@ export function SubscriptionForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<SubscriptionFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +91,10 @@ export function SubscriptionForm({
       : NEW_DEFAULTS,
   });
 
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `subscription:${clientId}:${subscription?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
+
   const service = watch("service");
   const isCard = service === "card";
   // Vazba jen na instanci odpovídajícího druhu (vizitka ↔ card, web ↔ web).
@@ -102,6 +109,7 @@ export function SubscriptionForm({
         body: JSON.stringify(isEdit ? data : { ...data, clientId }),
       });
       if (!res.ok) throw new Error();
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Předplatné aktualizováno" : "Předplatné založeno");
       router.push(backHref);
       router.refresh();
@@ -317,6 +325,7 @@ export function SubscriptionForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Založit"}
