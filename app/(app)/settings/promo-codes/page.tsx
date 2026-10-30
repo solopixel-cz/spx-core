@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Power, TicketPercent, Users } from "lucide-react";
+import { Loader2, Pencil, Plus, Power, QrCode, TicketPercent, Users } from "lucide-react";
 import { useRefresh } from "@/components/refresh-context";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConfirmButton } from "@/components/confirm-button";
 import { EmptyState } from "@/components/empty-state";
+import { PromoQrDialog } from "@/components/settings/promo-qr-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,7 @@ export default function PromoKodyPage() {
   const [creating, setCreating] = useState(false);
   const [actingKey, setActingKey] = useState<string | null>(null);
   const [editing, setEditing] = useState<(FormState & { original: PromoRow }) | null>(null);
+  const [qrOf, setQrOf] = useState<string | null>(null);
   const [usesOf, setUsesOf] = useState<{ code: string; uses: PromoUse[] | null } | null>(null);
 
   const fetchCodes = useCallback(async () => {
@@ -217,7 +219,8 @@ export default function PromoKodyPage() {
         <h2 className="text-xl font-semibold">Promo kódy</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Kódy pro poptávkový formulář na webu. Formulář přijme jen platný kód a každé
-          odeslání s kódem se započítá jako použití.
+          odeslání s kódem se započítá jako použití. Ke každému kódu lze stáhnout QR kód, který otevře
+          formulář s předvyplněným kódem.
         </p>
       </div>
 
@@ -294,7 +297,7 @@ export default function PromoKodyPage() {
                 <TableHead>Platí do</TableHead>
                 <TableHead>Použito</TableHead>
                 <TableHead>Stav</TableHead>
-                <TableHead className="w-48">Akce</TableHead>
+                <TableHead className="w-56">Akce</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -322,6 +325,15 @@ export default function PromoKodyPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label="QR kód"
+                        title="QR kód"
+                        onClick={() => setQrOf(promo.code)}
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -424,6 +436,8 @@ export default function PromoKodyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PromoQrDialog code={qrOf} onClose={() => setQrOf(null)} />
 
       <Dialog open={usesOf != null} onOpenChange={(open) => !open && setUsesOf(null)}>
         <DialogContent>

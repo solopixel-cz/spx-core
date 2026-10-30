@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-30 — QR kód k promo kódu
+
+- Pokyn Lukáše: QR na leták, po naskenování formulář na webu rovnou s promo kódem. Větev `feat/promo-qr` z `feat/odebrat-provize`.
+- Nastavení → Promo kódy: u každého kódu tlačítko QR, dialog s náhledem, odkazem (kopírovat, otevřít) a stažením SVG (tisk) a PNG 1024 px. QR černý na bílém s okrajem, korekce M. Generuje se v prohlížeči knihovnou `qrcode`, nic se neukládá.
+- Odkaz `/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); poptávka tak má zdroj `qr` a kód. Web to umí ve spx-web `feat/promo-z-url` (nasadit spolu nebo dřív).
+- Ověřeno v Chromiu na dočasné stránce (desktop i mobil), stránka smazána.
+- Verze 1.31.0.
+
 ## 2026-10-30 — Safari: rozepsané formuláře se neztratí, nová verze se jen nabídne
 
 - Hlášení Lukáše: v Safari na MacBooku se rozepsaný ticket po čase sám obnoví a data zmizí. V kódu CRM nic periodicky neobnovuje, jediný programový reload byl v `sw-register` po `controllerchange` (nová verze service workeru); Safari se u SW chová nespolehlivě. Druhá možná příčina je reload záložky Safari kvůli paměti.
