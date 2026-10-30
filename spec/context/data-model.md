@@ -283,6 +283,7 @@ Promo kódy pro poptávkový formulář na webu (spx-web /kontakt). ID dokumentu
 
 - **Ověření:** web volá `POST /api/promo-codes/validate` (tajemství `x-ingest-secret`) při vyplnění pole, bez započítání. `POST /api/leads/intake` kód znovu ověří a započítá ve stejné transakci, ve které zakládá kontakt; neplatný kód vrátí 422 `{ error: "promo_invalid", reason }` (`not_found | inactive | expired | exhausted`) a kontakt nevznikne.
 - **Použití:** kontakty s `inquiry.promoCode == code` (seznam v detailu kódu).
+- **QR kód (od 1.31.0):** v Nastavení → Promo kódy jde ke kódu zobrazit a stáhnout QR (SVG/PNG) s odkazem `https://www.solopixel.cz/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); web kód z `?promo=` předvyplní a ověří. Nic se neukládá.
 - **Rules:** `allow read, write: if false` (jen admin SDK).
 
 ### `prospectCategories`
