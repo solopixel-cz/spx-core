@@ -635,6 +635,11 @@ Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu 
     nameFormat: 'short' | 'full'   // zobrazení jména na vizitce ("Jana N." / celé)
     serviceTypes: string[]         // nabídka pole „Typ služby" ve formuláři
   }
+  google?: {                 // Google místo poradce pro recenze na vizitce (od hubu 1.25.0)
+    placeId: string          // Places API (New), např. "ChIJ…"
+    name: string             // název místa z Googlu, jen pro kontrolu v nastavení
+    address?: string
+  }
   createdAt: Timestamp
   updatedAt: Timestamp
 }
@@ -664,6 +669,8 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
 }
 ```
 Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
+
+**Recenze z Googlu se neukládají.** U projektu s `google.placeId` je veřejné API hubu (`/api/public/references/{slug}`) načte živě z Places API (New), drží je jen v cache Next.js (24 h) a vrací vedle referencí jako `google: { rating, count, url, reviews[] }`. Google vrací nejvýš 5 recenzí podle vlastního výběru, proto se nic neschvaluje; ve Firestore je jen `placeId`. Přihlášení k API: service account z GA4 (scope `cloud-platform`), případně `GOOGLE_PLACES_API_KEY`.
 
 ### `hubInvites` (spx-hub)
 Žádosti o referenci e-mailem: poradce (nebo admin týmu) zadá zákazníka, ten dostane osobní jednorázový odkaz `/p/{token}`. Odkaz jde otevírat, dokud zákazník referenci neodešle; platnost 90 dní od odeslání (připomenutí prodlouží, nejvýš 1 rok od vytvoření). Jen Admin SDK (spx-hub).
