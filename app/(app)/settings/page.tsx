@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Bell,
   Receipt,
+  TicketPercent,
 } from "lucide-react";
 
 interface Tile {
@@ -39,6 +40,13 @@ const tiles: Tile[] = [
     description: "Údaje dodavatele na fakturách, účet a QR platba",
     href: "/settings/billing-details",
     icon: Receipt,
+    roles: ["admin"],
+  },
+  {
+    label: "Promo kódy",
+    description: "Kódy pro formulář na webu, platnost a počet použití",
+    href: "/settings/promo-codes",
+    icon: TicketPercent,
     roles: ["admin"],
   },
   {

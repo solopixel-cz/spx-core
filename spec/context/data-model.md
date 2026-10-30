@@ -245,6 +245,7 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
   importBatchId?: string     // dávka CSV importu
   inquiry?: {                // jen source=web: obsah poptávky z formuláře (chybějící = null)
     industry, product, plan, teamType, teamSize, link, message,
+    promoCode                // platný promo kód z `promoCodes` (od 1.28.0)
     note                     // poznámka klienta celá, bez řádku „Zdroj: …", který přidává web
   }
   attribution?: {            // jen source=web: odkud návštěvník přišel (chybějící = null)
@@ -261,9 +262,28 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
 - **Převod na klienta:** akce „Vytvořit klienta" na detailu otevře předvyplněný formulář klienta → `POST /api/clients` s `prospectId` → klient (`prospectId`, `salesOwnerUid` = vlastník kontaktu), kontakt `status=converted` + `clientId`.
-- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
+- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, firma z formuláře jde do `company`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
 - **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
+
+### `promoCodes`
+Promo kódy pro poptávkový formulář na webu (spx-web /kontakt). ID dokumentu = kód (velká písmena, A–Z, 0–9, pomlčka, 3–30 znaků). Spravuje admin v Nastavení → Promo kódy.
+
+```ts
+{
+  code: string               // stejné jako ID dokumentu
+  description: string | null // interní poznámka „co kód dává“, na web se neposílá
+  validUntil: string         // poslední den platnosti YYYY-MM-DD (včetně), čas Europe/Prague
+  maxUses: number | null     // null = bez omezení
+  usedCount: number          // počet poptávek s kódem, zvyšuje intake v transakci
+  active: boolean            // vypnutý kód neplatí; použitý kód nejde smazat, jen vypnout
+  lastUsedAt: Timestamp | null
+}
+```
+
+- **Ověření:** web volá `POST /api/promo-codes/validate` (tajemství `x-ingest-secret`) při vyplnění pole, bez započítání. `POST /api/leads/intake` kód znovu ověří a započítá ve stejné transakci, ve které zakládá kontakt; neplatný kód vrátí 422 `{ error: "promo_invalid", reason }` (`not_found | inactive | expired | exhausted`) a kontakt nevznikne.
+- **Použití:** kontakty s `inquiry.promoCode == code` (seznam v detailu kódu).
+- **Rules:** `allow read, write: if false` (jen admin SDK).
 
 ### `prospectCategories`
 Číselník kategorií kontaktů pro oslovení (Řemeslník, Realitní makléř, Finanční poradce, Obchodník, Osobnost…). Uživatelem vytvořené kategorie se ukládají sem; výchozí sada je definována konstantou v kódu a nabízí se vždy (i bez zápisu).

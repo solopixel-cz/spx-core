@@ -140,6 +140,11 @@ service cloud.firestore {
 
     // Prospect categories — číselník kategorií kontaktů; read for team,
     // write via admin SDK (route handlers)
+    // Promo kódy — jen přes admin SDK (správa v Nastavení, ověření z webu).
+    match /promoCodes/{code} {
+      allow read, write: if false;
+    }
+
     match /prospectCategories/{categoryId} {
       allow read: if isTeam();
       allow write: if false;

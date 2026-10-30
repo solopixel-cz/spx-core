@@ -33,6 +33,14 @@ Nejnovější záznamy nahoře.
 - `firestore.rules`: blok `commissions` odebrán (výchozí zákaz). `firestore.indexes.json`: oba indexy `commissions` odebrány. Stará data ve Firestore zůstávají, nic se nemazalo.
 - Verze 1.29.0 (1.28.0 má `feat/web-poptavka-firma-promo`).
 
+## 2026-10-30 — Poptávka z webu: firma a promo kódy
+
+- Větev `feat/web-poptavka-firma-promo` z `devel`, verze 1.28.0. Navazuje na spx-web `feat/kontakt-firma-promo`.
+- `/api/leads/intake`: firma do `prospects.company`, promo kód do `inquiry.promoCode`; kód se ověří a započítá v transakci se založením kontaktu, neplatný vrátí 422 `promo_invalid` a kontakt nevznikne.
+- Nová kolekce `promoCodes` (ID = kód), správa v Nastavení → Promo kódy (admin): založení, platnost do data, limit použití, poznámka, vypnutí, smazání nepoužitého, seznam poptávek s kódem. `POST /api/promo-codes/validate` pro živou kontrolu z webu (tajemství `x-ingest-secret`). Rules `if false`, data model doplněn.
+- Ověřeno proti emulátoru Firestore a Auth: stavy kódů, souběh na limit (2 ze 3 projdou), odmítnutí neplatného kódu bez kontaktu, admin stránka v prohlížeči (desktop i mobil). Typy a lint čisté.
+- Před nasazením: `firebase deploy --only firestore`; nasadit dřív než web.
+
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 
 - Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.
