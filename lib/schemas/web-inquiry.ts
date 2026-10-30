@@ -19,6 +19,8 @@ export const webInquirySchema = z.object({
   name: z.string().min(1),
   email: z.string().email().or(z.literal("")).optional(),
   phone: opt(100),
+  company: opt(200),
+  promoCode: opt(50), // promo kód z letáku nebo akce
   industry: opt(200),
   product: opt(100),
   plan: opt(100),
