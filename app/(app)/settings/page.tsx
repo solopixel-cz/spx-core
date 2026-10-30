@@ -5,7 +5,6 @@ import {
   Users,
   FileText,
   Archive,
-  Percent,
   User,
   ClipboardList,
   Bell,
@@ -69,12 +68,6 @@ const tiles: Tile[] = [
     description: "Archivované záznamy — obnova a trvalé mazání",
     href: "/settings/archive",
     icon: Archive,
-  },
-  {
-    label: "Provize",
-    description: "Přehled, vyplácení provizí a výchozí sazba",
-    href: "/commissions",
-    icon: Percent,
   },
   {
     label: "Můj profil",

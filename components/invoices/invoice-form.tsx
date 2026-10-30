@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useForm, useFieldArray } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,6 +87,7 @@ export function InvoiceForm({
     setValue,
     getValues,
     watch,
+    reset,
     formState: { errors },
   } = useForm<InvoiceFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +104,10 @@ export function InvoiceForm({
       note: invoice?.note ?? "",
     },
   });
+
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = invoice ? `invoice:${invoice.id}` : `invoice:new:${defaultClientId ?? ""}:${projectId ?? ""}:${subscriptionId ?? ""}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
@@ -136,6 +142,7 @@ export function InvoiceForm({
           });
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json().catch(() => ({}));
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Faktura upravena" : `Faktura ${result.number ?? ""} uložena`);
       router.push(isEdit ? `/invoices/${invoice!.id}` : `/invoices/${result.id}`);
       router.refresh();
@@ -396,7 +403,7 @@ export function InvoiceForm({
               <Button
                 type="button"
                 variant="ghost"
-                render={<Link href={cancelHref} />}
+                render={<Link href={cancelHref} onClick={() => clearFormDraft(draftKey)} />}
                 nativeButton={false}
               >
                 Zrušit

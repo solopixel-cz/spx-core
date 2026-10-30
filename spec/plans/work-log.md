@@ -2,6 +2,37 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-30 — Safari: rozepsané formuláře se neztratí, nová verze se jen nabídne
+
+- Hlášení Lukáše: v Safari na MacBooku se rozepsaný ticket po čase sám obnoví a data zmizí. V kódu CRM nic periodicky neobnovuje, jediný programový reload byl v `sw-register` po `controllerchange` (nová verze service workeru); Safari se u SW chová nespolehlivě. Druhá možná příčina je reload záložky Safari kvůli paměti.
+- `sw-register`: místo automatického `location.reload()` trvalý toast „Je dostupná nová verze CRM“ s tlačítkem Obnovit.
+- Nový hook `lib/hooks/use-form-draft.ts`: koncept formuláře v localStorage (`spx-draft:*`), ukládá se až po první ruční změně (ne při programovém předvyplnění), po znovunačtení se vrátí s toastem „Obnoven rozepsaný koncept“ a volbou Zahodit; po uložení nebo „Zrušit“ se maže, starší než 7 dní se ignoruje. `FormActions` má nový `onCancel`.
+- Zapojeno do formulářů ticketu, úkolu, klienta, domény, instance, zakázky, předplatného a faktury (nové i úpravy; klíč podle ID záznamu nebo kontextu nového).
+- Ověřeno v Chromiu na dočasných stránkách: ticket (pole i odkazy) a faktura (víc položek) se po reloadu obnoví, Zahodit koncept smaže a nezaloží znovu. Safari samotné neověřeno.
+- Verze 1.30.1.
+
+## 2026-10-30 — Dashboard: bez Moje úkoly, Blížící se fakturace a Aktivity, nové KPI a grafy
+
+- Pokyn Lukáše: na dashboardu je nechce. Odebrán hero widget **Moje úkoly** i karta **Blížící se fakturace**; server už nenačítá `tasks` a nepočítá nadcházející fakturace.
+- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a grafy.
+- KPI okénka (`StatCard`) propracovanější: barevná ikona, jemný barevný přechod a linka nahoře, větší hodnota a doplňující řádek (např. MRR „ročně …“, zakázky „N zakázek k vyfakturování“). Druhá řada má 3 okénka.
+- Jeden graf s přepínači rozdělen na dva (`DashboardCharts`): **Finance za 12 měsíců** (vystaveno vs. přijato, sloupce vedle sebe, součty v hlavičce) a **Klienti a předplatná** (plochy, legenda s aktuální hodnotou slouží jako přepínač). Bez popisků nad body a bez přepínače sloupce/čáry, měsíce česky.
+- Odebrána i karta **Aktivita** (poslední aktivita); server už nenačítá `activity` ani `users`. Celá historie zůstává na `/activity`.
+- Upozornění (po splatnosti, domény, follow-upy) mají počet sloupců podle počtu karet, takže vedle nich nezůstává prázdno. Grafy jsou vedle sebe od šířky xl (1280 px), na užším displeji a mobilu pod sebou přes celou šířku (výška 260 px).
+- Sales na dashboardu vidí jen rychlé akce a upozornění (KPI a grafy byly vždy jen pro admin/member).
+- Ověřeno v prohlížeči na dočasné náhledové stránce s ukázkovými daty (desktop, tmavý režim, mobil), stránka smazána.
+- Verze 1.30.0. Ve stejné větvi `feat/odebrat-provize`, samostatný commit.
+
+## 2026-10-30 — Odebrání provizního systému
+
+- Pokyn Lukáše: provize z CRM úplně pryč. Větev `feat/odebrat-provize` z `origin/devel`.
+- Smazáno: stránka `/commissions` (Provize) a položka v menu i v Nastavení, `/api/commissions`, `/api/settings/commission`, `lib/schemas/commission.ts`, přesměrování `/provize`.
+- Faktury: zaplacení už provizi nevytváří, storno ji nereverzuje, trvalé smazání faktury ani úklidový skript `cancel-cron-invoices` na `commissions` nesahají. Archiv: provize už neblokují trvalé smazání klienta.
+- Uživatelé: pole `commissionRate` pryč ze schématu, `/api/me`, `PATCH /api/users/[id]` a profilu (Sazba provize).
+- Moje vizitky (sales): zůstávají jako seznam klientů s tarifem a cenou, bez souhrnu a tabulky provizí. Komponenta přesunuta do `components/my-cards/`.
+- `firestore.rules`: blok `commissions` odebrán (výchozí zákaz). `firestore.indexes.json`: oba indexy `commissions` odebrány. Stará data ve Firestore zůstávají, nic se nemazalo.
+- Verze 1.29.0 (1.28.0 má `feat/web-poptavka-firma-promo`).
+
 ## 2026-10-30 — Poptávka z webu: firma a promo kódy
 
 - Větev `feat/web-poptavka-firma-promo` z `devel`, verze 1.28.0. Navazuje na spx-web `feat/kontakt-firma-promo`.

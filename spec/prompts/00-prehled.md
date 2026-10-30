@@ -19,7 +19,7 @@ Aplikace se staví v 6 fázích. Každá fáze = jedna Claude Code session s pro
 | 13 | [`13-prospekti.md`](13-prospekti.md) | Prospekti — zásobník oslovení, zabírání, log kontaktů, CSV import | ✅ |
 | 14 | [`14-emailove-osloveni.md`](14-emailove-osloveni.md) | E-mailové oslovení přes Resend — šablona, demo odkaz, webhooky | ✅ |
 | 15 | [`15-dashboard-layout.md`](15-dashboard-layout.md) | Dashboard layout v2 — kompaktní aktivita, stránka /aktivita | ✅ |
-| 16 | [`16-provize.md`](16-provize.md) | Provizní systém — vlastnictví, automatické provize, vyúčtování | ✅ |
+| 16 | [`16-provize.md`](16-provize.md) | Provizní systém — vlastnictví, automatické provize, vyúčtování | ❌ zrušeno 2026-10-30 |
 | 17 | [`17-sales-viditelnost-klientu.md`](17-sales-viditelnost-klientu.md) | Sales vidí jen své klienty + auto-přiřazení při vytvoření | ✅ |
 | 18 | [`18-profil.md`](18-profil.md) | Profil uživatele — fotka, jméno, heslo, preference | ✅ |
 | 19 | [`19-rename-prospekti.md`](19-rename-prospekti.md) | Přejmenování UI „Prospekti” → „Oslovení” (Firestore beze změny) | ✅ |

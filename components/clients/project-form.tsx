@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Archive, Loader2 } from "lucide-react";
@@ -62,6 +63,8 @@ export function ProjectForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectFormSchema),
@@ -76,6 +79,10 @@ export function ProjectForm({
       : { status: "inquiry", dueAt: "" },
   });
 
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `project:${clientId}:${project?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
+
   async function onSubmit(data: ProjectFormData) {
     try {
       const res = await fetch(isEdit ? `/api/projects/${project!.id}` : "/api/projects", {
@@ -84,6 +91,7 @@ export function ProjectForm({
         body: JSON.stringify(isEdit ? data : { ...data, clientId }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Chyba při ukládání");
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Zakázka upravena" : "Zakázka přidána");
       router.push(backHref);
       router.refresh();
@@ -160,6 +168,7 @@ export function ProjectForm({
         <Input id="projectDue" type="date" {...register("dueAt")} />
       </div>
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Přidat"}

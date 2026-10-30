@@ -83,8 +83,7 @@ export async function PATCH(
 
 /**
  * Trvalé smazání faktury (jen admin). Na rozdíl od storna dokument odstraní
- * úplně — vč. navázané provize (`commissions/{id}` + `{id}-reversal`) a
- * odeslaných e-mailů (`invoiceEmails`). Smazání se zaloguje u klienta jako
+ * úplně — vč. odeslaných e-mailů (`invoiceEmails`). Smazání se zaloguje u klienta jako
  * audit stopa (číslo faktury zůstane v historii aktivit).
  *
  * Pozn.: CRM je jediná evidence faktur — smazáním vznikne mezera v číselné
@@ -114,8 +113,6 @@ export async function DELETE(
 
     const batch = db.batch();
     emailsSnap.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(db.collection("commissions").doc(id));
-    batch.delete(db.collection("commissions").doc(`${id}-reversal`));
     batch.delete(docRef);
     // Zakázka vystavená touto fakturou znovu půjde vyfakturovat.
     const projectsSnap = await db.collection("projects").where("invoiceId", "==", id).get();

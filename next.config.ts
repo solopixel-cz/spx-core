@@ -87,7 +87,6 @@ const nextConfig: NextConfig = {
       { source: "/podklady/:path*", destination: "/submissions/:path*", permanent: true },
       { source: "/ukoly/:path*", destination: "/tasks/:path*", permanent: true },
       { source: "/tickety/:path*", destination: "/tickets/:path*", permanent: true },
-      { source: "/provize/:path*", destination: "/commissions/:path*", permanent: true },
       { source: "/profil/:path*", destination: "/profile/:path*", permanent: true },
     ];
   },

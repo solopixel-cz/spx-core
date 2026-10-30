@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,7 @@ export function TaskForm({
     setValue,
     getValues,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,6 +98,10 @@ export function TaskForm({
         },
   });
 
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = task ? `task:${task.id}` : `task:new:${defaultClientId ?? ""}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
+
   // Vazbu na klienta API zrušit neumí, „Bez klienta" jen dokud žádná není.
   const allowNoClient = !task?.clientId;
   const clientItems = {
@@ -112,6 +118,7 @@ export function TaskForm({
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Úkol upraven" : "Úkol vytvořen");
       router.push(backHref);
       router.refresh();
@@ -227,6 +234,7 @@ export function TaskForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Vytvořit úkol"}

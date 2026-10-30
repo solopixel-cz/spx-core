@@ -1,4 +1,3 @@
-import { subscriptionLabel } from "@/lib/plans";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
@@ -12,20 +11,14 @@ export default async function DashboardPage() {
     projectsSnap,
     invoicesSnap,
     subsSnap,
-    tasksSnap,
-    activitySnap,
     clientsSnap,
-    usersSnap,
     prospectsSnap,
     domainsSnap,
   ] = await Promise.all([
     db.collection("projects").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
     isSales ? Promise.resolve(null) : db.collection("subscriptions").where("status", "==", "active").get(),
-    db.collection("tasks").get(),
-    db.collection("activity").orderBy("createdAt", "desc").limit(6).get(),
     db.collection("clients").get(),
-    db.collection("users").get(),
     db.collection("prospects").get(),
     db.collection("domains").get(),
   ]);
@@ -159,44 +152,6 @@ export default async function DashboardPage() {
     ];
   }
 
-  // User name map
-  const userMap: Record<string, string> = {};
-  usersSnap.docs.forEach((doc) => {
-    userMap[doc.id] = doc.data().displayName as string;
-  });
-
-  // Build sales owned client IDs
-  const salesClientIds = isSales
-    ? new Set(clientsSnap.docs.filter((d) => !d.data().deletedAt && d.data().salesOwnerUid === user.uid).map((d) => d.id))
-    : null;
-
-  // Recent activity (sales: filter client/ticket to own)
-  const recentActivity = activitySnap.docs
-    .filter((doc) => {
-      if (isSales) {
-        const et = doc.data().entityType as string;
-        if (et === "invoice") return false;
-        if ((et === "client" || et === "ticket") && salesClientIds) {
-          return salesClientIds.has(doc.data().entityId as string);
-        }
-      }
-      return true;
-    })
-    .slice(0, 6)
-    .map((doc) => {
-      const d = doc.data();
-      const et = d.entityType as string;
-      const href = et === "client" ? `/clients/${d.entityId}` : et === "lead" ? "/prospects" : et === "ticket" ? "/tickets" : et === "prospect" ? "/prospects" : "/invoices";
-      return {
-        id: doc.id,
-        actorUid: d.actorUid as string,
-        actor: userMap[d.actorUid as string] ?? "Systém",
-        text: d.text as string,
-        href,
-        createdAt: d.createdAt?.toDate?.()?.toISOString() ?? null,
-      };
-    });
-
   // Dnešní follow-upy — prospekti s termínem follow-upu ≤ dnes (a po termínu).
   // Sales vidí jen vlastní. Terminální stavy se ignorují.
   const endOfToday = new Date();
@@ -225,54 +180,6 @@ export default async function DashboardPage() {
       };
     })
     .sort((a, b) => a.nextFollowUpAt.localeCompare(b.nextFollowUpAt));
-
-  // Blížící se fakturace — aktivní předplatná s nextInvoiceAt do 7 dnů
-  // (včetně těch po termínu, které čekají na vystavení). Jen admin/member.
-  let upcomingBilling: {
-    id: string;
-    clientId: string;
-    clientName: string;
-    label: string;
-    nextInvoiceAt: string;
-    amount: number;
-    overdue: boolean;
-  }[] = [];
-  if (!isSales && subsSnap) {
-    const clientById: Record<string, { name: string; deleted: boolean }> = {};
-    clientsSnap.docs.forEach((d) => {
-      clientById[d.id] = { name: d.data().name as string, deleted: !!d.data().deletedAt };
-    });
-    const nowDate = new Date();
-    const horizon = new Date(nowDate.getTime() + 7 * 86400000);
-    const startOfToday = new Date(nowDate);
-    startOfToday.setHours(0, 0, 0, 0);
-    upcomingBilling = subsSnap.docs
-      .map((doc) => {
-        const s = doc.data();
-        const due = s.nextInvoiceAt?.toDate?.() as Date | undefined;
-        const client = clientById[s.clientId as string];
-        // Interní vizitky (obchodník/vlastní) se nefakturují → přeskoč.
-        if (!due || !client || client.deleted || s.internal) return null;
-        const monthly = (s.priceMonthly as number) ?? 0;
-        const base = s.billingCycle === "yearly" ? monthly * 12 : monthly;
-        const discount = (s.discountPercent as number) ?? 0;
-        return {
-          id: doc.id,
-          clientId: s.clientId as string,
-          clientName: client.name,
-          label: subscriptionLabel(s),
-          nextInvoiceAt: due.toISOString(),
-          amount: Math.round(base * (1 - discount / 100)),
-          overdue: due < startOfToday,
-          _due: due,
-        };
-      })
-      // Interní vizitky se 100% slevou (částka 0 Kč) se nefakturují → nezobrazuj.
-      .filter((x): x is NonNullable<typeof x> => x !== null && x._due <= horizon && x.amount > 0)
-      .sort((a, b) => a.nextInvoiceAt.localeCompare(b.nextInvoiceAt))
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .map(({ _due, ...rest }) => rest);
-  }
 
   // Blížící se obnovení domén — domény s renewalAt do 30 dnů (vč. po termínu),
   // bez auto-renew. Sales vidí jen domény svých klientů.
@@ -310,24 +217,6 @@ export default async function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(({ _due, ...rest }) => rest);
 
-  // Moje úkoly — celkem otevřené + rozpad po termínu / dnes (pro hero widget).
-  const taskStartToday = new Date();
-  taskStartToday.setHours(0, 0, 0, 0);
-  const taskEndToday = new Date();
-  taskEndToday.setHours(23, 59, 59, 999);
-  let myOpenTasks = 0;
-  let myTasksOverdue = 0;
-  let myTasksDueToday = 0;
-  tasksSnap.docs.forEach((t) => {
-    const d = t.data();
-    if (d.assigneeUid !== user.uid || d.status !== "open") return;
-    myOpenTasks++;
-    const due = d.dueAt?.toDate?.();
-    if (!due) return;
-    if (due < taskStartToday) myTasksOverdue++;
-    else if (due <= taskEndToday) myTasksDueToday++;
-  });
-
   return (
     <DashboardClient
       openProjectsValue={openProjectsValue}
@@ -336,13 +225,8 @@ export default async function DashboardPage() {
       paidThisMonth={paidThisMonth}
       invoicedThisMonth={invoicedThisMonth}
       chartSeries={chartSeries}
-      recentActivity={recentActivity}
-      myOpenTasks={myOpenTasks}
-      myTasksOverdue={myTasksOverdue}
-      myTasksDueToday={myTasksDueToday}
       overdueInvoices={overdueInvoices}
       followUps={followUps}
-      upcomingBilling={upcomingBilling}
       upcomingDomainRenewals={upcomingDomainRenewals}
       activeClients={activeClientsCount}
       onboardingCount={onboardingCount}
