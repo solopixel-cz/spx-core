@@ -20,6 +20,7 @@ import {
 import { FormActions } from "@/components/form-actions";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 import { ticketPriorityLabels, ticketTypeLabels } from "@/lib/ticket-labels";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 
 interface UserOption {
   id: string;
@@ -84,13 +85,7 @@ export function TicketForm({
   // Odkazy k tiketu (např. fotky na Google Drive), spravované mimo react-hook-form.
   const [links, setLinks] = useState<string[]>(ticket?.links ?? []);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<TicketFormData>({
+  const form = useForm<TicketFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(ticketFormSchema) as any,
     defaultValues: ticket
@@ -104,6 +99,22 @@ export function TicketForm({
           assigneeUid: ticket.assigneeUid,
         }
       : { type: "bug", priority: "medium", clientId: defaultClientId },
+  });
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  // Rozepsaný ticket přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = ticket ? `ticket:${ticket.id}` : `ticket:new:${defaultClientId ?? ""}`;
+  useFormDraft({
+    key: draftKey,
+    form,
+    extra: links,
+    onRestoreExtra: setLinks,
   });
 
   const clientId = watch("clientId");
@@ -141,6 +152,7 @@ export function TicketForm({
         body: JSON.stringify({ ...data, links: normalizedLinks }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Ticket upraven" : "Ticket vytvořen");
       router.push(doneHref ?? backHref);
       router.refresh();
@@ -327,6 +339,7 @@ export function TicketForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Vytvořit ticket"}
