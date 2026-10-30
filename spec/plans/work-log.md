@@ -49,6 +49,11 @@ Nejnovější záznamy nahoře.
 - Ověřeno proti emulátoru Firestore a Auth: stavy kódů, souběh na limit (2 ze 3 projdou), odmítnutí neplatného kódu bez kontaktu, admin stránka v prohlížeči (desktop i mobil). Typy a lint čisté.
 - Před nasazením: `firebase deploy --only firestore`; nasadit dřív než web.
 
+## 2026-10-30 — Recenze z Googlu na vizitce: data model
+
+- Větev `docs/reference-google` z `devel`. `hubProjects.google = { placeId, name, address? }` (Google místo poradce, nastavuje hub). Recenze se neukládají, hub je načítá z Places API (New) do cache na 24 h a vrací ve veřejném API jako `google`; bez schvalování (Google vrací nejvýš 5 podle sebe).
+- Rules beze změny (hubProjects jen Admin SDK). Navazuje spx-hub a spx-dbc `feat/reference-google`.
+
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 
 - Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.
