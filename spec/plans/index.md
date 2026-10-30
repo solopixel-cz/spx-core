@@ -18,7 +18,7 @@
 | Fáze 13 — Prospekti | ✅ Hotovo | [`../prompts/13-prospekti.md`](../prompts/13-prospekti.md) |
 | Fáze 14 — E-mailové oslovení | ✅ Hotovo | [`../prompts/14-emailove-osloveni.md`](../prompts/14-emailove-osloveni.md) |
 | Fáze 15 — Dashboard layout v2 | ✅ Hotovo | [`../prompts/15-dashboard-layout.md`](../prompts/15-dashboard-layout.md) |
-| Fáze 16 — Provize | ✅ Hotovo | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
+| Fáze 16 — Provize | ❌ Zrušeno 2026-10-30 (odebráno z CRM) | [`../prompts/16-provize.md`](../prompts/16-provize.md) |
 | Fáze 17 — Sales viditelnost klientů | ✅ Hotovo | [`../prompts/17-sales-viditelnost-klientu.md`](../prompts/17-sales-viditelnost-klientu.md) |
 | Fáze 18 — Profil uživatele | ✅ Hotovo | [`../prompts/18-profil.md`](../prompts/18-profil.md) |
 | Fáze 19 — Přejmenování Prospekti→Oslovení | ✅ Hotovo | [`../prompts/19-rename-prospekti.md`](../prompts/19-rename-prospekti.md) |

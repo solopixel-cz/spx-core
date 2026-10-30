@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-30 — Odebrání provizního systému
+
+- Pokyn Lukáše: provize z CRM úplně pryč. Větev `feat/odebrat-provize` z `origin/devel`.
+- Smazáno: stránka `/commissions` (Provize) a položka v menu i v Nastavení, `/api/commissions`, `/api/settings/commission`, `lib/schemas/commission.ts`, přesměrování `/provize`.
+- Faktury: zaplacení už provizi nevytváří, storno ji nereverzuje, trvalé smazání faktury ani úklidový skript `cancel-cron-invoices` na `commissions` nesahají. Archiv: provize už neblokují trvalé smazání klienta.
+- Uživatelé: pole `commissionRate` pryč ze schématu, `/api/me`, `PATCH /api/users/[id]` a profilu (Sazba provize).
+- Moje vizitky (sales): zůstávají jako seznam klientů s tarifem a cenou, bez souhrnu a tabulky provizí. Komponenta přesunuta do `components/my-cards/`.
+- `firestore.rules`: blok `commissions` odebrán (výchozí zákaz). `firestore.indexes.json`: oba indexy `commissions` odebrány. Stará data ve Firestore zůstávají, nic se nemazalo.
+- Verze 1.29.0 (1.28.0 má `feat/web-poptavka-firma-promo`).
+
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 
 - Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.

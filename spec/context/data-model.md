@@ -2,7 +2,7 @@
 
 Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). Typy se definují zod schématy v `lib/schemas/` a odvozují přes `z.infer`.
 
-**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails` a `commissions/{id}`(+`-reversal`), zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
+**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails`, zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
 
 ## Kolekce
 
@@ -15,7 +15,6 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   displayName: string
   role: 'admin' | 'member' | 'sales'  // zrcadlí custom claim, claim je zdroj pravdy
   active: boolean
-  commissionRate?: number    // osobní sazba provize (0–1); bez hodnoty platí default ze settings/commission
   photoURL?: string          // profilová fotka (Storage avatars/{uid}), zrcadlí se do Auth
   phone?: string
   senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
@@ -42,7 +41,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
   advisorSlug: string        // vazba na spx-dbc instanci
-  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z vlastníka kontaktu při převodu z Oslovení (sales = vždy sám), mění jen admin/member. Provize vzniká jen vlastníkům s rolí sales.
+  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z vlastníka kontaktu při převodu z Oslovení (sales = vždy sám), mění jen admin/member.
   notes?: string
   leadId?: string            // historické: odkud klient vznikl (leady zrušené)
   prospectId?: string        // klient vznikl převodem z Oslovení
@@ -463,28 +462,7 @@ Upozornění na nový podklad: web po odeslání volá `POST /api/submissions/no
 ```
 </details>
 
-### `commissions`
-Provizní záznamy — vznikají automaticky při označení faktury jako zaplacené, pokud má klient `salesOwnerUid` s rolí sales. **Document ID = invoiceId** (idempotence — jedna faktura, jedna provize). Storno vyplacené faktury vytvoří záporný záznam s ID `{invoiceId}-reversal`.
-
-```ts
-{
-  invoiceId: string
-  clientId: string
-  salesUid: string
-  baseAmount: number         // zaplacená částka faktury (CZK), u storna záporná
-  rate: number               // sazba v momentě vzniku (snapshot — pozdější změna sazby nemění historii)
-  amount: number             // baseAmount * rate, zaokrouhleno na koruny
-  status: 'pending' | 'paid' | 'reversed'
-  earnedAt: Timestamp        // datum zaplacení faktury
-  paidAt?: Timestamp         // datum vyplacení obchodníkovi
-  payoutNote?: string        // např. číslo došlé faktury od obchodníka
-}
-```
-
-Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `users.commissionRate` ?? default ze `settings/commission`; změna `salesOwnerUid` ovlivní jen budoucí provize; bez vlastníka provize nevzniká (ani zpětně po přiřazení).
-
-### `settings/commission`
-`{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
+**Provizní systém zrušen (2026-10-30, 1.29.0).** Kolekce `commissions`, dokument `settings/commission` a pole `users.commissionRate` aplikace už nečte ani nezapisuje; stará data ve Firestore zůstala jen jako historie a rules k `commissions` nepouštějí klienta (výchozí zákaz).
 
 ### `settings/company`
 Dodavatelské (fakturační) údaje — hlavička „dodavatel" na PDF faktuře, platební údaje a QR platba. Edituje admin v Nastavení → Fakturační údaje. Nahrazuje dřívější env `COMPANY_BANK_ACCOUNT`.
