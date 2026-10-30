@@ -150,7 +150,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
   priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = 12 × (cron, faktura, MRR)
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
-  internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se, nepočítá do MRR ani do „Blížící se fakturace"
+  internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se a nepočítá do MRR
   discountPercent?: number   // sleva z předplatného (0–100), přenáší se do řádku faktury
   discountNote?: string      // důvod slevy
   startedAt: Timestamp

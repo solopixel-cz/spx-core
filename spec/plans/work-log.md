@@ -2,6 +2,18 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-10-30 — Dashboard: bez Moje úkoly, Blížící se fakturace a Aktivity, nové KPI a grafy
+
+- Pokyn Lukáše: na dashboardu je nechce. Odebrán hero widget **Moje úkoly** i karta **Blížící se fakturace**; server už nenačítá `tasks` a nepočítá nadcházející fakturace.
+- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a graf, Poslední aktivita.
+- KPI okénka (`StatCard`) propracovanější: barevná ikona, jemný barevný přechod a linka nahoře, větší hodnota a doplňující řádek (např. MRR „ročně …“, zakázky „N zakázek k vyfakturování“). Druhá řada má 3 okénka.
+- Jeden graf s přepínači rozdělen na dva (`DashboardCharts`): **Finance za 12 měsíců** (vystaveno vs. přijato, sloupce vedle sebe, součty v hlavičce) a **Klienti a předplatná** (plochy, legenda s aktuální hodnotou slouží jako přepínač). Bez popisků nad body a bez přepínače sloupce/čáry, měsíce česky.
+- Odebrána i karta **Aktivita** (poslední aktivita); server už nenačítá `activity` ani `users`. Celá historie zůstává na `/activity`.
+- Upozornění (po splatnosti, domény, follow-upy) mají počet sloupců podle počtu karet, takže vedle nich nezůstává prázdno. Grafy jsou vedle sebe od šířky xl (1280 px), na užším displeji a mobilu pod sebou přes celou šířku (výška 260 px).
+- Sales na dashboardu vidí jen rychlé akce a upozornění (KPI a grafy byly vždy jen pro admin/member).
+- Ověřeno v prohlížeči na dočasné náhledové stránce s ukázkovými daty (desktop, tmavý režim, mobil), stránka smazána.
+- Verze 1.30.0. Ve stejné větvi `feat/odebrat-provize`, samostatný commit.
+
 ## 2026-10-30 — Odebrání provizního systému
 
 - Pokyn Lukáše: provize z CRM úplně pryč. Větev `feat/odebrat-provize` z `origin/devel`.
