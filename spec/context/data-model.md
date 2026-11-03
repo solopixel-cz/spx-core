@@ -138,7 +138,7 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 (Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
-Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit. Akce na omezenou dobu: `discountUntil` (sleva platí pro období začínající nejpozději ten den; cron, předvyplnění faktury i upozornění v detailu klienta přes `lib/discount.ts`, období se 100% slevou cron přeskočí a posune).
 
 ```ts
 {
@@ -153,6 +153,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
   internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se a nepočítá do MRR
   discountPercent?: number   // sleva z předplatného (0–100), přenáší se do řádku faktury
   discountNote?: string      // důvod slevy
+  discountUntil?: Timestamp | null  // poslední den akce (včetně), chybí = trvalá sleva; logika v lib/discount.ts
   startedAt: Timestamp
   nextInvoiceAt: Timestamp
 }

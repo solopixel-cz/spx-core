@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { currentPeriod } from "@/lib/schemas/invoice";
 import { billedMonths, subscriptionLabel } from "@/lib/plans";
+import { discountFor } from "@/lib/discount";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const db = getAdminFirestore();
   const now = new Date();
-  const summary = { generated: 0, skippedZero: 0, overdue: 0 };
+  const summary = { generated: 0, skippedZero: 0, skippedFree: 0, overdue: 0 };
 
   // 1) Opakované faktury z předplatných.
   const dueSubs = await db
@@ -55,8 +56,23 @@ export async function GET(request: NextRequest) {
 
     const monthly = (sub.priceMonthly as number) ?? 0;
     const base = monthly * billedMonths(sub);
-    const discount = (sub.discountPercent as number) ?? 0;
+    // Časově omezená akce: sleva jen pro období začínající nejpozději posledním dnem akce.
+    const discount = discountFor(
+      { discountPercent: sub.discountPercent as number | undefined, discountUntil: sub.discountUntil?.toDate?.() },
+      sub.nextInvoiceAt.toDate()
+    );
     const amount = Math.round(base * (1 - discount / 100));
+
+    // Období zdarma v rámci akce (sleva 100 %): fakturu nevystavíme, ale období posuneme,
+    // jinak by předplatné na tomto datu uvízlo i po konci akce.
+    if (amount <= 0 && base > 0 && discount > 0) {
+      const next = new Date(sub.nextInvoiceAt.toDate());
+      if (sub.billingCycle === "yearly") next.setFullYear(next.getFullYear() + 1);
+      else next.setMonth(next.getMonth() + 1);
+      await subDoc.ref.update({ nextInvoiceAt: next, updatedAt: FieldValue.serverTimestamp() });
+      summary.skippedFree++;
+      continue;
+    }
 
     // Nulové (nebo neúplné) předplatné nefakturuj — nevystavuj 0 Kč doklad.
     // nextInvoiceAt neposouváme: jakmile se cena doplní, faktura se vystaví.

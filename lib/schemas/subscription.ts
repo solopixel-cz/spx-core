@@ -17,6 +17,7 @@ export const subscriptionSchema = z.object({
   billingCycle: z.enum(["monthly", "yearly"]),
   status: z.enum(["trial", "active", "past_due", "cancelled"]),
   internal: z.boolean().optional(), // interní (obchodník / vlastní) — nefakturuje se
+  discountUntil: timestampSchema.optional(), // poslední den časově omezené slevy (lib/discount.ts), chybí = trvalá
   startedAt: timestampSchema,
   nextInvoiceAt: timestampSchema,
 });
@@ -34,6 +35,7 @@ const subscriptionFormBase = z.object({
   status: z.enum(["trial", "active", "past_due", "cancelled"]),
   discountPercent: z.coerce.number().min(0).max(100).optional(),
   discountNote: z.string().optional(),
+  discountUntil: z.string().optional(), // yyyy-mm-dd, prázdné = trvalá sleva
   internal: z.boolean().optional(),
   // Volitelné — pro import stávajících klientů. Prázdné = startedAt teď, nextInvoiceAt dopočítá API.
   startedAt: z.string().optional(),

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Plus } from "lucide-react";
+import { AlertTriangle, Pencil, Plus } from "lucide-react";
 import { billedMonths, subscriptionLabel } from "@/lib/plans";
+import { discountStatus } from "@/lib/discount";
 import type { SubscriptionService } from "@/lib/schemas/subscription";
 import { subscriptionStatusLabels as statusLabels } from "./subscription-form";
 
@@ -21,6 +22,7 @@ export interface SubData {
   nextInvoiceAt: string | null;
   discountPercent?: number;
   discountNote?: string;
+  discountUntil?: string | null;
   internal?: boolean;
 }
 
@@ -87,9 +89,13 @@ function SubscriptionItem({
 }) {
   const cancelled = s.status === "cancelled";
   const instance = s.instanceId ? instances.find((i) => i.id === s.instanceId) : null;
-  const afterDiscount = s.discountPercent
-    ? Math.round(s.priceMonthly * (1 - s.discountPercent / 100))
+  const promo = cancelled || s.internal ? null : discountStatus(s);
+  // Po konci akce se fakturuje plná cena, tak ji tak i ukážeme.
+  const discountActive = !!s.discountPercent && promo?.kind !== "expired";
+  const afterDiscount = discountActive
+    ? Math.round(s.priceMonthly * (1 - s.discountPercent! / 100))
     : s.priceMonthly;
+  const fullPeriodPrice = s.priceMonthly * billedMonths(s);
 
   return (
     <div className={cnItem(cancelled)}>
@@ -112,7 +118,7 @@ function SubscriptionItem({
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Cena</dt>
           <dd>
-            {s.discountPercent ? (
+            {discountActive ? (
               <>
                 <span className="mr-1.5 text-xs text-muted-foreground line-through">
                   {s.priceMonthly.toLocaleString("cs-CZ")} Kč
@@ -132,11 +138,16 @@ function SubscriptionItem({
             <dd>ročně ({(afterDiscount * billedMonths(s)).toLocaleString("cs-CZ")} Kč)</dd>
           </div>
         )}
-        {s.discountPercent ? (
-          <div className="flex justify-between">
+        {discountActive ? (
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Sleva</dt>
-            <dd className="text-green-600">
+            <dd className="text-right text-green-600">
               −{s.discountPercent} %{s.discountNote ? ` (${s.discountNote})` : ""}
+              {promo && promo.kind !== "permanent" && (
+                <span className="block text-xs text-muted-foreground">
+                  Akce do {formatDay(promo.until)}
+                </span>
+              )}
             </dd>
           </div>
         ) : null}
@@ -154,8 +165,37 @@ function SubscriptionItem({
           </div>
         )}
       </dl>
+      {promo?.kind === "ending" && (
+        <p className={cnAlert("amber")}>
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Akce končí {formatDay(promo.until)}.{" "}
+            {promo.nextInvoiceFull ? "Další faktura už bez slevy:" : "Potom plná cena:"}{" "}
+            <strong>{fullPeriodPrice.toLocaleString("cs-CZ")} Kč</strong>.
+          </span>
+        </p>
+      )}
+      {promo?.kind === "expired" && (
+        <p className={cnAlert("red")}>
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Akce skončila {formatDay(promo.until)}. Fakturuje se plná cena{" "}
+            <strong>{fullPeriodPrice.toLocaleString("cs-CZ")} Kč</strong>.
+          </span>
+        </p>
+      )}
     </div>
   );
+}
+
+function formatDay(d: Date) {
+  return d.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+}
+
+function cnAlert(tone: "amber" | "red") {
+  return tone === "amber"
+    ? "mt-2 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300"
+    : "mt-2 flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300";
 }
 
 function cnItem(cancelled: boolean) {

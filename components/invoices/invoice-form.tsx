@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, CalendarDays, User } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, Loader2, CalendarDays, User } from "lucide-react";
 import {
   invoiceFormSchema,
   invoiceItemsTotal,
@@ -59,6 +59,7 @@ export function InvoiceForm({
   defaultItems,
   projectId,
   subscriptionId,
+  notice,
 }: {
   clients: ClientOption[];
   invoice?: EditInvoice;
@@ -73,6 +74,8 @@ export function InvoiceForm({
   projectId?: string;
   /** Faktura z předplatného — uloží se `subscriptionId`. */
   subscriptionId?: string;
+  /** Upozornění nad položkami (např. skončená akce předplatného). */
+  notice?: string;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -230,6 +233,12 @@ export function InvoiceForm({
             <CardTitle className="text-base">Položky</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {notice && (
+              <p className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {notice}
+              </p>
+            )}
             {fields.map((field, idx) => {
               const line = invoiceLineTotal({
                 quantity: Number(items?.[idx]?.quantity) || 0,
