@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { baseFields, timestampSchema } from "./timestamp";
+import { PLAN_KEYS } from "@/lib/plans";
 
 /** Za co se předplatné platí (fáze 34C). Chybí = vizitka (stávající data). */
 export const subscriptionServices = ["card", "web", "other"] as const;
@@ -9,13 +10,14 @@ export const subscriptionSchema = z.object({
   ...baseFields,
   clientId: z.string().min(1),
   service: z.enum(subscriptionServices).optional(), // chybí = 'card'
-  plan: z.enum(["basic", "pro"]).optional(), // jen pro vizitku
+  plan: z.enum(PLAN_KEYS).optional(), // jen pro vizitku
   label: z.string().optional(), // název u webu / jiné služby („Správa webu")
   instanceId: z.string().optional(), // volitelná vazba na vizitku / web
   priceMonthly: z.number().nonnegative(),
   billingCycle: z.enum(["monthly", "yearly"]),
   status: z.enum(["trial", "active", "past_due", "cancelled"]),
   internal: z.boolean().optional(), // interní (obchodník / vlastní) — nefakturuje se
+  discountUntil: timestampSchema.optional(), // poslední den časově omezené slevy (lib/discount.ts), chybí = trvalá
   startedAt: timestampSchema,
   nextInvoiceAt: timestampSchema,
 });
@@ -25,7 +27,7 @@ export type Subscription = z.infer<typeof subscriptionSchema>;
 /** Base formuláře (bez cross-field validace, ať jde .partial() pro PATCH). */
 const subscriptionFormBase = z.object({
   service: z.enum(subscriptionServices),
-  plan: z.enum(["basic", "pro"]).optional(),
+  plan: z.enum(PLAN_KEYS).optional(),
   label: z.string().optional(),
   instanceId: z.string().optional(),
   priceMonthly: z.coerce.number().nonnegative("Zadejte kladnou cenu"),
@@ -33,6 +35,7 @@ const subscriptionFormBase = z.object({
   status: z.enum(["trial", "active", "past_due", "cancelled"]),
   discountPercent: z.coerce.number().min(0).max(100).optional(),
   discountNote: z.string().optional(),
+  discountUntil: z.string().optional(), // yyyy-mm-dd, prázdné = trvalá sleva
   internal: z.boolean().optional(),
   // Volitelné — pro import stávajících klientů. Prázdné = startedAt teď, nextInvoiceAt dopočítá API.
   startedAt: z.string().optional(),
