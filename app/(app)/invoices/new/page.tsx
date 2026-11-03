@@ -2,7 +2,8 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
-import { subscriptionLabel } from "@/lib/plans";
+import { billedMonths, subscriptionLabel } from "@/lib/plans";
+import { discountFor, nextBillingDate } from "@/lib/discount";
 
 export default async function NovaFakturaPage({
   searchParams,
@@ -36,6 +37,7 @@ export default async function NovaFakturaPage({
     | { description: string; quantity: number; unitPrice: number; discountPercent?: number }[]
     | undefined;
   let subscriptionId: string | undefined;
+  let notice: string | undefined;
   if (clientId && sub) {
     // `sub` = ID předplatného (klient jich může mít víc); stará URL `sub=1` → první předplatné.
     const byId = sub !== "1" ? await db.collection("subscriptions").doc(sub).get() : null;
@@ -47,8 +49,19 @@ export default async function NovaFakturaPage({
       subscriptionId = subDoc.id;
       const s = subDoc.data()!;
       const monthly = (s.priceMonthly as number) ?? 0;
-      const unit = s.billingCycle === "yearly" ? monthly * 12 : monthly;
+      const unit = monthly * billedMonths(s);
       const cycle = s.billingCycle === "yearly" ? "roční" : "měsíční";
+      // Časově omezená akce: sleva jen pro období, které začíná nejpozději posledním dnem akce.
+      const promo = {
+        discountPercent: (s.discountPercent as number) ?? 0,
+        discountUntil: s.discountUntil?.toDate?.() ?? null,
+        nextInvoiceAt: s.nextInvoiceAt?.toDate?.() ?? null,
+      };
+      const discountPercent = discountFor(promo, nextBillingDate(promo));
+      if (promo.discountPercent && !discountPercent && promo.discountUntil) {
+        const until = promo.discountUntil.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" });
+        notice = `Akce −${promo.discountPercent} % platila do ${until}, tato faktura je už v plné ceně.`;
+      }
       defaultItems = [
         {
           description: `${subscriptionLabel(s)} (${cycle}) {obdobi}`,
@@ -56,7 +69,7 @@ export default async function NovaFakturaPage({
           unitPrice: unit,
           // Sleva z předplatného se přenáší jako sleva řádku (plná cena − %),
           // aby byla na dokladu vidět transparentně.
-          discountPercent: (s.discountPercent as number) ?? 0,
+          discountPercent,
         },
       ];
     }
@@ -95,6 +108,7 @@ export default async function NovaFakturaPage({
         defaultItems={defaultItems}
         projectId={projectId}
         subscriptionId={subscriptionId}
+        notice={notice}
       />
     </div>
   );
