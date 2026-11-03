@@ -53,6 +53,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
     stats?: boolean          // Statistiky návštěv vizitky (GA4)
     statsPlus?: boolean      // Rozšířené statistiky (placený doplněk, zadání #22); platí jen se stats, vypnutí stats vypne i statsPlus
     references?: boolean     // Reference (sběr a zveřejnění)
+    lectures?: boolean       // Hodnocení přednášek (zadání #25), na tarif vázané není
   }
 }
 ```
@@ -703,9 +704,59 @@ Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admi
 }
 ```
 
+### `lectures` (spx-hub)
+Přednáška lektora pro Hodnocení přednášek (spec/assign/zadani-hodnoceni-prednasek.md, tabule #25). Patří klientovi, ne vizitce. Jen spx-hub přes Admin SDK. **Nejsou to reference:** vlastní kolekce, výpočty i zobrazení.
+
+```ts
+// lectures/{autoId}
+{
+  clientId: string
+  title: string              // max 120; po prvním hodnocení nejde změnit
+  date: string               // yyyy-mm-dd; po prvním hodnocení nejde změnit
+  organizer: string | null   // opravit jde i po hodnocení (audit)
+  place: string | null
+  expectedAudience: number | null   // po prvním hodnocení nejde změnit (signál over_audience)
+  materialsUrl: string | null       // odkaz, nebo veřejná URL nahraného PDF (Storage lectures/{clientId}/{id}/materialy.pdf, max 20 MB)
+  materialsPath: string | null
+  token: string              // 16 znaků base64url, odkaz /h/{token} v hubu
+  opensAt: Timestamp         // den přednášky 00:00 Europe/Prague
+  closesAt: Timestamp        // 3 dny po přednášce 23:59:59 Europe/Prague
+  status: 'draft' | 'hidden' // ukládá se jen skrytí; open/closed se odvozuje z okna
+  ratingsCount: number       // uložená hodnocení celkem (i zadržená)
+  recentAt: number[]         // časy posledních hodnocení (signál burst), po úklidu prázdné
+  hashesPurgedAt?: Timestamp // otisky hodnocení smazané (90 dní po closesAt)
+  createdAt, updatedAt: Timestamp
+}
+```
+
+### `lectureRatings` (spx-hub)
+Hodnocení přednášky od posluchače. ID = sha256(lectureId + deviceHash) (jedno hodnocení z jednoho zařízení). Nejde smazat ani upravit; lektor smí jen skrýt text (`commentHidden`), odpovědět (`reply`) a smazat kontakt (GDPR).
+
+```ts
+// lectureRatings/{sha256(lectureId:deviceHash).slice(0, 28)}
+{
+  lectureId: string
+  clientId: string
+  stars: 1 | 2 | 3 | 4 | 5
+  takeaway: 'yes' | 'partly' | 'no'   // „Odnesl/a jsem si něco, co použiju“
+  recommend: 'yes' | 'no'             // „Doporučil/a bych přednášku dalším“
+  comment: string            // max 1000, bez odkazů a HTML
+  name: string               // prázdné = „Anonymní posluchač“, na vizitce zkráceně
+  contact?: { value: string; kind: 'email' | 'phone'; consent: { text: string; version: string; at: Timestamp } }
+  deviceHash?: string        // HMAC náhodného ID zařízení z vizitky; smaže se 90 dní po closesAt
+  ipHash?: string | null     // HMAC IP (REFERENCE_RATE_SALT); smaže se 90 dní po closesAt
+  trust: { level: 'ok' | 'held'; signals: ('over_audience' | 'burst' | 'repeated_ip' | 'off_day')[] }   // vlastní úrovně, ne z referencí
+  commentHidden: boolean
+  reply?: { text: string; at: Timestamp }   // jedna odpověď lektora (lib/owner-reply.ts)
+  createdAt: Timestamp
+}
+```
+
+Do průměru a procent jdou všechna hodnocení kromě úrovně `held`. Na vizitce je přednáška od 5 platných hodnocení; skrytá přednáška (`status: hidden`) nepřispívá do souhrnu ničím. Audit v `hubAuditLog` s `clientId` a `lectureId` (akce `lecture.*` a `rating.*`). Limity proti spamu v `hubRateLimits` pod klíčem `lecture-{lectureId}`.
+
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `lectures`, `lectureRatings`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.

@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-04: Hodnocení přednášek (#25), přepínač a rules pro spx-hub
+
+- Zadání `spec/assign/zadani-hodnoceni-prednasek.md` (stejné ve spx-core, spx-hub a spx-dbc), režim bez dozoru.
+- Větev `feat/hodnoceni-prednasek` z `origin/devel` (lokální stav 828adb6, z kontejneru nejde fetch). Bez důvěry referencí (#23): Lukáš 4. 11. rozhodl, že reference se zatím staví jednoduše. Původní větev na `feat/reference-duvera` zůstala lokálně jako `zaloha/hodnoceni-prednasek-s-duverou`.
+- `lib/hub-features.ts`: nová funkce `lectures` „Hodnocení přednášek“. Přepínač v detailu klienta je obecný, objeví se sám. Na tarif vázaná není.
+- `firestore.rules`: kolekce `lectures` a `lectureRatings` jen pro Admin SDK (spx-hub). Kontakty posluchačů se v CRM nezakládají.
+- `spec/context/data-model.md`: obě kolekce, `clients.hubFeatures.lectures`, audit a limity.
+- Verze 1.34.0 (1.33.0 má rozpracovaná `feat/akce-sleva-do`). Hlavní část je ve spx-hub, progress tam: `spec/hodnoceni-prednasek-progress.md`.
+- Po nasazení: `firebase deploy --only firestore` (rules), a to **z mergnutého `main`**, ne z větve.
+
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 
 - Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.
