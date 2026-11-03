@@ -49,6 +49,19 @@ Nejnovější záznamy nahoře.
 - Ověřeno proti emulátoru Firestore a Auth: stavy kódů, souběh na limit (2 ze 3 projdou), odmítnutí neplatného kódu bez kontaktu, admin stránka v prohlížeči (desktop i mobil). Typy a lint čisté.
 - Před nasazením: `firebase deploy --only firestore`; nasadit dřív než web.
 
+## 2026-10-30 — Recenze z Googlu na vizitce: data model
+
+- Větev `docs/reference-google` z `devel`. `hubProjects.google = { placeId, name, address? }` (Google místo poradce, nastavuje hub). Recenze se neukládají, hub je načítá z Places API (New) do cache na 24 h a vrací ve veřejném API jako `google`; bez schvalování (Google vrací nejvýš 5 podle sebe).
+- Rules beze změny (hubProjects jen Admin SDK). Navazuje spx-hub a spx-dbc `feat/reference-google`.
+
+## 2026-10-16 — Průvodce v SoloPixel HUB: datový model
+
+- Zadání spx-hub `spec/assign/zadani-hub-pruvodce.md` (tabule #18). Průvodce sám je ve spx-hub (`feat/pruvodce`, 1.20.0, podrobnosti v `spec/pruvodce-progress.md` hubu).
+- Data model: nová kolekce `hubGuide/{clientId}` (checklist „Prvních 7 dní“ a počítadla používání průvodce), jen Admin SDK. Rules beze změny, kolekce spadá pod výchozí zákaz jako `hubLoginCodes`; doplněna do výčtu zakázaných kolekcí hubu.
+- Jen dokumentace, verze se nemění. Větev `docs/hub-pruvodce` z `origin/devel`.
+- Verze 2 průvodce (spx-hub 1.21.0): `hubGuide` místo `checklist` nese `tasks` (zdroj ručně / automaticky), `level` a počítadla `openFrom`, `check.<úkol>.<zdroj>`, `level`. `hubAuditLog` má nové akce `guide.task_done`, `guide.task_undone`, `guide.level` s `clientId` místo `projectSlug`.
+- Uvítací okno průvodce (spx-hub 1.22.0): `hubGuide.introSeenAt` a počítadla `counters.intro`, `openFrom.intro`.
+
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 
 - Zadání `spec/assign/zadani-statistiky-plus.md` (tabule #22), část spx-core, větev `feat/statistiky-plus` z `main`.

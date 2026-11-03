@@ -18,13 +18,16 @@ export async function PATCH(
 
     // Datumová pole chodí jako yyyy-mm-dd string — v DB musí být Timestamp
     // (fakturační cron je čte přes .toDate()). Prázdné pole neměníme.
-    const { startedAt, nextInvoiceAt, ...rest } = data;
+    const { startedAt, nextInvoiceAt, discountUntil, ...rest } = data;
     const updates: Record<string, unknown> = {
       ...rest,
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (startedAt) updates.startedAt = new Date(startedAt);
     if (nextInvoiceAt) updates.nextInvoiceAt = new Date(nextInvoiceAt);
+    // Konec akce jde i smazat (prázdné = trvalá sleva), proto na rozdíl od dat výše přepisujeme vždy.
+    if (discountUntil !== undefined) updates.discountUntil = discountUntil ? new Date(discountUntil) : null;
+    if (rest.discountPercent === 0) updates.discountUntil = null;
     if (rest.service !== undefined && rest.service !== "card") updates.plan = null;
     if (rest.label !== undefined) updates.label = rest.label.trim() || null;
     if (rest.instanceId !== undefined) updates.instanceId = rest.instanceId || null;

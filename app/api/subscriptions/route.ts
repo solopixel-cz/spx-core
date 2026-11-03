@@ -25,6 +25,7 @@ export async function GET(request: Request) {
         ...data,
         startedAt: data.startedAt?.toDate?.()?.toISOString() ?? null,
         nextInvoiceAt: data.nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
+        discountUntil: data.discountUntil?.toDate?.()?.toISOString() ?? null,
         createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
       };
@@ -49,7 +50,12 @@ export async function POST(request: Request) {
     }
 
     const db = getAdminFirestore();
-    const { startedAt: startedAtInput, nextInvoiceAt: nextInvoiceAtInput, ...subData } = data;
+    const {
+      startedAt: startedAtInput,
+      nextInvoiceAt: nextInvoiceAtInput,
+      discountUntil: discountUntilInput,
+      ...subData
+    } = data;
     const startedAt = startedAtInput ? new Date(startedAtInput) : new Date();
     let nextInvoice: Date;
     if (nextInvoiceAtInput) {
@@ -78,6 +84,8 @@ export async function POST(request: Request) {
       plan: data.service === "card" ? data.plan : null,
       label: data.label?.trim() || null,
       instanceId: data.instanceId || null,
+      // Konec akce jen u slevy; bez data = trvalá sleva.
+      discountUntil: data.discountPercent && discountUntilInput ? new Date(discountUntilInput) : null,
       clientId,
       startedAt,
       nextInvoiceAt: nextInvoice,

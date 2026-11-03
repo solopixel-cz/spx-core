@@ -138,21 +138,22 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 (Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
-Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit. Akce na omezenou dobu: `discountUntil` (sleva platí pro období začínající nejpozději ten den; cron, předvyplnění faktury i upozornění v detailu klienta přes `lib/discount.ts`, období se 100% slevou cron přeskočí a posune).
 
 ```ts
 {
   clientId: string
   service?: 'card' | 'web' | 'other'  // chybí = 'card' (stávající data)
-  plan?: 'basic' | 'pro'       // jen vizitka (PLANS: Základní / Pro růst)
+  plan?: 'basic' | 'pro' | 'summit'  // jen vizitka (PLANS: Start 349 / Růst 549 / Náskok 749, jako web)
   label?: string             // vlastní název (web / jiné: povinný, např. „Správa webu")
   instanceId?: string        // volitelná vazba na vizitku / web
-  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = 12 × (cron, faktura, MRR)
+  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = billedMonths(): vizitka 10 × (2 měsíce zdarma), web/jiné 12 ×
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
   internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se a nepočítá do MRR
   discountPercent?: number   // sleva z předplatného (0–100), přenáší se do řádku faktury
   discountNote?: string      // důvod slevy
+  discountUntil?: Timestamp | null  // poslední den akce (včetně), chybí = trvalá sleva; logika v lib/discount.ts
   startedAt: Timestamp
   nextInvoiceAt: Timestamp
 }
@@ -634,6 +635,11 @@ Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu 
     nameFormat: 'short' | 'full'   // zobrazení jména na vizitce ("Jana N." / celé)
     serviceTypes: string[]         // nabídka pole „Typ služby" ve formuláři
   }
+  google?: {                 // Google místo poradce pro recenze na vizitce (od hubu 1.25.0)
+    placeId: string          // Places API (New), např. "ChIJ…"
+    name: string             // název místa z Googlu, jen pro kontrolu v nastavení
+    address?: string
+  }
   createdAt: Timestamp
   updatedAt: Timestamp
 }
@@ -664,6 +670,8 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
 ```
 Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
 
+**Recenze z Googlu se neukládají.** U projektu s `google.placeId` je veřejné API hubu (`/api/public/references/{slug}`) načte živě z Places API (New), drží je jen v cache Next.js (24 h) a vrací vedle referencí jako `google: { rating, count, url, reviews[] }`. Google vrací nejvýš 5 recenzí podle vlastního výběru, proto se nic neschvaluje; ve Firestore je jen `placeId`. Přihlášení k API: service account z GA4 (scope `cloud-platform`), případně `GOOGLE_PLACES_API_KEY`.
+
 ### `hubInvites` (spx-hub)
 Žádosti o referenci e-mailem: poradce (nebo admin týmu) zadá zákazníka, ten dostane osobní jednorázový odkaz `/p/{token}`. Odkaz jde otevírat, dokud zákazník referenci neodešle; platnost 90 dní od odeslání (připomenutí prodlouží, nejvýš 1 rok od vytvoření). Jen Admin SDK (spx-hub).
 
@@ -687,24 +695,58 @@ Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
 ```
 
 ### `hubAuditLog` (spx-hub)
-Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admin SDK.
+Kdo, kdy a co udělal s referencemi a projekty referencí, a s checklistem Průvodce. Jen zápis přes Admin SDK.
 
 ```ts
 // hubAuditLog/{autoId}
 {
-  projectSlug: string
+  projectSlug: string        // u akcí guide.* místo něj clientId (průvodce patří klientovi)
+  clientId?: string          // jen guide.*
+  task?: string              // guide.task_*: id úkolu
+  source?: 'manual' | 'auto' // guide.task_*: ručně / automaticky podle akce v hubu
+  level?: number             // guide.level: dosažená úroveň 1–3
   referenceId?: string
   action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
         | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
+        | 'guide.task_done' | 'guide.task_undone' | 'guide.level'
   actorEmail?: string        // prázdné = zákazník přes veřejný formulář
   actorRole: 'admin' | 'client' | 'public' | 'script'
   at: Timestamp
 }
 ```
 
+### `hubGuide` (spx-hub)
+Průvodce v hubu („Jak z vizitky vytěžit maximum“): herní checklist „Nastavte si vizitku“ (7 úkolů ve 3 úrovních) a počítadla, které části průvodce klient používá (hub nemá vlastní GA4). Jeden dokument na klienta. Zapisuje jen klient sám: ručně přes `POST /api/guide`, automaticky podle akcí v hubu (HUB z plochy, stažený QR kód, první žádost / odkaz na referenci, otevřené Statistiky). Demo účet ani admin v náhledu nic nezapisují. Jen Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+
+```ts
+// hubGuide/{clientId}
+{
+  tasks?: Record<TaskId, {             // hotové úkoly; vrácení ručního úkolu pole smaže
+    source: 'manual' | 'auto'          // ručně (Hotovo), nebo automaticky podle akce
+    at: Timestamp
+  }>
+  level?: number                       // nejvyšší dosažená úroveň 1–3 (Nastaveno, Sdíleno, Naplno), neklesá
+  levelAt?: Timestamp
+  introSeenAt?: Timestamp              // uvítací okno viděno (jednou za život účtu, nepřepisuje se)
+  counters?: {
+    open?: number                       // otevření stránky Průvodce (guide_open)
+    openFrom?: Record<'header' | 'bubble' | 'intro' | 'dashboard' | 'references' | 'stats', number>
+    section?: Record<SectionId, number> // rozbalení sekce (guide_section_open)
+    copy?: Record<TemplateId, number>   // zkopírování / sdílení šablony (guide_copy)
+    check?: Record<TaskId, { manual?: number; auto?: number }>   // odškrtnutí úkolu (guide_check)
+    level?: Record<'1' | '2' | '3', number>                     // dosažení úrovně (guide_level)
+    intro?: { shown?: number; cta?: number; later?: number }    // uvítací okno (guide_intro_*)
+  }
+  lastOpenAt?: Timestamp
+  updatedAt: Timestamp
+  // checklist: pole z první verze průvodce (nenasazená), hub ho ignoruje
+}
+```
+Id úkolů, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `kontrola`, `qr`, `reference`, `po-schuzce`); server přijme jen známá id. Úkoly vázané na funkci (`reference` → Reference, `statistiky` → Statistiky) se klientovi bez funkce nepočítají do postupu.
+
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.

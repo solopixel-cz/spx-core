@@ -17,6 +17,7 @@ export function toSubData(doc: DocumentSnapshot): SubData {
     nextInvoiceAt: s.nextInvoiceAt?.toDate?.()?.toISOString() ?? null,
     discountPercent: (s.discountPercent as number | undefined) ?? 0,
     discountNote: (s.discountNote as string | undefined) ?? "",
+    discountUntil: s.discountUntil?.toDate?.()?.toISOString() ?? null,
     internal: (s.internal as boolean | undefined) ?? false,
   };
 }

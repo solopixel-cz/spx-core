@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { DIRECT_SOURCE, sourceLabel, type Attribution } from "@/lib/attribution";
+import { planLabel } from "@/lib/plans";
 
 export interface WebInquiry {
   industry: string | null;
@@ -53,7 +54,7 @@ export function WebInquiryCard({
           {inquiry.promoCode && <Row label="Promo kód">{inquiry.promoCode}</Row>}
           {inquiry.industry && <Row label="Obor">{inquiry.industry}</Row>}
           {inquiry.product && <Row label="Produkt">{inquiry.product}</Row>}
-          {inquiry.plan && <Row label="Plán">{inquiry.plan}</Row>}
+          {inquiry.plan && <Row label="Tarif">{planLabel(inquiry.plan)}</Row>}
           {inquiry.teamType && (
             <Row label="Režim">
               {inquiry.teamType === "team" ? "Tým" : "Sólo"}
