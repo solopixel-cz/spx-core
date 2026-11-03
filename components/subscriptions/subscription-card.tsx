@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus } from "lucide-react";
-import { subscriptionLabel } from "@/lib/plans";
+import { billedMonths, subscriptionLabel } from "@/lib/plans";
 import type { SubscriptionService } from "@/lib/schemas/subscription";
 import { subscriptionStatusLabels as statusLabels } from "./subscription-form";
 
@@ -129,7 +129,7 @@ function SubscriptionItem({
         {s.billingCycle === "yearly" && (
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Fakturace</dt>
-            <dd>ročně ({(afterDiscount * 12).toLocaleString("cs-CZ")} Kč)</dd>
+            <dd>ročně ({(afterDiscount * billedMonths(s)).toLocaleString("cs-CZ")} Kč)</dd>
           </div>
         )}
         {s.discountPercent ? (

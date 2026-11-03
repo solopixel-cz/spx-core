@@ -144,10 +144,10 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
 {
   clientId: string
   service?: 'card' | 'web' | 'other'  // chybí = 'card' (stávající data)
-  plan?: 'basic' | 'pro'       // jen vizitka (PLANS: Základní / Pro růst)
+  plan?: 'basic' | 'pro' | 'summit'  // jen vizitka (PLANS: Start 349 / Růst 549 / Náskok 749, jako web)
   label?: string             // vlastní název (web / jiné: povinný, např. „Správa webu")
   instanceId?: string        // volitelná vazba na vizitku / web
-  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = 12 × (cron, faktura, MRR)
+  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = billedMonths(): vizitka 10 × (2 měsíce zdarma), web/jiné 12 ×
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
   internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se a nepočítá do MRR

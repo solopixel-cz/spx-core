@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
-import { subscriptionLabel } from "@/lib/plans";
+import { billedMonths, subscriptionLabel } from "@/lib/plans";
 
 export default async function NovaFakturaPage({
   searchParams,
@@ -47,7 +47,7 @@ export default async function NovaFakturaPage({
       subscriptionId = subDoc.id;
       const s = subDoc.data()!;
       const monthly = (s.priceMonthly as number) ?? 0;
-      const unit = s.billingCycle === "yearly" ? monthly * 12 : monthly;
+      const unit = monthly * billedMonths(s);
       const cycle = s.billingCycle === "yearly" ? "roční" : "měsíční";
       defaultItems = [
         {

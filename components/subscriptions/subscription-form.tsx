@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PLANS, SERVICE_LABELS, subscriptionLabel, type PlanKey } from "@/lib/plans";
+import { PLANS, SERVICE_LABELS, billedMonths, subscriptionLabel, type PlanKey } from "@/lib/plans";
 import {
   subscriptionFormSchema,
   subscriptionServices,
@@ -155,8 +155,8 @@ export function SubscriptionForm({
   const wPrice = Number(watch("priceMonthly")) || 0;
   const wCycle = watch("billingCycle");
   const wDiscount = Number(watch("discountPercent")) || 0;
-  // priceMonthly je vždy měsíční cena; roční fakturace = 12× (stejně jako cron a faktura).
-  const wFactor = wCycle === "yearly" ? 12 : 1;
+  // priceMonthly je vždy měsíční cena; roční fakturace = billedMonths() (stejně jako cron a faktura).
+  const wFactor = billedMonths({ service, billingCycle: wCycle });
   const wAfterDiscount = Math.round(wPrice * wFactor * (1 - wDiscount / 100));
 
   return (
@@ -230,7 +230,9 @@ export function SubscriptionForm({
           <Label htmlFor="priceMonthly">Cena za měsíc (Kč)</Label>
           <Input id="priceMonthly" type="number" {...register("priceMonthly")} />
           {wCycle === "yearly" && (
-            <p className="text-xs text-muted-foreground">Fakturuje se ročně: 12 × měsíční cena</p>
+            <p className="text-xs text-muted-foreground">
+              Fakturuje se ročně: {wFactor} × měsíční cena{isCard ? " (2 měsíce zdarma)" : ""}
+            </p>
           )}
           {errors.priceMonthly && <p className="text-sm text-destructive">{errors.priceMonthly.message}</p>}
         </div>

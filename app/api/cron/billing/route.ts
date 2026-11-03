@@ -3,7 +3,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { currentPeriod } from "@/lib/schemas/invoice";
-import { subscriptionLabel } from "@/lib/plans";
+import { billedMonths, subscriptionLabel } from "@/lib/plans";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (!clientSnap.exists || clientSnap.data()?.deletedAt) continue;
 
     const monthly = (sub.priceMonthly as number) ?? 0;
-    const base = sub.billingCycle === "yearly" ? monthly * 12 : monthly;
+    const base = monthly * billedMonths(sub);
     const discount = (sub.discountPercent as number) ?? 0;
     const amount = Math.round(base * (1 - discount / 100));
 
