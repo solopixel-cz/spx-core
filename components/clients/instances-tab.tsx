@@ -21,6 +21,7 @@ import {
   instanceTypeLabels as typeLabels,
   instanceStatusLabels as statusLabels,
 } from "@/lib/schemas/instance";
+import { TrackingChecks } from "./tracking-checks";
 
 interface InstanceData {
   id: string;
@@ -34,6 +35,9 @@ interface InstanceData {
   deployUrl?: string;
   features: string[];
   notes?: string;
+  ga4PropertyId?: string;
+  ga4ConnectedAt?: string | null;
+  searchConsoleConnectedAt?: string | null;
 }
 
 const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -82,6 +86,7 @@ export function InstancesTab({
                 <TableHead>Typ</TableHead>
                 <TableHead>Slug / Hosting</TableHead>
                 <TableHead>Stav</TableHead>
+                <TableHead>Měření</TableHead>
                 <TableHead>Features</TableHead>
                 <TableHead className="w-24">Akce</TableHead>
               </TableRow>
@@ -120,6 +125,13 @@ export function InstancesTab({
                     >
                       {statusLabels[inst.status] ?? inst.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {inst.type === "web" ? (
+                      <TrackingChecks instance={inst} />
+                    ) : (
+                      <span className="text-muted-foreground">–</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {inst.features.length > 0
@@ -192,6 +204,12 @@ export function InstancesTab({
                   </div>
                 )}
               </dl>
+
+              {inst.type === "web" && (
+                <div className="relative mt-3">
+                  <TrackingChecks instance={inst} />
+                </div>
+              )}
 
               <div className="relative mt-3">
                 <Button

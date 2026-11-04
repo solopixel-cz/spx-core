@@ -70,6 +70,8 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
   advisorSlug?: string       // povinný jen pro vizitku (type === 'card')
   hosting?: string           // jen pro web: Vercel | Wedos | Forpsi | Netlify | Cloudflare
   ga4PropertyId?: string     // číselné Property ID z GA4 (ne měřicí ID G-…) — statistiky v hubu; čte ho spx-hub přes service account
+  ga4ConnectedAt?: Timestamp | null           // jen web: ručně odškrtnuto „GA4 napojeno“ (service account má přístup do property)
+  searchConsoleConnectedAt?: Timestamp | null // jen web: ručně odškrtnuto „Search Console napojeno“ (web ověřený, service account přidaný)
   domain: string             // např. jmeno.solopixel.cz (vizitka) nebo vlastní doména (web)
   status: 'setup' | 'live' | 'maintenance' | 'offline'
   repoUrl?: string
@@ -78,6 +80,8 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
   notes?: string
 }
 ```
+
+- **Kontrola měření webů:** u webu dvě ruční zaškrtnutí (GA4, Search Console), přepínají se v záložce Služby (`PATCH /api/instances/[id]` s `ga4Connected` / `searchConsoleConnected`). Dashboard (admin, member) ukazuje „Weby bez měření“: webové instance mimo `offline` a archiv, kterým chybí jedno z nich nebo `ga4PropertyId`. Vizitky se nekontrolují (GA4 a Search Console řeší společný základ na solopixel.cz).
 
 ### `projects`
 Jednorázové **zakázky** klienta (fáze 34B), např. marketingový prospekt. Oddělené od `instances` (jiný životní cyklus: poptávka → dodáno → faktura). V UI detailu klienta záložka **Služby** = `instances` (Vizitky a weby) + `projects` (Zakázky).
