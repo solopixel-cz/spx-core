@@ -15,6 +15,7 @@ export default async function DashboardPage() {
     clientsSnap,
     prospectsSnap,
     domainsSnap,
+    webInstancesSnap,
   ] = await Promise.all([
     db.collection("projects").get(),
     isSales ? Promise.resolve(null) : db.collection("invoices").get(),
@@ -22,6 +23,7 @@ export default async function DashboardPage() {
     db.collection("clients").get(),
     db.collection("prospects").get(),
     db.collection("domains").get(),
+    isSales ? Promise.resolve(null) : db.collection("instances").where("type", "==", "web").get(),
   ]);
 
   // Rozpracované zakázky (poptávka / rozpracováno) — hodnota k vyfakturování (nahradila pipeline leadů)
@@ -222,8 +224,33 @@ export default async function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(({ _due, ...rest }) => rest);
 
+  // Weby bez měření — ručně neodškrtnuté GA4 / Search Console nebo chybějící
+  // Property ID. Jen admin/member, archivované a offline weby se přeskakují.
+  const websWithoutTracking = (webInstancesSnap?.docs ?? [])
+    .map((doc) => {
+      const d = doc.data();
+      const client = domainClientById[d.clientId as string];
+      if (d.deletedAt || d.status === "offline" || !client || client.deleted) return null;
+      const missing = [
+        !d.ga4ConnectedAt && "Google Analytics",
+        d.ga4ConnectedAt && !d.ga4PropertyId && "Property ID",
+        !d.searchConsoleConnectedAt && "Search Console",
+      ].filter((m): m is string => !!m);
+      if (missing.length === 0) return null;
+      return {
+        id: doc.id,
+        clientId: d.clientId as string,
+        clientName: client.name,
+        domain: d.domain as string,
+        missing,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => a.domain.localeCompare(b.domain, "cs"));
+
   return (
     <DashboardClient
+      websWithoutTracking={websWithoutTracking}
       openProjectsValue={openProjectsValue}
       openProjectsCount={openProjectsCount}
       mrr={mrr}

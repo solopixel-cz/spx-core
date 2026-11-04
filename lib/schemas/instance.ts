@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseFields } from "./timestamp";
+import { baseFields, timestampSchema } from "./timestamp";
 
 /** Typ instance: 'card' = DBC vizitka (má slug), 'web' = klientský web (má hosting). */
 export const instanceTypes = ["card", "web"] as const;
@@ -21,6 +21,8 @@ export const instanceSchema = z.object({
   advisorSlug: z.string().optional(), // povinný jen pro vizitku (type === 'card')
   hosting: z.string().optional(), // jen pro web (type === 'web')
   ga4PropertyId: z.string().regex(/^\d+$/).optional(), // číselné Property ID z GA4 (statistiky v hubu)
+  ga4ConnectedAt: timestampSchema.nullable().optional(), // jen web: ručně potvrzené napojení GA4
+  searchConsoleConnectedAt: timestampSchema.nullable().optional(), // jen web: ručně potvrzené napojení Search Console
   domain: z.string().min(1),
   status: z.enum(["setup", "live", "maintenance", "offline"]),
   repoUrl: z.string().url().optional(),
@@ -47,6 +49,9 @@ const instanceFormBase = z.object({
   deployUrl: z.string().url("Zadejte platné URL").or(z.literal("")).optional(),
   features: z.string().optional(),
   notes: z.string().optional(),
+  // Kontrola měření webu (přepínače v záložce Služby), na serveru se z nich stane datum.
+  ga4Connected: z.boolean().optional(),
+  searchConsoleConnected: z.boolean().optional(),
 });
 
 /** Create (POST) — vyžaduje slug u vizitky. */

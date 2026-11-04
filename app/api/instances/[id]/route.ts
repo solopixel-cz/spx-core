@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
@@ -14,7 +15,7 @@ export async function PATCH(
     const user = await requireAuth();
     const { id } = await params;
     const body = await request.json();
-    const data = instanceFormPartialSchema.parse(body);
+    const { ga4Connected, searchConsoleConnected, ...data } = instanceFormPartialSchema.parse(body);
 
     const db = getAdminFirestore();
     const docRef = db.collection("instances").doc(id);
@@ -52,18 +53,36 @@ export async function PATCH(
     if (data.deployUrl === "") updates.deployUrl = null;
     if (data.ga4PropertyId === "") updates.ga4PropertyId = null;
 
+    // Kontrola měření: zaškrtnutí uloží datum, odškrtnutí ho smaže.
+    const checks: string[] = [];
+    if (ga4Connected !== undefined) {
+      updates.ga4ConnectedAt = ga4Connected ? FieldValue.serverTimestamp() : null;
+      checks.push(`Google Analytics ${ga4Connected ? "napojeno" : "nenapojeno"}`);
+    }
+    if (searchConsoleConnected !== undefined) {
+      updates.searchConsoleConnectedAt = searchConsoleConnected ? FieldValue.serverTimestamp() : null;
+      checks.push(`Search Console ${searchConsoleConnected ? "napojeno" : "nenapojeno"}`);
+    }
+
     await docRef.update(updates);
 
     const clientId = existing.data()?.clientId;
     if (clientId) {
+      const domain = existing.data()?.domain;
       await logActivity({
         entityType: "client",
         entityId: clientId,
         kind: "system",
-        text: `Instance „${existing.data()?.domain}" aktualizována`,
+        text:
+          checks.length > 0 && Object.keys(data).length === 0
+            ? `Měření webu „${domain}": ${checks.join(", ")}`
+            : `Instance „${domain}" aktualizována`,
         actorUid: user.uid,
       });
     }
+
+    if (clientId) revalidatePath(`/clients/${clientId}`);
+    revalidatePath("/");
 
     return NextResponse.json({ status: "ok" });
   } catch (error) {

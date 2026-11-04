@@ -92,6 +92,9 @@ interface InstanceData {
   deployUrl?: string;
   features: string[];
   notes?: string;
+  ga4PropertyId?: string;
+  ga4ConnectedAt?: string | null;
+  searchConsoleConnectedAt?: string | null;
 }
 
 interface ActivityData {

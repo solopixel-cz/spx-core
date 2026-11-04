@@ -46,7 +46,9 @@ export async function POST(request: Request) {
       string,
       unknown
     >;
-    const data = instanceFormSchema.parse(rest);
+    // Kontrola měření se zapisuje jen přes PATCH (přepínače v záložce Služby).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ga4Connected, searchConsoleConnected, ...data } = instanceFormSchema.parse(rest);
 
     if (!clientId) {
       return NextResponse.json(
