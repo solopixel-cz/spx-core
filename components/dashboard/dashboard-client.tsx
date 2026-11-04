@@ -22,6 +22,7 @@ import {
   Wallet,
   FileText,
   Hammer,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
@@ -38,11 +39,19 @@ interface FollowUp {
 
 interface UpcomingDomainRenewal {
   id: string;
-  clientId: string;
+  clientId: string | null;
   clientName: string;
   domainName: string;
   renewalAt: string;
   overdue: boolean;
+}
+
+interface WebWithoutTracking {
+  id: string;
+  clientId: string;
+  clientName: string;
+  domain: string;
+  missing: string[];
 }
 
 type StatTone = "primary" | "sky" | "violet" | "amber" | "emerald" | "slate";
@@ -121,6 +130,7 @@ export function DashboardClient({
   overdueInvoices,
   followUps,
   upcomingDomainRenewals = [],
+  websWithoutTracking = [],
   activeClients = 0,
   onboardingCount = 0,
   unpaidInvoices = 0,
@@ -135,6 +145,7 @@ export function DashboardClient({
   overdueInvoices: { count: number; sum: number };
   followUps: FollowUp[];
   upcomingDomainRenewals?: UpcomingDomainRenewal[];
+  websWithoutTracking?: WebWithoutTracking[];
   activeClients?: number;
   onboardingCount?: number;
   unpaidInvoices?: number;
@@ -144,6 +155,7 @@ export function DashboardClient({
   const alertCount =
     (!isSales && overdueInvoices.count > 0 ? 1 : 0) +
     (upcomingDomainRenewals.length > 0 ? 1 : 0) +
+    (!isSales && websWithoutTracking.length > 0 ? 1 : 0) +
     (followUps.length > 0 ? 1 : 0);
 
   const quickActions = [
@@ -176,7 +188,7 @@ export function DashboardClient({
         }
       />
 
-      {/* 1. Akční upozornění: faktury po splatnosti, obnovení domén, follow-upy.
+      {/* 1. Akční upozornění: faktury po splatnosti, obnovení domén, weby bez měření, follow-upy.
           Počet sloupců podle počtu karet, aby vedle nich nezůstávalo prázdné místo. */}
       {alertCount > 0 ? (
         <div
@@ -213,12 +225,20 @@ export function DashboardClient({
                     <Globe className="h-4 w-4 text-primary" />
                     Blížící se obnovení domén
                   </CardTitle>
+                  {!isSales && (
+                    <Link
+                      href="/domains"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Vše <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingDomainRenewals.slice(0, 5).map((d) => (
-                    <Link key={d.id} href={`/clients/${d.clientId}`}>
+                    <Link key={d.id} href={d.clientId ? `/clients/${d.clientId}` : "/domains"}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {d.domainName}
@@ -246,6 +266,38 @@ export function DashboardClient({
                   {upcomingDomainRenewals.length > 5 && (
                     <p className="px-1 pt-0.5 text-xs text-muted-foreground">
                       … a dalších {upcomingDomainRenewals.length - 5}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isSales && websWithoutTracking.length > 0 && (
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <BarChart3 className="h-4 w-4 text-amber-500" />
+                  Weby bez měření
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {websWithoutTracking.slice(0, 5).map((w) => (
+                    <Link key={w.id} href={`/clients/${w.clientId}?tab=instance`}>
+                      <div className="rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
+                        <p className="truncate text-sm">
+                          {w.domain}
+                          <span className="text-muted-foreground"> · {w.clientName}</span>
+                        </p>
+                        <p className="truncate text-xs text-amber-700 dark:text-amber-400">
+                          chybí {w.missing.join(", ")}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                  {websWithoutTracking.length > 5 && (
+                    <p className="px-1 pt-0.5 text-xs text-muted-foreground">
+                      … a dalších {websWithoutTracking.length - 5}
                     </p>
                   )}
                 </div>

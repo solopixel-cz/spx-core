@@ -2,6 +2,21 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-04: Kontrola měření webů (GA4, Search Console)
+
+- Lukáš chtěl u služeb klientů vidět, jestli je web napojený na Google Analytics a Search Console, a ručně to odklikat (statistiky webů v HUBu bez toho nejdou).
+- Větev `feat/mereni-sluzeb` z `origin/devel`. `instances.ga4ConnectedAt` a `searchConsoleConnectedAt` (jen weby), přepínají se klikem v záložce Služby (`PATCH /api/instances/[id]` s `ga4Connected` / `searchConsoleConnected`, záznam do aktivity). U zaškrtnutého GA4 bez Property ID upozornění.
+- Dashboard (admin, member): karta „Weby bez měření“ s odkazem na Služby klienta. Offline a archivované weby se nepočítají, vizitky se nekontrolují.
+- Verze 1.37.0. Rules a indexy beze změny (dotaz `where type == web` stačí jednopolový index).
+
+## 2026-11-04: Správa domén
+
+- Lukáš chtěl přehled všech domén (má je u Wedosu) s expirací a přiřazením ke klientům. Data zadává ručně, napojení na Wedos WAPI zatím ne (vyžaduje povolené IP, Vercel nemá pevnou).
+- Větev `feat/sprava-domen` z `origin/devel`. Nová stránka `/domains` (menu Provoz, admin a member): souhrn po expiraci / do 30 dnů / bez klienta, filtry, hledání, řazení podle expirace, nepřiřazenou doménu jde přiřadit klientovi přímo v tabulce. Nová a úprava domény na `/domains/new` a `/domains/[id]/edit` s výběrem klienta.
+- `domains.clientId` může být `null` (data-model). API, cron připomínek i widget na dashboardu s tím počítají (nepřiřazené vidí jen admin/member, odkaz vede do správy domén).
+- Detail klienta: u domén v hlavičce i expirace („do 12. 3. 2027“, naléhavé červeně).
+- Verze 1.36.0 (1.35.0 má `feat/notifikace-faktury`, zatím mimo devel). Rules a indexy beze změny.
+
 ## 2026-11-04: Přednášky zjednodušené (#25)
 
 - Lukáš chtěl přednášky jinak: lektor v hubu plánuje akce (chystané / proběhlé), nahrává materiály (prezentace, dokumenty, prospekty) a na konci ukáže QR. Posluchač na vizitce dá Líbila / Nelíbila, napíše, co si odnáší, a kdo chce materiály, nechá e-mail. Hvězdy, signály podezřelosti, veřejné shrnutí na vizitce a denní cron pryč.

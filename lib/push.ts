@@ -10,7 +10,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 
 let configured: boolean | null = null;
 
-function ensureConfigured(): boolean {
+export function ensureConfigured(): boolean {
   if (configured !== null) return configured;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;

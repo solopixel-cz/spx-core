@@ -92,6 +92,9 @@ interface InstanceData {
   deployUrl?: string;
   features: string[];
   notes?: string;
+  ga4PropertyId?: string;
+  ga4ConnectedAt?: string | null;
+  searchConsoleConnectedAt?: string | null;
 }
 
 interface ActivityData {
@@ -158,6 +161,24 @@ function ChipGroup({ label, children }: { label: string; children: React.ReactNo
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
+  );
+}
+
+/** Expirace domény za názvem v čipu („· do 12. 3. 2027"), naléhavá červeně. */
+function DomainExpiry({ domain }: { domain?: DomainData }) {
+  if (!domain?.renewalAt) return null;
+  const s = renewalStatus(domain.renewalAt);
+  const alert = !domain.autoRenew && (s.level === "urgent" || s.level === "overdue");
+  return (
+    <span
+      className={cn("text-muted-foreground", alert && "text-red-600 dark:text-red-400")}
+      suppressHydrationWarning
+    >
+      {" · "}
+      {s.level === "overdue" && !domain.autoRenew
+        ? "po expiraci"
+        : `do ${new Date(domain.renewalAt).toLocaleDateString("cs-CZ")}`}
+    </span>
   );
 }
 
@@ -438,6 +459,7 @@ export function ClientDetailClient({
                   }
                 >
                   {inst.domain}
+                  <DomainExpiry domain={domains.find((d) => d.name === inst.domain)} />
                 </ContactChip>
               ))}
               {domains
@@ -449,6 +471,7 @@ export function ClientDetailClient({
                     icon={<Link2 className="h-3.5 w-3.5 shrink-0" />}
                   >
                     {d.name}
+                    <DomainExpiry domain={d} />
                   </ContactChip>
                 ))}
               {(client.hubInvitedAt || client.hubLastSignInAt) && (
@@ -488,7 +511,7 @@ export function ClientDetailClient({
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {domainAlerts.length === 1
-                ? `Obnovit doménu ${domainAlerts[0].d.name} — ${renewalLabel(domainAlerts[0].s)}`
+                ? `Obnovit doménu ${domainAlerts[0].d.name}, ${renewalLabel(domainAlerts[0].s)}`
                 : `${domainAlerts.length} domén potřebuje obnovit`}
             </span>
           </button>
