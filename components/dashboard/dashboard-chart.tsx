@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import {
-  ComposedChart,
+  BarChart,
   Bar,
-  Line,
+  AreaChart,
+  Area,
+  CartesianGrid,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  LabelList,
 } from "recharts";
-import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Banknote, Users } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 
@@ -23,226 +24,236 @@ export interface ChartSeries {
   data: { month: string; value: number }[];
 }
 
-// Stabilní paleta — každá metrika má vždy stejnou barvu (dle pořadí v series).
-const COLORS = [
-  "oklch(0.6 0.118 181)", // teal
-  "oklch(0.62 0.19 259)", // modrá
-  "oklch(0.68 0.17 145)", // zelená
-  "oklch(0.65 0.18 43)", // oranžová
-  "oklch(0.6 0.2 320)", // fialová
-  "oklch(0.62 0.2 25)", // červená
-];
+// Stabilní barvy metrik (stejné ve světlém i tmavém režimu).
+const COLORS: Record<string, string> = {
+  invoiced: "oklch(0.62 0.19 259)", // modrá
+  revenue: "oklch(0.6 0.118 181)", // teal
+  clientsTotal: "oklch(0.6 0.04 257)", // šedomodrá
+  activeClients: "oklch(0.6 0.118 181)", // teal
+  onboarding: "oklch(0.65 0.18 43)", // oranžová
+  subscriptions: "oklch(0.6 0.2 300)", // fialová
+};
+const FALLBACK = "oklch(0.6 0.04 257)";
+const colorOf = (key: string) => COLORS[key] ?? FALLBACK;
 
-export function DashboardChart({ series }: { series: ChartSeries[] }) {
-  const [selected, setSelected] = useState<string[]>(
-    () => series.slice(0, 2).map((s) => s.key)
-  );
-  const [chartType, setChartType] = useState<"bar" | "line">("line");
+// Kratší názvy do legendy (popisky v datech mají jednotky v závorce).
+const SHORT: Record<string, string> = {
+  invoiced: "Vystaveno",
+  revenue: "Přijato",
+  clientsTotal: "Všichni klienti",
+  activeClients: "Aktivní",
+  onboarding: "Onboarding",
+  subscriptions: "Předplatná",
+};
+const shortOf = (s: ChartSeries) => SHORT[s.key] ?? s.label;
 
-  if (series.length === 0) return null;
+const czkAxis = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`);
+const czkCompact = (v: number) =>
+  v >= 1000 ? `${(v / 1000).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} tis. Kč` : formatCurrency(v);
 
-  const colorByKey: Record<string, string> = {};
-  const seriesByKey: Record<string, ChartSeries> = {};
-  series.forEach((s, i) => {
-    colorByKey[s.key] = COLORS[i % COLORS.length];
-    seriesByKey[s.key] = s;
-  });
+/** Měsíc „MM/RR" → „led 25" pro osu. */
+const MONTHS = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"];
+const monthTick = (m: string) => {
+  const [mm, yy] = m.split("/");
+  const i = Number(mm) - 1;
+  return MONTHS[i] ? `${MONTHS[i]} ${yy}` : m;
+};
 
-  const activeSeries = series.filter((s) => selected.includes(s.key));
-  const hasCzk = activeSeries.some((s) => s.unit === "czk");
-  const hasCount = activeSeries.some((s) => s.unit === "count");
-
-  // Sloučená data podle měsíce (všechny řady sdílí stejných 12 měsíců).
-  const merged = (series[0]?.data ?? []).map((d, i) => {
+/** Sloučí řady do řádků po měsících (všechny řady sdílí stejných 12 měsíců). */
+function mergeRows(series: ChartSeries[]) {
+  return (series[0]?.data ?? []).map((d, i) => {
     const row: Record<string, string | number> = { month: d.month };
     series.forEach((s) => {
       row[s.key] = s.data[i]?.value ?? 0;
     });
     return row;
   });
+}
 
-  function toggle(key: string) {
-    setSelected((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
-  }
-
-  const fmt = (key: string, v: number) =>
-    seriesByKey[key]?.unit === "czk" ? formatCurrency(v) : v.toLocaleString("cs-CZ");
-
-  const czkAxisFmt = (v: number) =>
-    v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`;
-
-  // Kompaktní popisek hodnoty přímo v grafu (aby nebyl potřeba hover).
-  const labelFmt = (key: string, v: unknown) => {
-    if (typeof v !== "number") return "";
-    if (seriesByKey[key]?.unit === "czk") {
-      return v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`;
-    }
-    return v.toLocaleString("cs-CZ");
-  };
-
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  series,
+}: {
+  active?: boolean;
+  payload?: readonly { dataKey?: unknown; value?: unknown; color?: string }[];
+  label?: unknown;
+  series: ChartSeries[];
+}) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">Vývoj za 12 měsíců</p>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            variant={chartType === "bar" ? "default" : "outline"}
-            size="icon"
-            className="h-8 w-8"
-            title="Sloupcový graf"
-            aria-label="Sloupcový graf"
-            onClick={() => setChartType("bar")}
-          >
-            <BarChart3 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={chartType === "line" ? "default" : "outline"}
-            size="icon"
-            className="h-8 w-8"
-            title="Čárový graf"
-            aria-label="Čárový graf"
-            onClick={() => setChartType("line")}
-          >
-            <LineChartIcon className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Přepínače metrik (fungují i jako legenda) */}
-      <div className="flex flex-wrap gap-1.5">
-        {series.map((s) => {
-          const on = selected.includes(s.key);
+    <div className="rounded-lg bg-popover px-3 py-2 text-xs shadow-lg ring-1 ring-border">
+      <div className="mb-1.5 font-medium">{monthTick(String(label))}</div>
+      <div className="space-y-1">
+        {payload.map((p) => {
+          const s = series.find((x) => x.key === p.dataKey);
+          if (!s) return null;
+          const v = Number(p.value) || 0;
           return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => toggle(s.key)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                on
-                  ? "border-transparent bg-muted font-medium text-foreground"
-                  : "border-border text-muted-foreground hover:bg-muted/50"
-              )}
-            >
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: on ? colorByKey[s.key] : "transparent", borderColor: colorByKey[s.key], borderWidth: on ? 0 : 1.5 }}
-              />
-              {s.label}
-            </button>
+            <div key={s.key} className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorOf(s.key) }} />
+              <span className="text-muted-foreground">{shortOf(s)}</span>
+              <span className="ml-auto pl-3 font-medium tabular-nums">
+                {s.unit === "czk" ? formatCurrency(v) : v.toLocaleString("cs-CZ")}
+              </span>
+            </div>
           );
         })}
       </div>
+    </div>
+  );
+}
 
-      <div className="w-full min-w-0">
-        {activeSeries.length === 0 ? (
-          <div className="flex h-[220px] items-center justify-center text-xs text-muted-foreground">
+/** Výška obou grafů (vedle sebe od šířky xl, jinak pod sebou). */
+const CHART_HEIGHT = 260;
+
+const axisTick = { fontSize: 11, fill: "var(--muted-foreground)" };
+
+/** Finance: vystavené faktury vs. přijaté platby po měsících (sloupce vedle sebe). */
+function FinanceChart({ series }: { series: ChartSeries[] }) {
+  const rows = mergeRows(series);
+  const totals = series.map((s) => ({ s, sum: s.data.reduce((a, d) => a + d.value, 0) }));
+
+  return (
+    <Card className="min-w-0">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+            <Banknote className="h-4 w-4" />
+          </span>
+          Finance za 12 měsíců
+        </CardTitle>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+          {totals.map(({ s, sum }) => (
+            <div key={s.key}>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: colorOf(s.key) }} />
+                {shortOf(s)}
+              </p>
+              <p className="font-heading text-lg font-bold tabular-nums">{czkCompact(sum)}</p>
+            </div>
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent className="min-w-0 pt-0">
+        <ResponsiveContainer width="99%" height={CHART_HEIGHT}>
+          <BarChart data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }} barGap={2} barCategoryGap="22%">
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axisTick} tickFormatter={monthTick} minTickGap={8} />
+            <YAxis tickLine={false} axisLine={false} tick={axisTick} width={48} tickFormatter={czkAxis} />
+            <Tooltip
+              cursor={{ fill: "color-mix(in oklab, currentColor 6%, transparent)" }}
+              content={(p) => <ChartTooltip {...p} series={series} />}
+            />
+            {series.map((s) => (
+              <Bar key={s.key} dataKey={s.key} fill={colorOf(s.key)} radius={[4, 4, 0, 0]} maxBarSize={20} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Klienti: vývoj počtů v čase; metriky se zapínají v legendě, která ukazuje aktuální hodnotu. */
+function ClientsChart({ series }: { series: ChartSeries[] }) {
+  const [selected, setSelected] = useState<string[]>(() =>
+    series.filter((s) => s.key === "activeClients" || s.key === "subscriptions").map((s) => s.key)
+  );
+  const rows = mergeRows(series);
+  const active = series.filter((s) => selected.includes(s.key));
+
+  function toggle(key: string) {
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
+  return (
+    <Card className="min-w-0">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+            <Users className="h-4 w-4" />
+          </span>
+          Klienti a předplatná
+        </CardTitle>
+        <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-4">
+          {series.map((s) => {
+            const on = selected.includes(s.key);
+            const current = s.data[s.data.length - 1]?.value ?? 0;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => toggle(s.key)}
+                aria-pressed={on}
+                className={cn(
+                  "rounded-lg border px-2.5 py-1.5 text-left transition-colors",
+                  on ? "border-transparent bg-muted" : "border-dashed opacity-60 hover:opacity-100"
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorOf(s.key) }} />
+                  {shortOf(s)}
+                </span>
+                <span className="font-heading text-lg font-bold tabular-nums">{current.toLocaleString("cs-CZ")}</span>
+              </button>
+            );
+          })}
+        </div>
+      </CardHeader>
+      <CardContent className="min-w-0 pt-0">
+        {active.length === 0 ? (
+          <div className="flex h-[260px] items-center justify-center text-xs text-muted-foreground">
             Vyber alespoň jednu metriku
           </div>
         ) : (
-          <ResponsiveContainer width="99%" height={220}>
-            <ComposedChart data={merged} margin={{ top: 22, right: 8, left: 4, bottom: 0 }}>
-              <XAxis
-                dataKey="month"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 11 }}
-                minTickGap={4}
-              />
-              {hasCzk && (
-                <YAxis
-                  yAxisId="czk"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 10 }}
-                  width={44}
-                  tickFormatter={czkAxisFmt}
-                />
-              )}
-              {hasCount && (
-                <YAxis
-                  yAxisId="count"
-                  orientation="right"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 10 }}
-                  width={28}
-                  allowDecimals={false}
-                />
-              )}
+          <ResponsiveContainer width="99%" height={CHART_HEIGHT}>
+            <AreaChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                {active.map((s) => (
+                  <linearGradient key={s.key} id={`fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colorOf(s.key)} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={colorOf(s.key)} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tick={axisTick} tickFormatter={monthTick} minTickGap={8} />
+              <YAxis tickLine={false} axisLine={false} tick={axisTick} width={32} allowDecimals={false} />
               <Tooltip
-                cursor={{ fill: "color-mix(in oklab, currentColor 8%, transparent)" }}
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <div className="rounded-md bg-popover px-2 py-1.5 text-xs shadow-md ring-1 ring-border">
-                      <div className="mb-1 text-muted-foreground">{label}</div>
-                      <div className="space-y-0.5">
-                        {payload.map((p) => (
-                          <div key={p.dataKey as string} className="flex items-center gap-1.5">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: p.color }}
-                            />
-                            <span className="text-muted-foreground">
-                              {seriesByKey[p.dataKey as string]?.label}:
-                            </span>
-                            <span className="font-medium">
-                              {fmt(p.dataKey as string, p.value as number)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }}
+                cursor={{ stroke: "var(--border)" }}
+                content={(p) => <ChartTooltip {...p} series={series} />}
               />
-              {activeSeries.map((s) =>
-                chartType === "bar" ? (
-                  <Bar
-                    key={s.key}
-                    yAxisId={s.unit}
-                    dataKey={s.key}
-                    name={s.label}
-                    fill={colorByKey[s.key]}
-                    radius={[3, 3, 0, 0]}
-                  >
-                    <LabelList
-                      dataKey={s.key}
-                      position="top"
-                      fontSize={9}
-                      fill={colorByKey[s.key]}
-                      formatter={(v: unknown) => labelFmt(s.key, v)}
-                    />
-                  </Bar>
-                ) : (
-                  <Line
-                    key={s.key}
-                    yAxisId={s.unit}
-                    dataKey={s.key}
-                    name={s.label}
-                    stroke={colorByKey[s.key]}
-                    strokeWidth={2}
-                    dot={{ r: 2.5, fill: colorByKey[s.key], strokeWidth: 0 }}
-                  >
-                    <LabelList
-                      dataKey={s.key}
-                      position="top"
-                      fontSize={9}
-                      fill={colorByKey[s.key]}
-                      formatter={(v: unknown) => labelFmt(s.key, v)}
-                    />
-                  </Line>
-                )
-              )}
-            </ComposedChart>
+              {active.map((s) => (
+                <Area
+                  key={s.key}
+                  type="monotone"
+                  dataKey={s.key}
+                  stroke={colorOf(s.key)}
+                  strokeWidth={2}
+                  fill={`url(#fill-${s.key})`}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                />
+              ))}
+            </AreaChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Grafy na dashboardu: finance (Kč) a klienti (počty) zvlášť; na širokém displeji vedle sebe, jinak pod sebou. */
+export function DashboardCharts({ series }: { series: ChartSeries[] }) {
+  if (series.length === 0) return null;
+  const finance = series.filter((s) => s.unit === "czk");
+  const counts = series.filter((s) => s.unit === "count");
+  return (
+    <div className="grid min-w-0 gap-3 md:gap-4 xl:grid-cols-2">
+      {finance.length > 0 && <FinanceChart series={finance} />}
+      {counts.length > 0 && <ClientsChart series={counts} />}
     </div>
   );
 }

@@ -688,7 +688,7 @@ export function ClientDetailClient({
             {!isSales && salesUsers.length > 0 && (
               <div className="rounded-2xl border bg-card p-4 shadow-xs">
                 <h3 className="font-semibold">Obchodní vlastník</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Obchodník s nárokem na provize z faktur tohoto klienta.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Obchodník, který má klienta na starosti.</p>
                 <Select
                   items={{
                     none: "— Bez vlastníka —",

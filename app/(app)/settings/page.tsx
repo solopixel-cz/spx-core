@@ -5,11 +5,11 @@ import {
   Users,
   FileText,
   Archive,
-  Percent,
   User,
   ClipboardList,
   Bell,
   Receipt,
+  TicketPercent,
 } from "lucide-react";
 
 interface Tile {
@@ -43,6 +43,13 @@ const tiles: Tile[] = [
     roles: ["admin"],
   },
   {
+    label: "Promo kódy",
+    description: "Kódy pro formulář na webu, platnost a počet použití",
+    href: "/settings/promo-codes",
+    icon: TicketPercent,
+    roles: ["admin"],
+  },
+  {
     label: "Onboarding",
     description: "Checklist úkolů, který se vytvoří při založení klienta",
     href: "/settings/onboarding",
@@ -61,12 +68,6 @@ const tiles: Tile[] = [
     description: "Archivované záznamy — obnova a trvalé mazání",
     href: "/settings/archive",
     icon: Archive,
-  },
-  {
-    label: "Provize",
-    description: "Přehled, vyplácení provizí a výchozí sazba",
-    href: "/commissions",
-    icon: Percent,
   },
   {
     label: "Můj profil",

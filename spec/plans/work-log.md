@@ -9,8 +9,68 @@ Nejnovější záznamy nahoře.
 - `lib/hub-features.ts`: nová funkce `lectures` „Hodnocení přednášek“. Přepínač v detailu klienta je obecný, objeví se sám. Na tarif vázaná není.
 - `firestore.rules`: kolekce `lectures` a `lectureRatings` jen pro Admin SDK (spx-hub). Kontakty posluchačů se v CRM nezakládají.
 - `spec/context/data-model.md`: obě kolekce, `clients.hubFeatures.lectures`, audit a limity.
-- Verze 1.34.0 (1.33.0 má rozpracovaná `feat/akce-sleva-do`). Hlavní část je ve spx-hub, progress tam: `spec/hodnoceni-prednasek-progress.md`.
+- Verze 1.34.0 (navazuje na 1.33.0 z `feat/akce-sleva-do`, už v `devel`). Hlavní část je ve spx-hub, progress tam: `spec/hodnoceni-prednasek-progress.md`.
 - Po nasazení: `firebase deploy --only firestore` (rules), a to **z mergnutého `main`**, ne z větve.
+
+## 2026-10-30 — QR kód k promo kódu
+
+- Pokyn Lukáše: QR na leták, po naskenování formulář na webu rovnou s promo kódem. Větev `feat/promo-qr` z `feat/odebrat-provize`.
+- Nastavení → Promo kódy: u každého kódu tlačítko QR, dialog s náhledem, odkazem (kopírovat, otevřít) a stažením SVG (tisk) a PNG 1024 px. QR černý na bílém s okrajem, korekce M. Generuje se v prohlížeči knihovnou `qrcode`, nic se neukládá.
+- Odkaz `/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); poptávka tak má zdroj `qr` a kód. Web to umí ve spx-web `feat/promo-z-url` (nasadit spolu nebo dřív).
+- Ověřeno v Chromiu na dočasné stránce (desktop i mobil), stránka smazána.
+- Verze 1.31.0.
+
+## 2026-10-30 — Safari: rozepsané formuláře se neztratí, nová verze se jen nabídne
+
+- Hlášení Lukáše: v Safari na MacBooku se rozepsaný ticket po čase sám obnoví a data zmizí. V kódu CRM nic periodicky neobnovuje, jediný programový reload byl v `sw-register` po `controllerchange` (nová verze service workeru); Safari se u SW chová nespolehlivě. Druhá možná příčina je reload záložky Safari kvůli paměti.
+- `sw-register`: místo automatického `location.reload()` trvalý toast „Je dostupná nová verze CRM“ s tlačítkem Obnovit.
+- Nový hook `lib/hooks/use-form-draft.ts`: koncept formuláře v localStorage (`spx-draft:*`), ukládá se až po první ruční změně (ne při programovém předvyplnění), po znovunačtení se vrátí s toastem „Obnoven rozepsaný koncept“ a volbou Zahodit; po uložení nebo „Zrušit“ se maže, starší než 7 dní se ignoruje. `FormActions` má nový `onCancel`.
+- Zapojeno do formulářů ticketu, úkolu, klienta, domény, instance, zakázky, předplatného a faktury (nové i úpravy; klíč podle ID záznamu nebo kontextu nového).
+- Ověřeno v Chromiu na dočasných stránkách: ticket (pole i odkazy) a faktura (víc položek) se po reloadu obnoví, Zahodit koncept smaže a nezaloží znovu. Safari samotné neověřeno.
+- Verze 1.30.1.
+
+## 2026-10-30 — Dashboard: bez Moje úkoly, Blížící se fakturace a Aktivity, nové KPI a grafy
+
+- Pokyn Lukáše: na dashboardu je nechce. Odebrán hero widget **Moje úkoly** i karta **Blížící se fakturace**; server už nenačítá `tasks` a nepočítá nadcházející fakturace.
+- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a grafy.
+- KPI okénka (`StatCard`) propracovanější: barevná ikona, jemný barevný přechod a linka nahoře, větší hodnota a doplňující řádek (např. MRR „ročně …“, zakázky „N zakázek k vyfakturování“). Druhá řada má 3 okénka.
+- Jeden graf s přepínači rozdělen na dva (`DashboardCharts`): **Finance za 12 měsíců** (vystaveno vs. přijato, sloupce vedle sebe, součty v hlavičce) a **Klienti a předplatná** (plochy, legenda s aktuální hodnotou slouží jako přepínač). Bez popisků nad body a bez přepínače sloupce/čáry, měsíce česky.
+- Odebrána i karta **Aktivita** (poslední aktivita); server už nenačítá `activity` ani `users`. Celá historie zůstává na `/activity`.
+- Upozornění (po splatnosti, domény, follow-upy) mají počet sloupců podle počtu karet, takže vedle nich nezůstává prázdno. Grafy jsou vedle sebe od šířky xl (1280 px), na užším displeji a mobilu pod sebou přes celou šířku (výška 260 px).
+- Sales na dashboardu vidí jen rychlé akce a upozornění (KPI a grafy byly vždy jen pro admin/member).
+- Ověřeno v prohlížeči na dočasné náhledové stránce s ukázkovými daty (desktop, tmavý režim, mobil), stránka smazána.
+- Verze 1.30.0. Ve stejné větvi `feat/odebrat-provize`, samostatný commit.
+
+## 2026-10-30 — Odebrání provizního systému
+
+- Pokyn Lukáše: provize z CRM úplně pryč. Větev `feat/odebrat-provize` z `origin/devel`.
+- Smazáno: stránka `/commissions` (Provize) a položka v menu i v Nastavení, `/api/commissions`, `/api/settings/commission`, `lib/schemas/commission.ts`, přesměrování `/provize`.
+- Faktury: zaplacení už provizi nevytváří, storno ji nereverzuje, trvalé smazání faktury ani úklidový skript `cancel-cron-invoices` na `commissions` nesahají. Archiv: provize už neblokují trvalé smazání klienta.
+- Uživatelé: pole `commissionRate` pryč ze schématu, `/api/me`, `PATCH /api/users/[id]` a profilu (Sazba provize).
+- Moje vizitky (sales): zůstávají jako seznam klientů s tarifem a cenou, bez souhrnu a tabulky provizí. Komponenta přesunuta do `components/my-cards/`.
+- `firestore.rules`: blok `commissions` odebrán (výchozí zákaz). `firestore.indexes.json`: oba indexy `commissions` odebrány. Stará data ve Firestore zůstávají, nic se nemazalo.
+- Verze 1.29.0 (1.28.0 má `feat/web-poptavka-firma-promo`).
+
+## 2026-10-30 — Poptávka z webu: firma a promo kódy
+
+- Větev `feat/web-poptavka-firma-promo` z `devel`, verze 1.28.0. Navazuje na spx-web `feat/kontakt-firma-promo`.
+- `/api/leads/intake`: firma do `prospects.company`, promo kód do `inquiry.promoCode`; kód se ověří a započítá v transakci se založením kontaktu, neplatný vrátí 422 `promo_invalid` a kontakt nevznikne.
+- Nová kolekce `promoCodes` (ID = kód), správa v Nastavení → Promo kódy (admin): založení, platnost do data, limit použití, poznámka, vypnutí, smazání nepoužitého, seznam poptávek s kódem. `POST /api/promo-codes/validate` pro živou kontrolu z webu (tajemství `x-ingest-secret`). Rules `if false`, data model doplněn.
+- Ověřeno proti emulátoru Firestore a Auth: stavy kódů, souběh na limit (2 ze 3 projdou), odmítnutí neplatného kódu bez kontaktu, admin stránka v prohlížeči (desktop i mobil). Typy a lint čisté.
+- Před nasazením: `firebase deploy --only firestore`; nasadit dřív než web.
+
+## 2026-10-30 — Recenze z Googlu na vizitce: data model
+
+- Větev `docs/reference-google` z `devel`. `hubProjects.google = { placeId, name, address? }` (Google místo poradce, nastavuje hub). Recenze se neukládají, hub je načítá z Places API (New) do cache na 24 h a vrací ve veřejném API jako `google`; bez schvalování (Google vrací nejvýš 5 podle sebe).
+- Rules beze změny (hubProjects jen Admin SDK). Navazuje spx-hub a spx-dbc `feat/reference-google`.
+
+## 2026-10-16 — Průvodce v SoloPixel HUB: datový model
+
+- Zadání spx-hub `spec/assign/zadani-hub-pruvodce.md` (tabule #18). Průvodce sám je ve spx-hub (`feat/pruvodce`, 1.20.0, podrobnosti v `spec/pruvodce-progress.md` hubu).
+- Data model: nová kolekce `hubGuide/{clientId}` (checklist „Prvních 7 dní“ a počítadla používání průvodce), jen Admin SDK. Rules beze změny, kolekce spadá pod výchozí zákaz jako `hubLoginCodes`; doplněna do výčtu zakázaných kolekcí hubu.
+- Jen dokumentace, verze se nemění. Větev `docs/hub-pruvodce` z `origin/devel`.
+- Verze 2 průvodce (spx-hub 1.21.0): `hubGuide` místo `checklist` nese `tasks` (zdroj ručně / automaticky), `level` a počítadla `openFrom`, `check.<úkol>.<zdroj>`, `level`. `hubAuditLog` má nové akce `guide.task_done`, `guide.task_undone`, `guide.level` s `clientId` místo `projectSlug`.
+- Uvítací okno průvodce (spx-hub 1.22.0): `hubGuide.introSeenAt` a počítadla `counters.intro`, `openFrom.intro`.
 
 ## 2026-10-15 — Rozšířené statistiky (Statistiky+): přepínač v CRM
 

@@ -2,7 +2,7 @@
  * Storno faktur automaticky vygenerovaných cronem (`createdBy == "system-cron"`).
  *
  * Bezpečnostní režim: bez `--execute` jen VYPÍŠE, co by stornoval (dry-run).
- * S `--execute` provede storno (status `cancelled` + reverzace pending provize).
+ * S `--execute` provede storno (status `cancelled`).
  * Netýká se už zaplacených ani stornovaných faktur.
  *
  * Spuštění (env se načte ze .env.local):
@@ -71,12 +71,6 @@ async function main() {
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: "system-cleanup",
     });
-    // Reverzace pending provize (paid provize u čerstvých cron faktur nevzniká).
-    const commRef = store.collection("commissions").doc(d.id);
-    const commDoc = await commRef.get();
-    if (commDoc.exists && commDoc.data()!.status === "pending") {
-      await commRef.update({ status: "reversed", updatedAt: FieldValue.serverTimestamp() });
-    }
     console.log(` ✓ stornováno ${inv.number}`);
   }
   console.log(`Hotovo — stornováno ${target.length} faktur.`);

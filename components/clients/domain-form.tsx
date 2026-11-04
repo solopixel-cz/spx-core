@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { FormActions } from "@/components/form-actions";
@@ -41,6 +42,8 @@ export function DomainForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<DomainFormData>({
     resolver: zodResolver(domainFormSchema),
@@ -58,6 +61,10 @@ export function DomainForm({
       : { autoRenew: false },
   });
 
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `domain:${clientId}:${domain?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
+
   const autoRenew = watch("autoRenew") ?? false;
 
   async function onSubmit(data: DomainFormData) {
@@ -72,6 +79,7 @@ export function DomainForm({
         const err = await res.json();
         throw new Error(err.error || "Chyba při ukládání");
       }
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Doména aktualizována" : "Doména přidána");
       router.push(backHref);
       router.refresh();
@@ -148,6 +156,7 @@ export function DomainForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Přidat"}

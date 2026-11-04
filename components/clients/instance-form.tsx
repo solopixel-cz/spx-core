@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Archive, Loader2 } from "lucide-react";
@@ -76,6 +77,8 @@ export function InstanceForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<InstanceFormData>({
     resolver: zodResolver(instanceFormSchema),
@@ -94,6 +97,10 @@ export function InstanceForm({
         }
       : { type: "card", status: "setup" },
   });
+
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `instance:${clientId}:${instance?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const type = watch("type");
   const isWeb = type === "web";
@@ -114,6 +121,7 @@ export function InstanceForm({
         throw new Error(err.error || "Chyba při ukládání");
       }
 
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Instance aktualizována" : "Instance přidána");
       router.push(backHref);
       router.refresh();
@@ -276,6 +284,7 @@ export function InstanceForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Přidat"}

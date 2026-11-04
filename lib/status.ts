@@ -137,3 +137,11 @@ export const projectStatus: Record<string, StatusConfig> = {
   delivered: { label: "Dodáno", color: "green" },
   cancelled: { label: "Zrušeno", color: "gray" },
 };
+
+// Promo kód (stav počítá promoStatus v lib/schemas/promo-code.ts)
+export const promoCodeStatus: Record<string, StatusConfig> = {
+  active: { label: "Platný", color: "green" },
+  inactive: { label: "Vypnutý", color: "gray" },
+  expired: { label: "Vypršel", color: "red" },
+  exhausted: { label: "Vyčerpaný", color: "yellow" },
+};

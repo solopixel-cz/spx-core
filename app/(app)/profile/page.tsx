@@ -60,7 +60,6 @@ interface UserProfile {
   role: string;
   phone: string | null;
   photoURL: string | null;
-  commissionRate: number | null;
   createdAt: string | null;
   senderEmail: string | null;
   senderName: string | null;
@@ -349,15 +348,6 @@ export default function ProfilPage() {
                   <Input value={profile.email} disabled />
                   <p className="text-xs text-muted-foreground">E-mail mění administrátor</p>
                 </div>
-                {profile.role === "sales" && (
-                  <div className="space-y-2">
-                    <Label>Sazba provize</Label>
-                    <Input
-                      value={profile.commissionRate !== null ? `${Math.round(profile.commissionRate * 100)} %` : "Výchozí"}
-                      disabled
-                    />
-                  </div>
-                )}
                 {(profile.senderEmail || profile.senderName) && (
                   <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
                     <p className="text-xs font-medium text-muted-foreground">Odesílatel e-mailů</p>

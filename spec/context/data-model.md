@@ -2,7 +2,7 @@
 
 Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). Typy se definují zod schématy v `lib/schemas/` a odvozují přes `z.infer`.
 
-**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails` a `commissions/{id}`(+`-reversal`), zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
+**Mazání (od fáze 20):** archivovatelné entity (`clients`, `instances`, `leads`, `tickets`) mají volitelné `deletedAt` (Timestamp) a `deletedBy` (uid) — měkké smazání (archivace). Archivované záznamy se nezobrazují v běžných seznamech, vyhledávání ani součtech, ale data zůstávají kvůli historii. Jdou obnovit nebo (jen bez vazeb, jen admin) trvale smazat. **Faktury:** primárně **storno** (status `cancelled`, zachovává doklad). Od fáze 32 je i **trvalé smazání (jen admin)** — `DELETE /api/invoices/[id]` odstraní fakturu vč. navázaných `invoiceEmails`, zaloguje audit u klienta; vznikne mezera v číselné řadě (používat uvážlivě). `activity`, `outreachEmails` se nemažou samostatně (vážou se na jiné entity).
 
 ## Kolekce
 
@@ -15,7 +15,6 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   displayName: string
   role: 'admin' | 'member' | 'sales'  // zrcadlí custom claim, claim je zdroj pravdy
   active: boolean
-  commissionRate?: number    // osobní sazba provize (0–1); bez hodnoty platí default ze settings/commission
   photoURL?: string          // profilová fotka (Storage avatars/{uid}), zrcadlí se do Auth
   phone?: string
   senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
@@ -42,7 +41,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   phone?: string
   status: 'onboarding' | 'active' | 'paused' | 'churned'
   advisorSlug: string        // vazba na spx-dbc instanci
-  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z vlastníka kontaktu při převodu z Oslovení (sales = vždy sám), mění jen admin/member. Provize vzniká jen vlastníkům s rolí sales.
+  salesOwnerUid?: string     // obchodní vlastník — kdokoli z týmu (i admin); plní se z vlastníka kontaktu při převodu z Oslovení (sales = vždy sám), mění jen admin/member.
   notes?: string
   leadId?: string            // historické: odkud klient vznikl (leady zrušené)
   prospectId?: string        // klient vznikl převodem z Oslovení
@@ -140,21 +139,22 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 (Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
 
 ### `subscriptions`
-Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit.
+Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit. Akce na omezenou dobu: `discountUntil` (sleva platí pro období začínající nejpozději ten den; cron, předvyplnění faktury i upozornění v detailu klienta přes `lib/discount.ts`, období se 100% slevou cron přeskočí a posune).
 
 ```ts
 {
   clientId: string
   service?: 'card' | 'web' | 'other'  // chybí = 'card' (stávající data)
-  plan?: 'basic' | 'pro'       // jen vizitka (PLANS: Základní / Pro růst)
+  plan?: 'basic' | 'pro' | 'summit'  // jen vizitka (PLANS: Start 349 / Růst 549 / Náskok 749, jako web)
   label?: string             // vlastní název (web / jiné: povinný, např. „Správa webu")
   instanceId?: string        // volitelná vazba na vizitku / web
-  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = 12 × (cron, faktura, MRR)
+  priceMonthly: number       // CZK, VŽDY měsíční cena; roční fakturace = billedMonths(): vizitka 10 × (2 měsíce zdarma), web/jiné 12 ×
   billingCycle: 'monthly' | 'yearly'
   status: 'trial' | 'active' | 'past_due' | 'cancelled'
-  internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se, nepočítá do MRR ani do „Blížící se fakturace"
+  internal?: boolean         // interní vizitka (obchodník/vlastní) — nefakturuje se a nepočítá do MRR
   discountPercent?: number   // sleva z předplatného (0–100), přenáší se do řádku faktury
   discountNote?: string      // důvod slevy
+  discountUntil?: Timestamp | null  // poslední den akce (včetně), chybí = trvalá sleva; logika v lib/discount.ts
   startedAt: Timestamp
   nextInvoiceAt: Timestamp
 }
@@ -247,6 +247,7 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
   importBatchId?: string     // dávka CSV importu
   inquiry?: {                // jen source=web: obsah poptávky z formuláře (chybějící = null)
     industry, product, plan, teamType, teamSize, link, message,
+    promoCode                // platný promo kód z `promoCodes` (od 1.28.0)
     note                     // poznámka klienta celá, bez řádku „Zdroj: …", který přidává web
   }
   attribution?: {            // jen source=web: odkud návštěvník přišel (chybějící = null)
@@ -263,9 +264,29 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
 - **Převod na klienta:** akce „Vytvořit klienta" na detailu otevře předvyplněný formulář klienta → `POST /api/clients` s `prospectId` → klient (`prospectId`, `salesOwnerUid` = vlastník kontaktu), kontakt `status=converted` + `clientId`.
-- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
+- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, firma z formuláře jde do `company`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
 - **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
+
+### `promoCodes`
+Promo kódy pro poptávkový formulář na webu (spx-web /kontakt). ID dokumentu = kód (velká písmena, A–Z, 0–9, pomlčka, 3–30 znaků). Spravuje admin v Nastavení → Promo kódy.
+
+```ts
+{
+  code: string               // stejné jako ID dokumentu
+  description: string | null // interní poznámka „co kód dává“, na web se neposílá
+  validUntil: string         // poslední den platnosti YYYY-MM-DD (včetně), čas Europe/Prague
+  maxUses: number | null     // null = bez omezení
+  usedCount: number          // počet poptávek s kódem, zvyšuje intake v transakci
+  active: boolean            // vypnutý kód neplatí; použitý kód nejde smazat, jen vypnout
+  lastUsedAt: Timestamp | null
+}
+```
+
+- **Ověření:** web volá `POST /api/promo-codes/validate` (tajemství `x-ingest-secret`) při vyplnění pole, bez započítání. `POST /api/leads/intake` kód znovu ověří a započítá ve stejné transakci, ve které zakládá kontakt; neplatný kód vrátí 422 `{ error: "promo_invalid", reason }` (`not_found | inactive | expired | exhausted`) a kontakt nevznikne.
+- **Použití:** kontakty s `inquiry.promoCode == code` (seznam v detailu kódu).
+- **QR kód (od 1.31.0):** v Nastavení → Promo kódy jde ke kódu zobrazit a stáhnout QR (SVG/PNG) s odkazem `https://www.solopixel.cz/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); web kód z `?promo=` předvyplní a ověří. Nic se neukládá.
+- **Rules:** `allow read, write: if false` (jen admin SDK).
 
 ### `prospectCategories`
 Číselník kategorií kontaktů pro oslovení (Řemeslník, Realitní makléř, Finanční poradce, Obchodník, Osobnost…). Uživatelem vytvořené kategorie se ukládají sem; výchozí sada je definována konstantou v kódu a nabízí se vždy (i bez zápisu).
@@ -464,28 +485,7 @@ Upozornění na nový podklad: web po odeslání volá `POST /api/submissions/no
 ```
 </details>
 
-### `commissions`
-Provizní záznamy — vznikají automaticky při označení faktury jako zaplacené, pokud má klient `salesOwnerUid` s rolí sales. **Document ID = invoiceId** (idempotence — jedna faktura, jedna provize). Storno vyplacené faktury vytvoří záporný záznam s ID `{invoiceId}-reversal`.
-
-```ts
-{
-  invoiceId: string
-  clientId: string
-  salesUid: string
-  baseAmount: number         // zaplacená částka faktury (CZK), u storna záporná
-  rate: number               // sazba v momentě vzniku (snapshot — pozdější změna sazby nemění historii)
-  amount: number             // baseAmount * rate, zaokrouhleno na koruny
-  status: 'pending' | 'paid' | 'reversed'
-  earnedAt: Timestamp        // datum zaplacení faktury
-  paidAt?: Timestamp         // datum vyplacení obchodníkovi
-  payoutNote?: string        // např. číslo došlé faktury od obchodníka
-}
-```
-
-Pravidla: provize doživotní (dokud klient platí); jen role sales; sazba = `users.commissionRate` ?? default ze `settings/commission`; změna `salesOwnerUid` ovlivní jen budoucí provize; bez vlastníka provize nevzniká (ani zpětně po přiřazení).
-
-### `settings/commission`
-`{ defaultRate: number }` — výchozí sazba (0.20). Edituje admin v Nastavení.
+**Provizní systém zrušen (2026-10-30, 1.29.0).** Kolekce `commissions`, dokument `settings/commission` a pole `users.commissionRate` aplikace už nečte ani nezapisuje; stará data ve Firestore zůstala jen jako historie a rules k `commissions` nepouštějí klienta (výchozí zákaz).
 
 ### `settings/company`
 Dodavatelské (fakturační) údaje — hlavička „dodavatel" na PDF faktuře, platební údaje a QR platba. Edituje admin v Nastavení → Fakturační údaje. Nahrazuje dřívější env `COMPANY_BANK_ACCOUNT`.
@@ -636,6 +636,11 @@ Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu 
     nameFormat: 'short' | 'full'   // zobrazení jména na vizitce ("Jana N." / celé)
     serviceTypes: string[]         // nabídka pole „Typ služby" ve formuláři
   }
+  google?: {                 // Google místo poradce pro recenze na vizitce (od hubu 1.25.0)
+    placeId: string          // Places API (New), např. "ChIJ…"
+    name: string             // název místa z Googlu, jen pro kontrolu v nastavení
+    address?: string
+  }
   createdAt: Timestamp
   updatedAt: Timestamp
 }
@@ -666,6 +671,8 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
 ```
 Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
 
+**Recenze z Googlu se neukládají.** U projektu s `google.placeId` je veřejné API hubu (`/api/public/references/{slug}`) načte živě z Places API (New), drží je jen v cache Next.js (24 h) a vrací vedle referencí jako `google: { rating, count, url, reviews[] }`. Google vrací nejvýš 5 recenzí podle vlastního výběru, proto se nic neschvaluje; ve Firestore je jen `placeId`. Přihlášení k API: service account z GA4 (scope `cloud-platform`), případně `GOOGLE_PLACES_API_KEY`.
+
 ### `hubInvites` (spx-hub)
 Žádosti o referenci e-mailem: poradce (nebo admin týmu) zadá zákazníka, ten dostane osobní jednorázový odkaz `/p/{token}`. Odkaz jde otevírat, dokud zákazník referenci neodešle; platnost 90 dní od odeslání (připomenutí prodlouží, nejvýš 1 rok od vytvoření). Jen Admin SDK (spx-hub).
 
@@ -689,20 +696,58 @@ Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
 ```
 
 ### `hubAuditLog` (spx-hub)
-Kdo, kdy a co udělal s referencemi a projekty referencí. Jen zápis přes Admin SDK.
+Kdo, kdy a co udělal s referencemi a projekty referencí, a s checklistem Průvodce. Jen zápis přes Admin SDK.
 
 ```ts
 // hubAuditLog/{autoId}
 {
-  projectSlug: string
+  projectSlug: string        // u akcí guide.* místo něj clientId (průvodce patří klientovi)
+  clientId?: string          // jen guide.*
+  task?: string              // guide.task_*: id úkolu
+  source?: 'manual' | 'auto' // guide.task_*: ručně / automaticky podle akce v hubu
+  level?: number             // guide.level: dosažená úroveň 1–3
   referenceId?: string
   action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
         | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
+        | 'guide.task_done' | 'guide.task_undone' | 'guide.level'
   actorEmail?: string        // prázdné = zákazník přes veřejný formulář
   actorRole: 'admin' | 'client' | 'public' | 'script'
   at: Timestamp
 }
 ```
+
+### `hubGuide` (spx-hub)
+Průvodce v hubu („Jak z vizitky vytěžit maximum“): herní checklist „Nastavte si vizitku“ (7 úkolů ve 3 úrovních) a počítadla, které části průvodce klient používá (hub nemá vlastní GA4). Jeden dokument na klienta. Zapisuje jen klient sám: ručně přes `POST /api/guide`, automaticky podle akcí v hubu (HUB z plochy, stažený QR kód, první žádost / odkaz na referenci, otevřené Statistiky). Demo účet ani admin v náhledu nic nezapisují. Jen Admin SDK, rules žádný přístup nepovolují (výchozí zákaz).
+
+```ts
+// hubGuide/{clientId}
+{
+  tasks?: Record<TaskId, {             // hotové úkoly; vrácení ručního úkolu pole smaže
+    source: 'manual' | 'auto'          // ručně (Hotovo), nebo automaticky podle akce
+    at: Timestamp
+  }>
+  level?: number                       // nejvyšší dosažená úroveň 1–3 (Nastaveno, Sdíleno, Naplno), neklesá
+  levelAt?: Timestamp
+  introSeenAt?: Timestamp              // uvítací okno viděno (jednou za život účtu, nepřepisuje se)
+  counters?: {
+    open?: number                       // otevření stránky Průvodce (guide_open)
+    openFrom?: Record<'header' | 'bubble' | 'intro' | 'dashboard' | 'references' | 'stats', number>
+    section?: Record<SectionId, number> // rozbalení sekce (guide_section_open)
+    copy?: Record<TemplateId, number>   // zkopírování / sdílení šablony (guide_copy)
+    check?: Record<TaskId, { manual?: number; auto?: number }>   // odškrtnutí úkolu (guide_check)
+    level?: Record<'1' | '2' | '3', number>                     // dosažení úrovně (guide_level)
+    intro?: { shown?: number; cta?: number; later?: number }    // uvítací okno (guide_intro_*)
+  }
+  lastOpenAt?: Timestamp
+  updatedAt: Timestamp
+  // checklist: pole z první verze průvodce (nenasazená), hub ho ignoruje
+}
+```
+Id úkolů, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `kontrola`, `qr`, `reference`, `po-schuzce`); server přijme jen známá id. Úkoly vázané na funkci (`reference` → Reference, `statistiky` → Statistiky) se klientovi bez funkce nepočítají do postupu.
+
+## Security rules — principy
+
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`) jsou pro klientský SDK zakázané.
 
 ### `lectures` (spx-hub)
 Přednáška lektora pro Hodnocení přednášek (spec/assign/zadani-hodnoceni-prednasek.md, tabule #25). Patří klientovi, ne vizitce. Jen spx-hub přes Admin SDK. **Nejsou to reference:** vlastní kolekce, výpočty i zobrazení.

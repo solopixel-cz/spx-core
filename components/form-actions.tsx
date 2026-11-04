@@ -15,6 +15,7 @@ export function FormActions({
   submitting = false,
   disabled = false,
   onSubmit,
+  onCancel,
   icon,
   children,
 }: {
@@ -25,6 +26,8 @@ export function FormActions({
   disabled?: boolean;
   /** Bez `onSubmit` je tlačítko `type="submit"` (odešle obalující `<form>`). */
   onSubmit?: () => void;
+  /** Při kliknutí na „Zrušit" (např. smazání konceptu formuláře). */
+  onCancel?: () => void;
   icon?: React.ReactNode;
   /** Další akce na opačném konci lišty (např. smazání). */
   children?: React.ReactNode;
@@ -44,7 +47,7 @@ export function FormActions({
         variant="ghost"
         nativeButton={false}
         disabled={submitting}
-        render={<Link href={cancelHref} />}
+        render={<Link href={cancelHref} onClick={onCancel} />}
       >
         Zrušit
       </Button>
