@@ -1,9 +1,10 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
+import { notifyInvoicePaid } from "@/lib/hub-push";
 
 /**
  * Označí fakturu jako zaplacenou (idempotentně — už zaplacenou přeskočí)
- * a zaloguje aktivitu. Volá se z ruční akce „Zaplaceno".
+ * a zaloguje aktivitu. Volá se z ruční akce „Zaplaceno". Klient dostane notifikaci v HUBu.
  */
 export async function markInvoicePaid(
   db: FirebaseFirestore.Firestore,
@@ -30,6 +31,8 @@ export async function markInvoicePaid(
     text: `Faktura ${invoiceData.number} zaplacena`,
     actorUid,
   });
+
+  await notifyInvoicePaid({ clientId: invoiceData.clientId, number: invoiceData.number, amount: invoiceData.amount });
 }
 
 /**
