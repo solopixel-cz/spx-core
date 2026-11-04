@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { requireRole } from "@/lib/auth";
 import { sendTransactionalEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
+import { notifyInvoiceIssued } from "@/lib/hub-push";
 import { companySchema } from "@/lib/schemas/company";
 import { personalGreeting } from "@/lib/marketing/personalize";
 import {
@@ -194,6 +195,12 @@ export async function POST(
         status: "sent",
         sentAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+      });
+      await notifyInvoiceIssued({
+        clientId: invoice.clientId,
+        number: invoice.number,
+        amount: invoice.amount,
+        dueAt: invoice.dueAt?.toDate?.() ?? null,
       });
     }
 

@@ -201,13 +201,16 @@ export default async function DashboardPage() {
     .map((doc) => {
       const d = doc.data();
       const due = d.renewalAt?.toDate?.() as Date | undefined;
-      const client = domainClientById[d.clientId as string];
-      if (!due || !client || client.deleted || d.autoRenew) return null;
-      if (isSales && client.owner !== user.uid) return null;
+      const clientId = (d.clientId as string | null | undefined) ?? null;
+      if (!due || d.autoRenew) return null;
+      // Nepřiřazené domény vidí jen admin/member (správa domén).
+      const client = clientId ? domainClientById[clientId] : null;
+      if (clientId ? !client || client.deleted : isSales) return null;
+      if (isSales && client?.owner !== user.uid) return null;
       return {
         id: doc.id,
-        clientId: d.clientId as string,
-        clientName: client.name,
+        clientId,
+        clientName: client?.name ?? "bez klienta",
         domainName: d.name as string,
         renewalAt: due.toISOString(),
         overdue: due < domainStartToday,

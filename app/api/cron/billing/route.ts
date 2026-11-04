@@ -7,6 +7,7 @@ import { billedMonths, subscriptionLabel } from "@/lib/plans";
 import { discountFor } from "@/lib/discount";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
+import { notifyInvoiceIssued } from "@/lib/hub-push";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -133,6 +134,8 @@ export async function GET(request: NextRequest) {
       entityType: "invoice",
       entityId: invRef.id,
     });
+    // Klient ji hned vidí v HUBu, notifikace do zařízení k tomu.
+    await notifyInvoiceIssued({ clientId: sub.clientId, number, amount, dueAt });
     summary.generated++;
   }
 

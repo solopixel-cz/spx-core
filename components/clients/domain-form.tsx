@@ -11,6 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 import { domainFormSchema, type DomainFormData } from "@/lib/schemas/domain";
 import type { DomainData } from "./domains-tab";
@@ -21,18 +28,24 @@ function toDateInput(iso: string | null | undefined): string {
   return iso.slice(0, 10);
 }
 
+const NO_CLIENT = "__none__";
+
 /**
- * Formulář domény na routách `/clients/[id]/domains/...`. U existující domény
+ * Formulář domény na routách `/clients/[id]/domains/...` a ve správě domén
+ * `/domains/...` (s `clients` navíc výběr klienta). U existující domény
  * i trvalé odebrání (inline potvrzení).
  */
 export function DomainForm({
   clientId,
   domain,
   backHref,
+  clients,
 }: {
-  clientId: string;
+  clientId: string | null;
   domain?: DomainData;
   backHref: string;
+  /** Správa domén: klienta jde vybrat nebo nechat prázdného. */
+  clients?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const isEdit = !!domain;
@@ -50,6 +63,7 @@ export function DomainForm({
     defaultValues: domain
       ? {
           name: domain.name,
+          ...(clients ? { clientId: domain.clientId ?? "" } : {}),
           registrar: domain.registrar ?? "",
           account: domain.account ?? "",
           hosting: domain.hosting ?? "",
@@ -58,14 +72,18 @@ export function DomainForm({
           autoRenew: domain.autoRenew ?? false,
           note: domain.note ?? "",
         }
-      : { autoRenew: false },
+      : { autoRenew: false, ...(clients ? { clientId: clientId ?? "" } : {}) },
   });
 
   // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
-  const draftKey = `domain:${clientId}:${domain?.id ?? "new"}`;
+  const draftKey = `domain:${clients ? "all" : clientId}:${domain?.id ?? "new"}`;
   useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const autoRenew = watch("autoRenew") ?? false;
+  const selectedClient = watch("clientId") || NO_CLIENT;
+  const clientItems = clients
+    ? { [NO_CLIENT]: "Bez klienta", ...Object.fromEntries(clients.map((c) => [c.id, c.name])) }
+    : {};
 
   async function onSubmit(data: DomainFormData) {
     try {
@@ -73,7 +91,7 @@ export function DomainForm({
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isEdit ? data : { ...data, clientId }),
+        body: JSON.stringify(isEdit || clients ? data : { ...data, clientId }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -109,6 +127,31 @@ export function DomainForm({
           <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
       </div>
+
+      {clients && (
+        <div className="space-y-2">
+          <Label>Klient</Label>
+          <Select
+            items={clientItems}
+            value={selectedClient}
+            onValueChange={(val) =>
+              setValue("clientId", !val || val === NO_CLIENT ? "" : String(val), { shouldDirty: true })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Bez klienta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_CLIENT}>Bez klienta</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
