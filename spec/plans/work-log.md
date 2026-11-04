@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-04: Přednášky zjednodušené (#25)
+
+- Lukáš chtěl přednášky jinak: lektor v hubu plánuje akce (chystané / proběhlé), nahrává materiály (prezentace, dokumenty, prospekty) a na konci ukáže QR. Posluchač na vizitce dá Líbila / Nelíbila, napíše, co si odnáší, a kdo chce materiály, nechá e-mail. Hvězdy, signály podezřelosti, veřejné shrnutí na vizitce a denní cron pryč.
+- Větev `feat/prednasky-jednoduse` z `origin/devel`. Funkce se v CRM jmenuje „Přednášky“, `firestore.rules` beze změny.
+- `spec/context/data-model.md`: nový tvar `lectures` (materiály, poznámky, 7 dní na hlasování) a `lectureRatings` (liked, takeaway, volitelný e-mail se souhlasem).
+- Verze 1.34.1. Hlavní část ve spx-hub a spx-dbc (`feat/hodnoceni-prednasek`), progress v hubu: `spec/hodnoceni-prednasek-progress.md`.
+
 ## 2026-11-04: Hodnocení přednášek (#25), přepínač a rules pro spx-hub
 
 - Zadání `spec/assign/zadani-hodnoceni-prednasek.md` (stejné ve spx-core, spx-hub a spx-dbc), režim bez dozoru.
