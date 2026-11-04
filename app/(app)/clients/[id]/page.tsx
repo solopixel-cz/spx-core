@@ -93,6 +93,9 @@ export default async function ClientDetailPage({
     repoUrl: d.data().repoUrl as string | undefined,
     deployUrl: d.data().deployUrl as string | undefined,
     features: (d.data().features ?? []) as string[],
+    ga4PropertyId: (d.data().ga4PropertyId as string | undefined) ?? undefined,
+    ga4ConnectedAt: d.data().ga4ConnectedAt?.toDate?.()?.toISOString() ?? null,
+    searchConsoleConnectedAt: d.data().searchConsoleConnectedAt?.toDate?.()?.toISOString() ?? null,
     notes: d.data().notes as string | undefined,
   }));
 

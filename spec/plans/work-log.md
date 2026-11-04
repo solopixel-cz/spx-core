@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-04: Kontrola měření webů (GA4, Search Console)
+
+- Lukáš chtěl u služeb klientů vidět, jestli je web napojený na Google Analytics a Search Console, a ručně to odklikat (statistiky webů v HUBu bez toho nejdou).
+- Větev `feat/mereni-sluzeb` z `origin/devel`. `instances.ga4ConnectedAt` a `searchConsoleConnectedAt` (jen weby), přepínají se klikem v záložce Služby (`PATCH /api/instances/[id]` s `ga4Connected` / `searchConsoleConnected`, záznam do aktivity). U zaškrtnutého GA4 bez Property ID upozornění.
+- Dashboard (admin, member): karta „Weby bez měření“ s odkazem na Služby klienta. Offline a archivované weby se nepočítají, vizitky se nekontrolují.
+- Verze 1.37.0. Rules a indexy beze změny (dotaz `where type == web` stačí jednopolový index).
+
 ## 2026-11-04: Správa domén
 
 - Lukáš chtěl přehled všech domén (má je u Wedosu) s expirací a přiřazením ke klientům. Data zadává ručně, napojení na Wedos WAPI zatím ne (vyžaduje povolené IP, Vercel nemá pevnou).
