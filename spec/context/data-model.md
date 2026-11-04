@@ -745,9 +745,39 @@ Průvodce v hubu („Jak z vizitky vytěžit maximum“): herní checklist „Na
 ```
 Id úkolů, sekcí a šablon jsou ve spx-hub v `lib/guide.ts` (např. `kontrola`, `qr`, `reference`, `po-schuzce`); server přijme jen známá id. Úkoly vázané na funkci (`reference` → Reference, `statistiky` → Statistiky) se klientovi bez funkce nepočítají do postupu.
 
+### `hubNotifications` (spx-hub)
+Notifikace v HUBu (zvoneček v hlavičce, stránka Notifikace). Samotné notifikace se neukládají, hub je skládá z `hubReferences`, `lectureRatings` a `invoices` (posledních 60 dní). Jeden dokument na klienta, zapisuje jen klient sám (admin v náhledu ani demo účet ne). Jen Admin SDK, rules nic nepovolují (výchozí zákaz).
+
+```ts
+// hubNotifications/{clientId}
+{
+  seenAt?: Timestamp         // klient naposledy otevřel zvoneček; novější události = nepřečtené
+  push?: {                   // co posílat do zařízení; chybí = zapnuto
+    reference?: boolean      // nová reference
+    lecture?: boolean        // zpětná vazba z přednášky (nejvýš 1× za hodinu na akci, `lectures.pushAt`)
+    invoice?: boolean        // vystavená a uhrazená faktura (posílá spx-core, lib/hub-push.ts)
+  }
+}
+```
+
+### `hubPushSubscriptions` (spx-hub)
+Zařízení, kde si klient zapnul notifikace (Web Push). ID = sha256(endpoint).slice(0, 40). Zapisuje a maže hub (stránka Notifikace), spx-core z ní jen čte při faktuře a maže zaniklé odběry (404/410). Klíče VAPID sdílí hub i core (stejné jako u týmových notifikací v `users/{uid}/pushSubscriptions`). Jen Admin SDK.
+
+```ts
+// hubPushSubscriptions/{id}
+{
+  clientId: string
+  uid: string                // hubový účet, který odběr zapnul
+  endpoint: string           // https adresa push služby prohlížeče
+  keys: { p256dh: string; auth: string }
+  device: string             // „iPhone · Safari“ z User-Agent, pro seznam zařízení
+  createdAt, updatedAt: Timestamp
+}
+```
+
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`, `hubNotifications`, `hubPushSubscriptions`) jsou pro klientský SDK zakázané.
 
 ### `lectures` (spx-hub)
 Přednáška nebo akce lektora (tabule #25, hub `spec/hodnoceni-prednasek-progress.md`). Patří klientovi, ne vizitce. Jen spx-hub přes Admin SDK. Lektor ji v hubu naplánuje, nahraje materiály a na konci ukáže QR (`/h/{token}` → vizitka `?h={token}`). Na vizitce se bez QR nic neukazuje.
@@ -773,6 +803,7 @@ Přednáška nebo akce lektora (tabule #25, hub `spec/hodnoceni-prednasek-progre
     path: string
   }[]
   ratingsCount: number       // akci s hlasy nejde smazat
+  pushAt?: Timestamp         // poslední notifikace lektorovi o hodnocení (nejvýš 1× za hodinu)
   createdAt, updatedAt: Timestamp
 }
 ```
