@@ -38,7 +38,7 @@ interface FollowUp {
 
 interface UpcomingDomainRenewal {
   id: string;
-  clientId: string;
+  clientId: string | null;
   clientName: string;
   domainName: string;
   renewalAt: string;
@@ -213,12 +213,20 @@ export function DashboardClient({
                     <Globe className="h-4 w-4 text-primary" />
                     Blížící se obnovení domén
                   </CardTitle>
+                  {!isSales && (
+                    <Link
+                      href="/domains"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Vše <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
                   {upcomingDomainRenewals.slice(0, 5).map((d) => (
-                    <Link key={d.id} href={`/clients/${d.clientId}`}>
+                    <Link key={d.id} href={d.clientId ? `/clients/${d.clientId}` : "/domains"}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-muted/50">
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {d.domainName}

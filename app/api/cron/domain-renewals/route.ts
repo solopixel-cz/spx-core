@@ -46,11 +46,15 @@ export async function GET(request: NextRequest) {
     const lastReminder = d.renewalReminderSentAt?.toDate?.() as Date | undefined;
     if (lastReminder && lastReminder > throttleCutoff) continue;
 
-    // Klient musí existovat a nesmí být archivovaný.
-    const clientId = d.clientId as string;
-    const clientDoc = await db.collection("clients").doc(clientId).get();
-    if (!clientDoc.exists || clientDoc.data()?.deletedAt) continue;
-    const clientName = clientDoc.data()?.name as string;
+    // Klient musí existovat a nesmí být archivovaný. Nepřiřazená doména se
+    // připomíná taky, odkaz pak vede do správy domén.
+    const clientId = (d.clientId as string | null | undefined) ?? null;
+    let clientName = "bez klienta";
+    if (clientId) {
+      const clientDoc = await db.collection("clients").doc(clientId).get();
+      if (!clientDoc.exists || clientDoc.data()?.deletedAt) continue;
+      clientName = clientDoc.data()?.name as string;
+    }
 
     const days = Math.round((renewalAt.getTime() - startToday.getTime()) / 86400000);
     const when =
@@ -63,10 +67,9 @@ export async function GET(request: NextRequest) {
     await notify({
       type: "domain.renewal",
       title: "Obnovit doménu",
-      body: `Doména ${d.name} (${clientName}) — obnovit ${when}`,
-      href: `/clients/${clientId}`,
-      entityType: "client",
-      entityId: clientId,
+      body: `Doména ${d.name} (${clientName}), obnovit ${when}`,
+      href: clientId ? `/clients/${clientId}` : "/domains",
+      ...(clientId ? { entityType: "client", entityId: clientId } : {}),
     });
 
     await doc.ref.update({
