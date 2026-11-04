@@ -98,11 +98,11 @@ Jednorázové **zakázky** klienta (fáze 34B), např. marketingový prospekt. O
 Rules: read `isAuth`, write jen Admin SDK. Dotazy jen `where clientId` bez orderBy (řazení v paměti) → bez indexu.
 
 ### `domains`
-Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít víc domén. Odlišné od `instances.domain` (to je solopixel.cz subdoména vizitky); tady jde o doménu, kterou si klient koupil u registrátora.
+Vlastní (zakoupené) domény. 1:N ke klientovi — klient může mít víc domén. Doména může být i bez klienta (`clientId: null`) a přiřadit se později ve správě domén. Odlišné od `instances.domain` (to je solopixel.cz subdoména vizitky); tady jde o doménu, kterou si klient koupil u registrátora.
 
 ```ts
 {
-  clientId: string
+  clientId: string | null    // null = nepřiřazená (vidí a spravuje jen admin/member)
   name: string               // doména, např. jmeno.cz
   registrar?: string         // u koho zakoupena (Wedos, Forpsi, GoDaddy, …)
   account?: string           // pod jakým účtem je vedena
@@ -115,6 +115,7 @@ Vlastní (zakoupené) domény klienta. 1:N ke klientovi — klient může mít v
 }
 ```
 
+- **Správa domén** `/domains` (admin, member): všechny domény seřazené podle expirace, filtry (po expiraci, do 30 dnů, bez klienta), přiřazení klienta. Čte celou kolekci a řadí v paměti, bez indexu.
 - **Připomínka obnovení:** odznak na detailu klienta (brzy/po expiraci), widget „Blížící se obnovení domén" na dashboardu, denní cron `/api/cron/domain-renewals` (notifikace adminům 30 dnů předem, throttle 7 dnů přes `renewalReminderSentAt`, přeskakuje `autoRenew`).
 - **Zápis** jen přes Route Handlers s admin SDK (`/api/domains`), klientský SDK jen čte.
 

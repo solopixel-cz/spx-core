@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Mails,
   Settings,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Úkoly", href: "/tasks", icon: CheckSquare },
       { label: "Tickety", href: "/tickets", icon: TicketCheck },
+      { label: "Domény", href: "/domains", icon: Globe, roles: ["admin", "member"] },
     ],
   },
   {
