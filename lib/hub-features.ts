@@ -6,6 +6,8 @@ export const HUB_FEATURES = {
   stats: "Statistiky",
   statsPlus: "Rozšířené statistiky",
   references: "Reference",
+  // Hodnocení přednášek (spec/assign/zadani-hodnoceni-prednasek.md). Na tarif vázané není, zapíná tým ručně.
+  lectures: "Hodnocení přednášek",
 } as const;
 
 export type HubFeature = keyof typeof HUB_FEATURES;

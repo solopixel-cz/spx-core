@@ -233,5 +233,14 @@ service cloud.firestore {
     match /hubInvites/{token} {
       allow read, write: if false;
     }
+    // Hodnocení přednášek (spx-hub, spec/assign/zadani-hodnoceni-prednasek.md):
+    // přednášky lektorů a hodnocení posluchačů včetně kontaktů a otisků.
+    // Jen spx-hub přes Admin SDK, klientský SDK nic. Kontakty se do CRM nepřenáší.
+    match /lectures/{lectureId} {
+      allow read, write: if false;
+    }
+    match /lectureRatings/{ratingId} {
+      allow read, write: if false;
+    }
   }
 }
