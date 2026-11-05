@@ -31,6 +31,7 @@ export default async function EditDomainPage({
           purchasedAt: d.purchasedAt?.toDate?.()?.toISOString() ?? null,
           renewalAt: d.renewalAt?.toDate?.()?.toISOString() ?? null,
           autoRenew: (d.autoRenew as boolean | undefined) ?? false,
+          price: (d.price as number | undefined) ?? null,
           note: (d.note as string | undefined) ?? null,
         }}
       />

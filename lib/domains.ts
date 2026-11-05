@@ -14,6 +14,7 @@ export function domainFromDoc(doc: DocumentSnapshot): DomainData {
     purchasedAt: d.purchasedAt?.toDate?.()?.toISOString() ?? null,
     renewalAt: d.renewalAt?.toDate?.()?.toISOString() ?? null,
     autoRenew: (d.autoRenew as boolean | undefined) ?? false,
+    price: (d.price as number | null | undefined) ?? null,
     note: (d.note as string | undefined) ?? null,
   };
 }

@@ -1,4 +1,4 @@
-import { billedMonths } from "@/lib/plans";
+import { computeMrr } from "@/lib/mrr";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
@@ -44,16 +44,7 @@ export default async function DashboardPage() {
   const overdueInvoices = { count: 0, sum: 0 };
 
   if (!isSales && invoicesSnap && subsSnap) {
-    subsSnap.docs.forEach((doc) => {
-      const d = doc.data();
-      if (d.internal) return; // interní vizitky negenerují příjem
-      const price = d.priceMonthly as number;
-      const discount = (d.discountPercent as number) || 0;
-      // priceMonthly je vždy měsíční cena; roční vizitka se fakturuje 10× → MRR = průměr na měsíc po slevě.
-      const perMonth = d.billingCycle === "yearly" ? (price * billedMonths(d)) / 12 : price;
-      mrr += perMonth * (1 - discount / 100);
-    });
-    mrr = Math.round(mrr);
+    mrr = computeMrr(subsSnap.docs);
 
     const now = new Date();
     const thisMonth = now.getMonth();
