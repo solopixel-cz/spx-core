@@ -114,6 +114,7 @@ Vlastní (zakoupené) domény. 1:N ke klientovi — klient může mít víc dom�
   purchasedAt?: Timestamp     // kdy zakoupena
   renewalAt?: Timestamp       // datum obnovení/expirace — pohání připomínky
   autoRenew?: boolean         // automatické obnovení zapnuto (pak cron netlačí připomínku)
+  price?: number | null       // cena obnovení v Kč za rok (náklady /costs ji počítají po měsících)
   note?: string
   renewalReminderSentAt?: Timestamp  // throttle cron připomínky; PATCH renewalAt ho maže
 }
@@ -190,6 +191,49 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
 ```
 
 PDF se generuje on-demand vlastním generátorem (`lib/pdf/invoice-pdf.tsx`, `GET /api/invoices/[id]/pdf`) — neukládá se. Stejný endpoint obsluhuje i klientskou zónu (spx-hub): s `Authorization: Bearer HUB_API_SECRET` + `X-Hub-Client-Id` vrátí jen vlastní fakturu klienta, ne koncept ani storno (`lib/hub.ts`). Historické faktury mohou mít reliktní pole `fakturoidId/fakturoidNumber/fakturoidStatus/pdfPath` (fáze 31, Fakturoid odstraněn ve fázi 32) — nová logika je nepoužívá.
+
+### `costServices`
+Placené služby pro provoz webů, vizitek a firmy (Vercel, Google Cloud, OpenAI, Claude, nástroje). Plán nákladů. Domény sem nepatří, jejich cena je u `domains.price`.
+
+```ts
+{
+  name: string                // např. Vercel Pro
+  vendor?: string             // dodavatel (Vercel, Google, OpenAI, Anthropic…)
+  category: 'hosting' | 'cloud' | 'ai' | 'tools' | 'other'
+  billing: 'monthly' | 'yearly' | 'usage'  // usage = podle spotřeby, `amount` je odhad za měsíc
+  amount: number              // částka za periodu v `currency`
+  currency: 'CZK' | 'USD' | 'EUR'
+  nextPaymentAt?: Timestamp   // jen yearly: příští platba (měsíc výročí); zápis platby v tom měsíci ji posune o rok
+  startedAt: Timestamp        // od kdy se platí (první měsíc v přehledu)
+  endedAt?: Timestamp | null  // ukončeno (poslední měsíc v přehledu)
+  note?: string
+  createdAt, updatedAt: Timestamp
+  createdBy: string
+}
+```
+
+### `costPayments`
+Skutečně zaplacená částka služby za měsíc. ID dokumentu `{serviceId}_{YYYY-MM}` (jedna platba na službu a měsíc, nový zápis přepíše).
+
+```ts
+{
+  serviceId: string
+  month: string               // 'YYYY-MM'
+  amount: number              // v `currency`
+  currency: 'CZK' | 'USD' | 'EUR'
+  rate: number                // kurz ČNB (Kč za 1 jednotku) ke dni platby, CZK = 1
+  amountCzk: number           // amount × rate, zaokrouhleno na Kč
+  paidAt?: Timestamp
+  note?: string
+  createdAt, updatedAt: Timestamp
+  createdBy: string
+}
+```
+
+- **Přehled** `/costs` (admin, member): plán měsíčně a ročně (roční služby / 12, usage = odhad, domény = součet `domains.price` / 12), skutečnost za měsíc a 12 měsíců v grafu, porovnání s MRR (marže), blížící se roční platby služeb a obnovení domén (45 dnů).
+- **Skutečnost za měsíc:** zapsaná platba; jinak pevná služba (monthly, yearly v měsíci výročí) počítá plán („dle plánu“); usage bez zápisu je „nezadáno“. Domény (klientů i naše) celou roční cenou v měsíci výročí `renewalAt`; bez ceny nebo data obnovení se nepočítají, domény archivovaných klientů taky ne.
+- **Kurz:** ČNB denní kurz (`lib/cnb.ts`, cache 12 h), u platby ke dni `paidAt` (bez data poslední den měsíce, nejvýš dnes). Plán přepočítává aktuálním kurzem.
+- Čte a zapisuje jen Admin SDK (`/api/costs/...`), rules žádný přístup.
 
 ### `tasks`
 ```ts
