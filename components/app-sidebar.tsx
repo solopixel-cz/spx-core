@@ -15,6 +15,7 @@ import {
   Mails,
   Settings,
   Globe,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ const navGroups: NavGroup[] = [
         icon: Receipt,
         roles: ["admin", "member"],
       },
+      { label: "Náklady", href: "/costs", icon: Wallet, roles: ["admin", "member"] },
     ],
   },
   {

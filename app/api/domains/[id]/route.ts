@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { domainFormSchema } from "@/lib/schemas/domain";
+import { domainFormSchema, parsePrice } from "@/lib/schemas/domain";
 import { logActivity } from "@/lib/activity";
 
 /** yyyy-mm-dd → Date (UTC půlnoc). "" smaže pole (null), undefined ponechá. */
@@ -66,6 +66,8 @@ export async function PATCH(
     if (data.hosting !== undefined) updates.hosting = data.hosting.trim() || null;
     if (data.note !== undefined) updates.note = data.note.trim() || null;
     if (data.autoRenew !== undefined) updates.autoRenew = data.autoRenew;
+    const price = parsePrice(data.price);
+    if (price !== undefined) updates.price = price;
 
     // Přiřazení klienta mění jen správa domén (admin/member).
     let nextClientId = clientId;

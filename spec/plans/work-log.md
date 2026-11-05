@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-05: Náklady provozu
+
+- Lukáš chtěl přehled, kolik stojí provoz webů a vizitek (Google Cloud, Vercel, domény, OpenAI, Claude). Rozhodl: evidovat plán i skutečné platby, jen celkový přehled (bez rozpočtu na klienty), bez faktur dodavatelů.
+- Větev `feat/naklady` z `origin/devel`. Nová stránka `/costs` (menu Finance, admin a member): plán za měsíc a rok, skutečnost za aktuální měsíc, zbytek z předplatného (MRR minus plán), graf 12 měsíců po kategoriích, plán podle kategorií, platby za vybraný měsíc (zápis spotřeby), seznam služeb, blížící se roční platby a obnovení domén.
+- Kolekce `costServices` a `costPayments` (data-model, rules jen Admin SDK). Kurz ČNB (`lib/cnb.ts`) ke dni platby, plán aktuálním kurzem. Výpočty v `lib/costs.ts`, MRR vytažené do `lib/mrr.ts` (sdílí dashboard).
+- Domény klientů i naše: nové pole `domains.price` (Kč za rok) ve formuláři domény. V plánu poměrnou částí na měsíc, ve skutečnosti celou cenou v měsíci obnovení.
+- Verze 1.38.0. Po nasazení `firebase deploy --only firestore` (rules nových kolekcí), z mergnutého `main`.
+
 ## 2026-11-04: Kontrola měření webů (GA4, Search Console)
 
 - Lukáš chtěl u služeb klientů vidět, jestli je web napojený na Google Analytics a Search Console, a ručně to odklikat (statistiky webů v HUBu bez toho nejdou).

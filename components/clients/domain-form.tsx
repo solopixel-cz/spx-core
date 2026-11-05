@@ -70,6 +70,7 @@ export function DomainForm({
           purchasedAt: toDateInput(domain.purchasedAt),
           renewalAt: toDateInput(domain.renewalAt),
           autoRenew: domain.autoRenew ?? false,
+          price: domain.price != null ? String(domain.price) : "",
           note: domain.note ?? "",
         }
       : { autoRenew: false, ...(clients ? { clientId: clientId ?? "" } : {}) },
@@ -178,6 +179,22 @@ export function DomainForm({
           <Label htmlFor="renewalAt">Obnovit do</Label>
           <Input id="renewalAt" type="date" {...register("renewalAt")} />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="domainPrice">Cena obnovení za rok (Kč)</Label>
+        <Input
+          id="domainPrice"
+          inputMode="decimal"
+          placeholder="např. 289"
+          className="sm:max-w-48"
+          {...register("price")}
+        />
+        {errors.price ? (
+          <p className="text-sm text-destructive">{errors.price.message}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Započítá se do nákladů po měsících.</p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

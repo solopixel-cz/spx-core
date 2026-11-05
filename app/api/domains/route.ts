@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { domainFormSchema } from "@/lib/schemas/domain";
+import { domainFormSchema, parsePrice } from "@/lib/schemas/domain";
 import { logActivity } from "@/lib/activity";
 
 /** yyyy-mm-dd → Date (UTC půlnoc, konzistentní s porovnáváním v cronu). null smaže pole. */
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       purchasedAt: purchasedAt ?? null,
       renewalAt: renewalAt ?? null,
       autoRenew: data.autoRenew ?? false,
+      price: parsePrice(data.price) ?? null,
       note: data.note?.trim() || null,
       renewalReminderSentAt: null,
       createdAt: FieldValue.serverTimestamp(),

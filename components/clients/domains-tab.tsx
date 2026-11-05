@@ -36,6 +36,7 @@ export interface DomainData {
   purchasedAt?: string | null;
   renewalAt?: string | null;
   autoRenew?: boolean;
+  price?: number | null;
   note?: string | null;
 }
 

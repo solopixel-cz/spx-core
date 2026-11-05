@@ -145,6 +145,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Náklady provozu — jen přes admin SDK (přehled /costs).
+    match /costServices/{serviceId} {
+      allow read, write: if false;
+    }
+    match /costPayments/{paymentId} {
+      allow read, write: if false;
+    }
+
     match /prospectCategories/{categoryId} {
       allow read: if isTeam();
       allow write: if false;
