@@ -11,6 +11,7 @@ export const domainSchema = z.object({
   purchasedAt: timestampSchema.optional(), // kdy zakoupena
   renewalAt: timestampSchema.optional(), // datum obnovení/expirace — pohání připomínky
   autoRenew: z.boolean().optional(), // automatické obnovení zapnuto (netlačí připomínku)
+  price: z.number().nonnegative().nullable().optional(), // cena obnovení v Kč za rok (náklady /costs)
   note: z.string().optional(),
   renewalReminderSentAt: timestampSchema.optional(), // throttle cron připomínky
 });
@@ -27,7 +28,16 @@ export const domainFormSchema = z.object({
   purchasedAt: z.string().optional(),
   renewalAt: z.string().optional(),
   autoRenew: z.boolean().optional(),
+  price: z.string().trim().regex(/^\d*([.,]\d{1,2})?$/, "Jen částka v Kč, např. 289").optional(), // "" = bez ceny
   note: z.string().optional(),
 });
 
 export type DomainFormData = z.infer<typeof domainFormSchema>;
+
+/** Cena z formuláře ("289", "289,50") → číslo; "" smaže (null), undefined ponechá. */
+export function parsePrice(value: string | undefined): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value.trim() === "") return null;
+  const n = Number(value.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
