@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logActivity } from "@/lib/activity";
+import { notifyHubClient, teamSender } from "@/lib/ticket-hub";
 
 export async function PATCH(
   request: Request,
@@ -34,7 +35,11 @@ export async function PATCH(
       updatedAt: FieldValue.serverTimestamp(),
     };
 
+    const ticket = existing.data()!;
+    const statusChanged = Boolean(body.status && body.status !== ticket.status);
     if (body.status) updates.status = body.status;
+    // Ticket z HUBu: změnu stavu klient uvidí jako nepřečtenou (kromě uzavření).
+    if (statusChanged && ticket.source === "hub" && body.status !== "closed") updates.unreadByClient = true;
     if (body.assigneeUid !== undefined) updates.assigneeUid = body.assigneeUid;
     if (body.title !== undefined) updates.title = body.title;
     if (body.description !== undefined) updates.description = body.description;
@@ -53,6 +58,10 @@ export async function PATCH(
         text: `Stav změněn na „${body.status}"`,
         actorUid: user.uid,
       });
+    }
+
+    if (statusChanged && (body.status === "waiting_client" || body.status === "resolved")) {
+      await notifyHubClient({ ticketId: id, ticket, kind: body.status, sender: await teamSender(user) });
     }
 
     return NextResponse.json({ status: "ok" });

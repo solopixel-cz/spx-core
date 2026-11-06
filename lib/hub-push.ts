@@ -3,10 +3,10 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ensureConfigured } from "@/lib/push";
 
 /**
- * Notifikace do zařízení klienta v SoloPixel HUB (Web Push) u faktur.
+ * Notifikace do zařízení klienta v SoloPixel HUB (Web Push) u faktur a Zpětné vazby.
  * Zařízení a nastavení spravuje spx-hub (lib/push.ts, stránka Notifikace):
  * - `hubPushSubscriptions`: zařízení klienta (`clientId`, `endpoint`, `keys`),
- * - `hubNotifications/{clientId}.push.invoice`: false = faktury neposílat.
+ * - `hubNotifications/{clientId}.push.{invoice,tickets}`: false = neposílat.
  * Klíče VAPID jsou stejné jako pro týmové notifikace CRM (lib/push.ts) a hub
  * je musí mít také (stejné hodnoty NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT).
  */
@@ -14,16 +14,23 @@ import { ensureConfigured } from "@/lib/push";
 const czk = (amount: number) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 }).format(amount);
 
-async function pushInvoice(clientId: string, payload: { title: string; body: string; tag: string }) {
+type HubPushCategory = "invoice" | "tickets";
+
+/** Push na všechna zařízení klienta, pokud kategorii nevypnul. `url` = cesta v hubu. */
+export async function pushToHubClient(
+  clientId: string,
+  category: HubPushCategory,
+  payload: { title: string; body: string; tag: string; url: string }
+) {
   if (!ensureConfigured()) return;
   const db = getAdminFirestore();
   const [settings, subs] = await Promise.all([
     db.collection("hubNotifications").doc(clientId).get(),
     db.collection("hubPushSubscriptions").where("clientId", "==", clientId).get(),
   ]);
-  if (subs.empty || settings.data()?.push?.invoice === false) return;
+  if (subs.empty || settings.data()?.push?.[category] === false) return;
   // Cesta v hubu; service worker hubu ji otevře na své doméně.
-  const body = JSON.stringify({ ...payload, url: "/billing" });
+  const body = JSON.stringify(payload);
   await Promise.all(
     subs.docs.map(async (doc) => {
       const { endpoint, keys } = doc.data();
@@ -48,7 +55,8 @@ export async function notifyInvoiceIssued(invoice: { clientId: string; number: s
     const due = invoice.dueAt
       ? `, splatnost ${invoice.dueAt.toLocaleDateString("cs-CZ", { timeZone: "Europe/Prague" })}`
       : "";
-    await pushInvoice(invoice.clientId, {
+    await pushToHubClient(invoice.clientId, "invoice", {
+      url: "/billing",
       title: "Nová faktura k úhradě",
       body: `Faktura ${invoice.number} na ${czk(invoice.amount)}${due}.`,
       tag: `invoice-${invoice.number}`,
@@ -61,7 +69,8 @@ export async function notifyInvoiceIssued(invoice: { clientId: string; number: s
 /** Faktura uhrazena → poděkování klientovi. */
 export async function notifyInvoicePaid(invoice: { clientId: string; number: string; amount: number }) {
   try {
-    await pushInvoice(invoice.clientId, {
+    await pushToHubClient(invoice.clientId, "invoice", {
+      url: "/billing",
       title: "Faktura uhrazena",
       body: `Platbu za fakturu ${invoice.number} (${czk(invoice.amount)}) jsme přijali. Děkujeme.`,
       tag: `invoice-${invoice.number}`,

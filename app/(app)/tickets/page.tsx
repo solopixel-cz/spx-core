@@ -42,6 +42,8 @@ export default async function TicketyPage({ searchParams }: { searchParams: Arch
       status: data.status as string,
       assigneeUid: data.assigneeUid as string | undefined,
       links: (data.links as string[] | undefined) ?? [],
+      fromHub: data.source === "hub",
+      unread: data.unreadByTeam === true,
       createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
       deletedAt: toIso(data.deletedAt),
     };

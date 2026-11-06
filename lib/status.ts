@@ -43,6 +43,8 @@ export const ticketPriority: Record<string, StatusConfig> = {
 export const ticketType: Record<string, StatusConfig> = {
   bug: { label: "Bug", color: "red" },
   change_request: { label: "Změna", color: "blue" },
+  idea: { label: "Nápad", color: "green" },
+  feedback: { label: "Zpětná vazba", color: "gray" },
 };
 
 // Task status
