@@ -103,6 +103,7 @@ export const outreachEmailStatus: Record<string, StatusConfig> = {
   clicked: { label: "Kliknuto", color: "green" },
   bounced: { label: "Nedoručeno", color: "red" },
   complained: { label: "Stížnost", color: "red" },
+  failed: { label: "Neodesláno", color: "red" },
 };
 
 /** CSS classes for status badge colors */
