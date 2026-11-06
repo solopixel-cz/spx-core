@@ -56,11 +56,27 @@ interface TicketRow {
   status: string;
   assigneeUid?: string;
   links: string[];
+  /** Zpětná vazba od klienta z HUBu. */
+  fromHub?: boolean;
+  /** Klient napsal a tým ticket ještě neotevřel. */
+  unread?: boolean;
   createdAt: string | null;
   deletedAt?: string | null;
 }
 
+function SourceBadges({ t }: { t: TicketRow }) {
+  if (!t.fromHub) return null;
+  return (
+    <>
+      {t.unread && <Badge className="mr-1.5">Nové</Badge>}
+      <Badge variant="secondary" className="mr-1.5">HUB</Badge>
+    </>
+  );
+}
+
 interface ClientOption { id: string; name: string }
+
+const SOURCE_LABELS: Record<string, string> = { all: "Odkudkoli", hub: "Z HUBu", crm: "Z CRM" };
 
 // Priorita a stav se řadí podle pořadí (nízká → urgentní, otevřený → uzavřený), neznámé na konec.
 const priorityOrder = Object.keys(priorityLabels);
@@ -86,6 +102,7 @@ export function TicketsPageClient({
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [now] = useState(() => Date.now());
 
   const filtered = tickets.filter((t) => {
@@ -93,6 +110,8 @@ export function TicketsPageClient({
     if (typeFilter !== "all" && t.type !== typeFilter) return false;
     if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
     if (clientFilter !== "all" && t.clientId !== clientFilter) return false;
+    if (sourceFilter === "hub" && !t.fromHub) return false;
+    if (sourceFilter === "crm" && t.fromHub) return false;
     return true;
   });
   // Řazení po filtrech; výchozí abecedně podle klienta.
@@ -176,6 +195,12 @@ export function TicketsPageClient({
             {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select items={SOURCE_LABELS} value={sourceFilter} onValueChange={(val) => setSourceFilter(val ?? "all")}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(SOURCE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </FilterBar>
 
       {/* Mobil: karty */}
@@ -188,7 +213,7 @@ export function TicketsPageClient({
               key={t.id}
               onClick={selection.active ? () => selection.toggle(t.id) : () => openTicket(t.id)}
               leading={canArchive ? <RowCheckbox selection={selection} id={t.id} /> : undefined}
-              title={t.title}
+              title={<><SourceBadges t={t} />{t.title}</>}
               badge={
                 <Badge variant={priorityVariants[t.priority] ?? "secondary"}>
                   {priorityLabels[t.priority] ?? t.priority}
@@ -243,7 +268,7 @@ export function TicketsPageClient({
                     </TableCell>
                   )}
                   <TableCell><Badge variant="outline">{typeLabels[t.type] ?? t.type}</Badge></TableCell>
-                  <TableCell className="font-medium">{t.title}</TableCell>
+                  <TableCell className="font-medium"><SourceBadges t={t} />{t.title}</TableCell>
                   <TableCell>{t.clientName}</TableCell>
                   <TableCell><Badge variant={priorityVariants[t.priority] ?? "secondary"}>{priorityLabels[t.priority] ?? t.priority}</Badge></TableCell>
                   <TableCell><Badge variant="secondary">{statusLabels[t.status] ?? t.status}</Badge></TableCell>

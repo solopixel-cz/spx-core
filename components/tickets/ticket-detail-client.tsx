@@ -16,7 +16,8 @@ import {
   ticketStatusLabels,
   ticketTypeLabels,
 } from "@/lib/ticket-labels";
-import type { TicketDetail } from "@/lib/ticket-route";
+import type { TicketDetail, TicketMessage } from "@/lib/ticket-route";
+import { TicketFiles, TicketThread } from "@/components/tickets/ticket-thread";
 
 async function archiveCall(action: "archive" | "restore", id: string) {
   const res = await fetch("/api/archive", {
@@ -27,9 +28,10 @@ async function archiveCall(action: "archive" | "restore", id: string) {
   if (!res.ok) throw new Error();
 }
 
-/** Detail ticketu (`/tickets/[id]`): obsah, přepínání stavu, úprava a archivace. */
+/** Detail ticketu (`/tickets/[id]`): obsah, přepínání stavu, úprava a archivace. U ticketu z HUBu i vlákno s klientem. */
 export function TicketDetailClient({
   ticket,
+  messages,
   assigneeName,
   instanceDomain,
   editHref,
@@ -37,6 +39,7 @@ export function TicketDetailClient({
   canArchive,
 }: {
   ticket: TicketDetail;
+  messages: TicketMessage[];
   assigneeName: string | null;
   instanceDomain: string | null;
   editHref: string;
@@ -123,6 +126,7 @@ export function TicketDetailClient({
           <div className="min-w-0">
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">{ticket.title}</h1>
             <div className="mt-2 flex flex-wrap gap-2">
+              {ticket.source === "hub" && <Badge>Z HUBu</Badge>}
               <Badge variant="outline">{ticketTypeLabels[ticket.type] ?? ticket.type}</Badge>
               <Badge variant={ticketPriorityVariants[ticket.priority] ?? "secondary"}>
                 {ticketPriorityLabels[ticket.priority] ?? ticket.priority}
@@ -157,6 +161,7 @@ export function TicketDetailClient({
         </div>
 
         <p className="mt-4 whitespace-pre-wrap text-sm">{ticket.description}</p>
+        <TicketFiles files={ticket.attachments} />
 
         {ticket.links.length > 0 && (
           <div className="mt-4 space-y-1">
@@ -208,6 +213,11 @@ export function TicketDetailClient({
       {!archived && (
         <div className="space-y-2">
           <p className="text-sm font-medium">Změnit stav</p>
+          {ticket.source === "hub" && (
+            <p className="text-xs text-muted-foreground">
+              Klient stav vidí v HUBu. U „Čeká na klienta“ a „Vyřešený“ mu přijde e-mail a notifikace.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {TICKET_STATUSES.map((s) => (
               <Button
@@ -223,6 +233,10 @@ export function TicketDetailClient({
             ))}
           </div>
         </div>
+      )}
+
+      {ticket.source === "hub" && (
+        <TicketThread ticketId={ticket.id} messages={messages} clientEmail={ticket.createdByEmail} disabled={archived} />
       )}
     </div>
   );

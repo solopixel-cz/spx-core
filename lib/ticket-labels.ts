@@ -1,5 +1,10 @@
 /** Popisky ticketů sdílené seznamem, detailem a formulářem. */
-export const ticketTypeLabels: Record<string, string> = { bug: "Bug", change_request: "Změna" };
+export const ticketTypeLabels: Record<string, string> = {
+  bug: "Bug",
+  change_request: "Změna",
+  idea: "Nápad",
+  feedback: "Zpětná vazba",
+};
 
 export const ticketPriorityLabels: Record<string, string> = {
   low: "Nízká",
