@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-06: Kampaně neodešly všem
+
+- Kampaň „Novinka – Reference“ na „DBC - Aktivní klienti“ (17) odešla jen 10 lidem, 7 `failed` bez záznamu. Příčina: odesílání po 15 souběžných požadavcích, Resend (limit požadavků za sekundu) zbytek odmítl. Adresy byly v pořádku, nikdo nebyl odhlášený.
+- Větev `fix/kampane-odesilani` z `origin/devel`. Odesílání přes Resend batch API (`sendBatchEmails`, `batchValidation: 'permissive'`, opakování při 429), sdílená logika `lib/marketing/send-campaign.ts`. Neodeslané se ukládají jako `campaignEmails.status: 'failed'` s `error`.
+- Detail kampaně: dlaždice Neodesláno, důvod u příjemce, upozornění „N lidem ze seznamu e-mail neodešel“ s tlačítkem Doposlat (`POST /api/marketing/campaigns/[id]/resend`, jen komu ještě neodešel). Ověřeno odesláním 20 e-mailů na testovací adresy Resendu (16 OK jedním požadavkem, 4 neplatné adresy s důvodem).
+- Verze 1.39.1.
+
 ## 2026-11-06: Zpětná vazba z HUBu do ticketů
 
 - Lukáš chtěl v HUBu sekci „Zpětná vazba“ na nápady a hlavně zadání změn na vizitce (když nejsme k dispozici, posíláme klienty tam), s přehledem v CRM. Rozhodl: klient vidí stav a historii, změny zatím bez limitu podle tarifu, vlákno odpovědí ano.

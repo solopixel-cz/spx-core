@@ -31,12 +31,13 @@ export async function GET(
       .where("campaignId", "==", id)
       .get();
 
-    const stats = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0 };
+    const stats = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, failed: 0 };
     const recipients = emailsSnap.docs.map((e) => {
       const ed = e.data();
       const status = ed.status as string;
       const order = statusOrder[status] ?? 0;
-      stats.sent++;
+      if (status === "failed") stats.failed++;
+      else stats.sent++;
       if (order >= statusOrder.delivered && order <= statusOrder.clicked) stats.delivered++;
       if (order >= statusOrder.opened && order <= statusOrder.clicked) stats.opened++;
       if (order >= statusOrder.clicked && order <= statusOrder.clicked) stats.clicked++;
@@ -46,6 +47,7 @@ export async function GET(
         toEmail: ed.toEmail as string,
         contactType: (ed.contactType as string) ?? null,
         status,
+        error: (ed.error as string | undefined) ?? null,
         sentAt: serializeTimestamp(ed.sentAt),
         lastEventAt: serializeTimestamp(ed.lastEventAt),
       };

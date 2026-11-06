@@ -435,7 +435,8 @@ Marketingová kampaň = odeslání zvolené `emailTemplates` na zvolený `market
   campaignId: string
   toEmail: string; contactType: 'prospect' | 'client'; contactId: string
   resendId: string; subject: string
-  status: 'sent'|'delivered'|'opened'|'clicked'|'bounced'|'complained'
+  status: 'sent'|'delivered'|'opened'|'clicked'|'bounced'|'complained'|'failed'
+  error?: string             // jen failed: důvod od Resendu (neodesláno)
   sentAt: Timestamp; lastEventAt: Timestamp|null
 }
 ```
@@ -443,7 +444,8 @@ Marketingová kampaň = odeslání zvolené `emailTemplates` na zvolený `market
 - **API:** `GET/POST /api/marketing/campaigns` (POST odešle — `testEmail` = jen test bez záznamu; jinak `templateId`+`listId` → rozešle všem příjemcům s e-mailem, dedup dle e-mailu, personalizace `{{jmeno}}`/`{{email}}`/`{{odkaz}}` — `{{odkaz}}` je v kampaních prázdné, plní se jen při odeslání jedné šablony z detailu klienta, viz `previewEmails`). `GET /api/marketing/campaigns/[id]` = detail + agregované statistiky + příjemci.
 - **Statistiky:** webhook `/api/webhooks/resend` aktualizuje `campaignEmails.status` dle `resendId` (opened/clicked/…); přehled i detail počítají otevření/prokliky agregací z `campaignEmails` (bez čítačů).
 - **UI:** tab „Kampaně" + `/email-marketing/campaigns/new` (výběr šablony+seznamu, náhled, test, odeslání) a `/email-marketing/campaigns/[id]` (statistiky + příjemci).
-- Odesílá se po dávkách přímo v route handleru (MVP) — u velmi velkých seznamů zvážit frontu/batch API.
+- Odesílá se přes **Resend batch API** (až 100 e-mailů jedním požadavkem, `sendBatchEmails` v `lib/email.ts`, logika v `lib/marketing/send-campaign.ts`). Dřív se posílalo po 15 souběžných požadavcích a Resend část odmítl kvůli limitu požadavků za sekundu (kampaň 6. 11. 2026: 7 ze 17 neodešlo, bez záznamu). Při odmítnutí kvůli limitu se čeká a zkouší znovu; neodeslaný e-mail dostane záznam `status: 'failed'` s důvodem.
+- **Doposlat neodeslaným:** `POST /api/marketing/campaigns/[id]/resend` pošle aktuální šablonu lidem ze seznamu, kterým e-mail ještě neodešel (`failed` nebo bez záznamu); staré `failed` záznamy nahradí. Detail kampaně je vypíše s tlačítkem „Doposlat“.
 - **Compliance/doručitelnost:** ke každému e-mailu se přidává **patička** (identifikace odesílatele z `settings/company` + odhlašovací odkaz) a **plain-text** varianta (`lib/marketing/compose.ts`). Každý `campaignEmails` má per-příjemce `unsubToken`; odkaz vede na veřejnou stránku `/unsubscribe/[token]` (potvrzení POSTem, ne GET — kvůli e-mailovým skenerům).
 
 ### `marketingUnsubscribes`
