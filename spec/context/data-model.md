@@ -255,22 +255,56 @@ Stránka **Úkoly** (`/ukoly`) zobrazuje otevřené úkoly seskupené podle term
 ```
 
 ### `tickets`
-Bugy a požadavky na změnu vizitky.
+Bugy, požadavky na změnu vizitky a zpětná vazba klientů. Od 1.39.0 je zakládají i klienti v HUBu (sekce **Zpětná vazba**, `source: 'hub'`): klient vidí jen svoje tickety z HUBu, jejich stav a vlákno zpráv. Tickety založené v CRM klient nevidí.
 
 ```ts
 {
   clientId: string
   instanceId?: string
-  type: 'bug' | 'change_request'
-  title: string
+  type: 'bug' | 'change_request' | 'idea' | 'feedback'   // idea = nápad, feedback = zpětná vazba
+  title: string              // z HUBu: první řádek textu (max 80 znaků)
   description: string
-  priority: 'low' | 'medium' | 'high' | 'urgent'
+  priority: 'low' | 'medium' | 'high' | 'urgent'          // z HUBu vždy 'medium'
   status: 'open' | 'in_progress' | 'waiting_client' | 'resolved' | 'closed'
   assigneeUid?: string
-  attachments: string[]      // Storage cesty (nahrané soubory)
+  attachments: TicketFile[]  // přílohy k zadání (z HUBu fotky a PDF), starší tickety []
   links: string[]            // externí odkazy (např. fotky na Google Drive), validované jako URL
+  source?: 'crm' | 'hub'     // chybí = crm
+  createdBy: string          // uid autora (tým v CRM, hubový účet klienta)
+  createdByEmail?: string    // jen z HUBu: e-mail hubového účtu (komu poslat odpověď)
+  // Vlákno (jen tickety z HUBu):
+  messageCount?: number
+  lastMessageAt?: Timestamp
+  lastMessageFrom?: 'client' | 'team'
+  unreadByTeam?: boolean     // klient založil ticket nebo napsal, tým ticket od té doby neotevřel
+  unreadByClient?: boolean   // tým odpověděl nebo změnil stav, klient od té doby ticket neotevřel
+}
+
+// TicketFile (přílohy ticketu i zpráv)
+{
+  name: string               // původní název souboru
+  type: string               // MIME: image/* nebo application/pdf
+  size: number               // bajty, max 10 MB
+  path: string               // Storage: tickets/hub/{clientId}/{fileId}-{název}
+  url: string                // stažení přes token (firebasestorage.googleapis.com …?alt=media&token=)
 }
 ```
+
+#### `tickets/{id}/messages` (podkolekce)
+Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), zpráva klienta upozorní adminy (`notifications` + push).
+
+```ts
+{
+  from: 'client' | 'team'
+  authorUid: string
+  authorName: string         // klient: jméno klienta, tým: displayName
+  text: string               // max 4000 znaků
+  attachments: TicketFile[]
+  createdAt: Timestamp
+}
+```
+
+**Stavy pro klienta (HUB):** `open` → Přijato, `in_progress` → Řešíme, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu na `waiting_client` nebo `resolved` pošle klientovi push a e-mail.
 
 ### `prospects`
 Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva PŘED klienty. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
@@ -805,6 +839,7 @@ Notifikace v HUBu (zvoneček v hlavičce, stránka Notifikace). Samotné notifik
     reference?: boolean      // nová reference
     lecture?: boolean        // zpětná vazba z přednášky (nejvýš 1× za hodinu na akci, `lectures.pushAt`)
     invoice?: boolean        // vystavená a uhrazená faktura (posílá spx-core, lib/hub-push.ts)
+    tickets?: boolean        // odpověď a změna stavu u Zpětné vazby (posílá spx-core, lib/hub-push.ts)
   }
 }
 ```

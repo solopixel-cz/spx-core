@@ -14,6 +14,12 @@ function hubUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
+/** Odkaz na stránku hubu (např. `/feedback/abc`), bez HUB_URL null. */
+export function hubPageUrl(path: string): string | null {
+  const url = process.env.HUB_URL;
+  return url ? `${url.replace(/\/+$/, "")}${path}` : null;
+}
+
 /** Přihlašovací stránka hubu s předvyplněným e-mailem. */
 export function hubLoginUrl(email: string): string {
   return `${hubUrl()}/login?email=${encodeURIComponent(email)}`;

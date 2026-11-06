@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-06: Zpětná vazba z HUBu do ticketů
+
+- Lukáš chtěl v HUBu sekci „Zpětná vazba“ na nápady a hlavně zadání změn na vizitce (když nejsme k dispozici, posíláme klienty tam), s přehledem v CRM. Rozhodl: klient vidí stav a historii, změny zatím bez limitu podle tarifu, vlákno odpovědí ano.
+- Novou kolekci nezakládáme, jsou to tickety: nové typy `idea` (Nápad) a `feedback` (Zpětná vazba), `source: 'hub'`, `createdByEmail`, přílohy jako objekty (`TicketFile`), stav vlákna (`messageCount`, `lastMessage*`, `unreadByTeam`, `unreadByClient`) a podkolekce `tickets/{id}/messages` (data-model).
+- Větev `feat/zpetna-vazba` z `origin/devel`. Seznam ticketů: štítky HUB a Nové, filtr Odkudkoli / Z HUBu / Z CRM. Detail: přílohy (náhledy fotek), vlákno s klientem a odpověď (`POST /api/tickets/[id]/messages`); otevřením se ticket označí jako přečtený.
+- Klientovi (`lib/ticket-hub.ts`): odpověď a přepnutí na „Čeká na klienta“ nebo „Vyřešený“ pošle e-mail z adresy odesílatele v profilu (`lib/email-templates/ticket-update.ts`, odkaz `HUB_URL/feedback/{id}`) a push (`hubNotifications.push.tickets`, `pushToHubClient` v `lib/hub-push.ts`).
+- Hub: spx-hub `feat/zpetna-vazba` 1.36.0. Verze 1.39.0. Rules, Storage rules ani indexy beze změny (zápis jen Admin SDK, dotaz hubu používá index `clientId + createdAt`).
+
 ## 2026-11-05: Náklady provozu
 
 - Lukáš chtěl přehled, kolik stojí provoz webů a vizitek (Google Cloud, Vercel, domény, OpenAI, Claude). Rozhodl: evidovat plán i skutečné platby, jen celkový přehled (bez rozpočtu na klienty), bez faktur dodavatelů.
