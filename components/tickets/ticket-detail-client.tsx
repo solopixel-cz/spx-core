@@ -18,6 +18,7 @@ import {
 } from "@/lib/ticket-labels";
 import type { TicketDetail, TicketMessage } from "@/lib/ticket-route";
 import { TicketFiles, TicketThread } from "@/components/tickets/ticket-thread";
+import { TicketClientEmail } from "@/components/tickets/ticket-client-email";
 
 async function archiveCall(action: "archive" | "restore", id: string) {
   const res = await fetch("/api/archive", {
@@ -215,7 +216,7 @@ export function TicketDetailClient({
           <p className="text-sm font-medium">Změnit stav</p>
           {ticket.source === "hub" && (
             <p className="text-xs text-muted-foreground">
-              Klient stav vidí v HUBu. U „Čeká na klienta“ a „Vyřešený“ mu přijde e-mail a notifikace.
+              Klient stav vidí v HUBu. E-mail mu změna stavu nepošle, u „Čeká na klienta“ a „Vyřešený“ ho můžete poslat sami.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -232,6 +233,14 @@ export function TicketDetailClient({
               </Button>
             ))}
           </div>
+          {ticket.source === "hub" && (
+            <TicketClientEmail
+              ticketId={ticket.id}
+              status={ticket.status}
+              clientEmail={ticket.createdByEmail}
+              lastSent={ticket.clientNotified}
+            />
+          )}
         </div>
       )}
 

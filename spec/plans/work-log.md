@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-07: E-maily klientům k ticketům ručně
+
+- Změna stavu ticketu z HUBu už klientovi neposílá e-mail ani push, jen ticket v HUBu označí jako nepřečtený.
+- Detail ticketu (stav Čeká na klienta / Vyřešený): tlačítko „Poslat e-mail“ (`POST /api/tickets/[id]/notify`), u něj kdy naposledy odešel (`clientNotified`), aktivita „E-mail klientovi: …“. Chyba (chybí e-mail klienta, `HUB_URL`, Resend) se ukáže v toastu.
+- Odpověď ve vlákně: zaškrtávátko „Poslat i e-mailem“ (výchozí zapnuté), bez něj jen do HUBu.
+- Ověřeno: tsc, lint, build, `notifyHubClient` odeslal na `delivered@resend.dev`. Větev `feat/ticket-emaily-rucne` z `origin/devel`, verze 1.40.0.
+
 ## 2026-11-06: Favicona v prohlížeči
 
 - CRM v tabu nemělo faviconu: `metadata.icons` v `app/layout.tsx` uvádělo jen `apple` a tím přebilo `app/icon.svg`, v HTML chyběl `<link rel="icon">`. Doplněno `icons.icon: /icon.svg`, ověřeno v HTML.

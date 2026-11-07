@@ -60,4 +60,6 @@ export type TicketFormData = z.infer<typeof ticketFormSchema>;
 /** Odpověď týmu klientovi do vlákna ticketu z HUBu. */
 export const ticketReplySchema = z.object({
   text: z.string().trim().min(1, "Napište odpověď").max(4000, "Nejvýš 4000 znaků"),
+  /** Poslat klientovi i e-mail a push (jinak jen do HUBu). */
+  notify: z.boolean().default(true),
 });
