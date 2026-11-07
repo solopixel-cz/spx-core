@@ -5,11 +5,12 @@ import { hubPageUrl } from "@/lib/hub";
 import { renderTicketUpdateEmail, type TicketUpdateKind } from "@/lib/email-templates/ticket-update";
 
 /**
- * Zpětná vazba z HUBu (tickets se `source: 'hub'`): klientovi dáme vědět,
- * když tým odpoví nebo ticket přepne na „Čeká na klienta“ či „Vyřešený“.
- * E-mail jde na hubový účet, který ticket založil (z adresy odesílatele
- * v profilu člena týmu), push na zařízení klienta (`push.tickets`).
- * Chyby jen loguje, odpověď ani změnu stavu nikdy neblokuje.
+ * Zpětná vazba z HUBu (tickets se `source: 'hub'`): e-mail a push klientovi
+ * k odpovědi týmu nebo ke stavu „Čeká na klienta“ / „Vyřešený“. Posílá se
+ * jen na pokyn týmu (zaškrtnutí u odpovědi, tlačítko v detailu ticketu),
+ * změna stavu sama nic neposílá. E-mail jde na hubový účet, který ticket
+ * založil (z adresy odesílatele v profilu člena týmu), push na zařízení
+ * klienta (`push.tickets`). Nevyhazuje, výsledek e-mailu vrací.
  */
 
 const PUSH: Record<TicketUpdateKind, (title: string) => { title: string; body: string }> = {
@@ -34,19 +35,20 @@ export async function notifyHubClient(params: {
   kind: TicketUpdateKind;
   message?: string;
   sender: { name: string; email: string; displayName: string };
-}) {
+}): Promise<{ email: "sent" | "skipped" | "failed"; error?: string }> {
   const { ticketId, ticket, kind } = params;
-  if (ticket.source !== "hub") return;
+  if (ticket.source !== "hub") return { email: "skipped" };
   const path = `/feedback/${ticketId}`;
   const title = String(ticket.title ?? "Váš požadavek");
 
-  await Promise.all([
+  const [, email] = await Promise.all([
     pushToHubClient(ticket.clientId, "tickets", { ...PUSH[kind](title), tag: `ticket-${ticketId}`, url: path }).catch((error) =>
       console.error("Ticket push failed:", error)
     ),
     (async () => {
       const link = hubPageUrl(path);
-      if (!ticket.createdByEmail || !link) return;
+      if (!ticket.createdByEmail) return { email: "skipped" as const, error: "Ticket nemá e-mail klienta" };
+      if (!link) return { email: "skipped" as const, error: "Chybí HUB_URL, e-mail nejde poslat" };
       const email = renderTicketUpdateEmail({ kind, ticketTitle: title, message: params.message, authorName: params.sender.displayName, link });
       await sendTransactionalEmail({
         to: ticket.createdByEmail,
@@ -54,6 +56,11 @@ export async function notifyHubClient(params: {
         senderEmail: params.sender.email,
         ...email,
       });
-    })().catch((error) => console.error("Ticket e-mail failed:", error)),
+      return { email: "sent" as const };
+    })().catch((error) => {
+      console.error("Ticket e-mail failed:", error);
+      return { email: "failed" as const, error: error instanceof Error ? error.message : "E-mail se nepodařilo odeslat" };
+    }),
   ]);
+  return email;
 }

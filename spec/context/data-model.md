@@ -278,6 +278,11 @@ Bugy, požadavky na změnu vizitky a zpětná vazba klientů. Od 1.39.0 je zakl�
   lastMessageFrom?: 'client' | 'team'
   unreadByTeam?: boolean     // klient založil ticket nebo napsal, tým ticket od té doby neotevřel
   unreadByClient?: boolean   // tým odpověděl nebo změnil stav, klient od té doby ticket neotevřel
+  clientNotified?: {         // poslední e-mail klientovi o stavu (tlačítko v detailu ticketu, od 1.40.0)
+    status: 'waiting_client' | 'resolved'
+    at: Timestamp
+    byUid: string
+  }
 }
 
 // TicketFile (přílohy ticketu i zpráv)
@@ -291,7 +296,7 @@ Bugy, požadavky na změnu vizitky a zpětná vazba klientů. Od 1.39.0 je zakl�
 ```
 
 #### `tickets/{id}/messages` (podkolekce)
-Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), zpráva klienta upozorní adminy (`notifications` + push).
+Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), jen když je u odpovědi zaškrtnuté „Poslat i e-mailem“ (výchozí). Zpráva klienta upozorní adminy (`notifications` + push).
 
 ```ts
 {
@@ -304,7 +309,7 @@ Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SD
 }
 ```
 
-**Stavy pro klienta (HUB):** `open` → Přijato, `in_progress` → Řešíme, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu na `waiting_client` nebo `resolved` pošle klientovi push a e-mail.
+**Stavy pro klienta (HUB):** `open` → Přijato, `in_progress` → Řešíme, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
 
 ### `prospects`
 Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva PŘED klienty. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.

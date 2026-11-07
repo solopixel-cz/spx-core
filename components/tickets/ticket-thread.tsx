@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export function TicketFiles({ files }: { files: TicketFile[] }) {
 
 /**
  * Vlákno ticketu z HUBu: zprávy klienta a týmu, pod nimi odpověď.
- * Odpověď dostane klient e-mailem (od vás) a do HUBu.
+ * Odpověď uvidí klient v HUBu, e-mailem (od vás) jen se zaškrtnutím.
  */
 export function TicketThread({
   ticketId,
@@ -53,6 +54,7 @@ export function TicketThread({
   const router = useRouter();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [notify, setNotify] = useState(true);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -62,11 +64,13 @@ export function TicketThread({
       const res = await fetch(`/api/tickets/${ticketId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, notify: notify && !!clientEmail }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error);
-      toast.success("Odpověď odeslána");
+      if (data.email === "sent") toast.success("Odpověď odeslána i e-mailem");
+      else if (data.emailError) toast.warning(`Odpověď je v HUBu, e-mail neodešel: ${data.emailError}`);
+      else toast.success("Odpověď odeslána do HUBu");
       setText("");
       router.refresh();
     } catch (error) {
@@ -116,9 +120,14 @@ export function TicketThread({
             aria-label="Odpověď klientovi"
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
-              {clientEmail ? `Klient dostane odpověď e-mailem (${clientEmail}) a uvidí ji v HUBu.` : "Klient odpověď uvidí v HUBu."}
-            </p>
+            {clientEmail ? (
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={notify} onCheckedChange={setNotify} aria-label="Poslat i e-mailem" />
+                Poslat i e-mailem ({clientEmail}), jinak jen do HUBu
+              </label>
+            ) : (
+              <p className="text-xs text-muted-foreground">Klient odpověď uvidí v HUBu.</p>
+            )}
             <Button type="submit" size="sm" disabled={sending || !text.trim()}>
               {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Odeslat odpověď
