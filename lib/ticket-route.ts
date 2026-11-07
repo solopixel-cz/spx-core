@@ -22,6 +22,8 @@ export interface TicketDetail {
   source: "crm" | "hub";
   createdByEmail: string | null;
   unreadByTeam: boolean;
+  /** Poslední ruční e-mail klientovi ke stavu (tlačítko v detailu). */
+  clientNotified: { status: string; at: string | null } | null;
   createdAt: string | null;
   deletedAt: string | null;
 }
@@ -82,6 +84,9 @@ export async function loadTicketForRoute(id: string) {
     source: t.source === "hub" ? "hub" : "crm",
     createdByEmail: (t.createdByEmail as string | undefined) ?? null,
     unreadByTeam: t.unreadByTeam === true,
+    clientNotified: t.clientNotified
+      ? { status: t.clientNotified.status as string, at: toIso(t.clientNotified.at) }
+      : null,
     createdAt: toIso(t.createdAt),
     deletedAt: toIso(t.deletedAt),
   };

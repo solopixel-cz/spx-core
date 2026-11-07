@@ -9,7 +9,7 @@ import { notifyHubClient, teamSender } from "@/lib/ticket-hub";
 
 /**
  * Odpověď týmu do vlákna ticketu z HUBu (`tickets/{id}/messages`).
- * Klient dostane e-mail a push, v HUBu uvidí ticket jako nepřečtený.
+ * V HUBu uvidí klient ticket jako nepřečtený, e-mail a push jen s `notify`.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -56,12 +56,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       entityType: "ticket",
       entityId: id,
       kind: "system",
-      text: "Odpověď klientovi do HUBu",
+      text: parsed.data.notify ? "Odpověď klientovi do HUBu a e-mailem" : "Odpověď klientovi do HUBu (bez e-mailu)",
       actorUid: user.uid,
     });
-    await notifyHubClient({ ticketId: id, ticket, kind: "reply", message: parsed.data.text, sender });
+    const result = parsed.data.notify
+      ? await notifyHubClient({ ticketId: id, ticket, kind: "reply", message: parsed.data.text, sender })
+      : null;
 
-    return NextResponse.json({ status: "ok" });
+    return NextResponse.json({ status: "ok", email: result?.email ?? "skipped", emailError: result?.error });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
