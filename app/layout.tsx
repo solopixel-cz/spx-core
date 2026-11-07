@@ -24,7 +24,9 @@ const saira = Saira({
 export const metadata: Metadata = {
   title: "SPX Core",
   description: "Interní CRM a provozní centrum pro SoloPixel",
+  // Ruční `icons` přebije app/icon.svg, favicon proto musí být vyjmenovaná i tady.
   icons: {
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
     apple: "/icons/apple-icon-180.png",
   },
   appleWebApp: {

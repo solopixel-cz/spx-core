@@ -2,6 +2,11 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-06: Favicona v prohlížeči
+
+- CRM v tabu nemělo faviconu: `metadata.icons` v `app/layout.tsx` uvádělo jen `apple` a tím přebilo `app/icon.svg`, v HTML chyběl `<link rel="icon">`. Doplněno `icons.icon: /icon.svg`, ověřeno v HTML.
+- Větev `fix/favicona` z `origin/devel`, verze 1.39.2.
+
 ## 2026-11-06: Kampaně neodešly všem
 
 - Kampaň „Novinka – Reference“ na „DBC - Aktivní klienti“ (17) odešla jen 10 lidem, 7 `failed` bez záznamu. Příčina: odesílání po 15 souběžných požadavcích, Resend (limit požadavků za sekundu) zbytek odmítl. Adresy byly v pořádku, nikdo nebyl odhlášený.
