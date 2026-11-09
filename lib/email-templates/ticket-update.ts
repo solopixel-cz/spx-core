@@ -4,12 +4,25 @@
  * si klient přečte a odpoví v HUBu, odkaz vede rovnou na ticket.
  */
 
+import { messageToPlainText, parseMessageLinks } from "@/lib/message-links";
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Text odpovědi do HTML: escapovaný, odkazy (`[text](url)`, holé adresy) klikací. */
+function messageHtml(message: string): string {
+  return parseMessageLinks(message)
+    .map((p) =>
+      p.type === "link"
+        ? `<a href="${escapeHtml(p.href)}" style="color:#0D9488;font-weight:600;text-decoration:underline">${escapeHtml(p.text)}</a>`
+        : escapeHtml(p.text)
+    )
+    .join("");
 }
 
 export type TicketUpdateKind = "reply" | "waiting_client" | "resolved";
@@ -47,7 +60,7 @@ export function renderTicketUpdateEmail(vars: {
   const title = escapeHtml(vars.ticketTitle);
   const link = escapeHtml(vars.link);
   const quote = vars.kind === "reply" && vars.message
-    ? `<div style="margin:0 0 24px;padding:16px;border-left:3px solid #5DEAD4;background:#F8FAFC;border-radius:8px;font-size:15px;line-height:1.55;color:#0F172A;white-space:pre-wrap">${escapeHtml(vars.message)}</div>
+    ? `<div style="margin:0 0 24px;padding:16px;border-left:3px solid #5DEAD4;background:#F8FAFC;border-radius:8px;font-size:15px;line-height:1.55;color:#0F172A;white-space:pre-wrap">${messageHtml(vars.message)}</div>
         <p style="margin:0 0 24px;font-size:13px;color:#64748B">${escapeHtml(vars.authorName)}, SoloPixel</p>`
     : "";
 
@@ -73,7 +86,7 @@ export function renderTicketUpdateEmail(vars: {
     "",
     copy.heading,
     copy.lead,
-    ...(vars.kind === "reply" && vars.message ? ["", vars.message, "", `${vars.authorName}, SoloPixel`] : []),
+    ...(vars.kind === "reply" && vars.message ? ["", messageToPlainText(vars.message), "", `${vars.authorName}, SoloPixel`] : []),
     "",
     `${copy.cta}: ${vars.link}`,
   ].join("\n");
