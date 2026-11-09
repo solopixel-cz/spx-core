@@ -77,7 +77,7 @@ const defaultPages = [
   { value: "/clients", label: "Klienti" },
   { value: "/prospects", label: "Oslovení" },
   { value: "/tasks", label: "Úkoly" },
-  { value: "/tickets", label: "Tickety" },
+  { value: "/backlog", label: "Backlog" },
 ];
 
 export default function ProfilPage() {

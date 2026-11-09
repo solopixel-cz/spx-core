@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { FormActions } from "@/components/form-actions";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
-import { ticketPriorityLabels, ticketTypeLabels } from "@/lib/ticket-labels";
+import { INTERNAL_LABEL, ticketPriorityLabels, ticketTypeLabels } from "@/lib/ticket-labels";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 
 interface UserOption {
@@ -38,7 +38,8 @@ interface InstanceOption {
 
 export interface TicketFormValues {
   id: string;
-  clientId: string;
+  /** null = interní ticket. */
+  clientId: string | null;
   instanceId?: string;
   type: string;
   title: string;
@@ -58,9 +59,9 @@ function normalizeUrl(raw: string): string {
 }
 
 /**
- * Formulář ticketu na routách `/tickets/new` a `/tickets/[id]/edit`. Z detailu
+ * Formulář ticketu na routách `/backlog/new` a `/backlog/[id]/edit`. Z detailu
  * klienta přichází s předvyplněným klientem. Vizitku/web lze vybrat z instancí
- * zvoleného klienta.
+ * zvoleného klienta. Bez klienta je ticket interní (jen tým, ne obchodník).
  */
 export function TicketForm({
   ticket,
@@ -68,6 +69,7 @@ export function TicketForm({
   users,
   instances,
   defaultClientId,
+  allowInternal = false,
   backHref,
   doneHref,
 }: {
@@ -76,6 +78,8 @@ export function TicketForm({
   users: UserOption[];
   instances: InstanceOption[];
   defaultClientId?: string;
+  /** Nabídnout „Interní“ místo klienta (ne u obchodníka a ticketu z HUBu). */
+  allowInternal?: boolean;
   backHref: string;
   /** Kam po uložení (výchozí `backHref`). */
   doneHref?: string;
@@ -90,7 +94,7 @@ export function TicketForm({
     resolver: zodResolver(ticketFormSchema) as any,
     defaultValues: ticket
       ? {
-          clientId: ticket.clientId,
+          clientId: ticket.clientId ?? undefined,
           instanceId: ticket.instanceId,
           type: ticket.type as TicketFormData["type"],
           priority: ticket.priority as TicketFormData["priority"],
@@ -119,7 +123,10 @@ export function TicketForm({
 
   const clientId = watch("clientId");
   const clientInstances = instances.filter((i) => i.clientId === clientId);
-  const clientItems = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+  const clientItems = {
+    ...(allowInternal ? { [NONE]: INTERNAL_LABEL } : {}),
+    ...Object.fromEntries(clients.map((c) => [c.id, c.name])),
+  };
   const assigneeItems = {
     [NONE]: "Nepřiřazeno",
     ...Object.fromEntries(users.map((u) => [u.id, u.displayName])),
@@ -149,7 +156,12 @@ export function TicketForm({
       const res = await fetch(isEdit ? `/api/tickets/${ticket!.id}` : "/api/tickets", {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, links: normalizedLinks }),
+        // Při úpravě null = smazat (ticket bez klienta nebo bez vizitky).
+        body: JSON.stringify({
+          ...data,
+          ...(isEdit ? { clientId: data.clientId ?? null, instanceId: data.instanceId ?? null } : {}),
+          links: normalizedLinks,
+        }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
       clearFormDraft(draftKey);
@@ -171,13 +183,13 @@ export function TicketForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Klient *</Label>
+          <Label>{allowInternal ? "Klient" : "Klient *"}</Label>
           <Select
             items={clientItems}
-            value={clientId}
+            value={clientId ?? (allowInternal ? NONE : undefined)}
             onValueChange={(val) => {
               if (!val) return;
-              setValue("clientId", String(val));
+              setValue("clientId", val === NONE ? undefined : String(val));
               setValue("instanceId", undefined);
             }}
           >
@@ -185,6 +197,7 @@ export function TicketForm({
               <SelectValue placeholder="Vyberte" />
             </SelectTrigger>
             <SelectContent>
+              {allowInternal && <SelectItem value={NONE}>{INTERNAL_LABEL}</SelectItem>}
               {clients.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}

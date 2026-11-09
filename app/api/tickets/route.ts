@@ -4,6 +4,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { ticketFormSchema } from "@/lib/schemas/ticket";
 import { logActivity } from "@/lib/activity";
+import { getSalesClientIds } from "@/lib/sales-clients";
 
 export async function GET(request: Request) {
   try {
@@ -41,6 +42,13 @@ export async function POST(request: Request) {
     const user = await requireAuth();
     const body = await request.json();
     const data = ticketFormSchema.parse(body);
+
+    // Interní ticket (bez klienta) zakládá jen tým, obchodník jen u vlastního klienta.
+    const owned = await getSalesClientIds(user.uid, user.role);
+    if (owned && (!data.clientId || !owned.has(data.clientId))) {
+      return NextResponse.json({ error: "Vyberte klienta" }, { status: 400 });
+    }
+    if (!data.clientId) delete data.instanceId;
 
     const db = getAdminFirestore();
     const docRef = await db.collection("tickets").add({

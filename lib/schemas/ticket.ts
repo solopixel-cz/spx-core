@@ -16,7 +16,8 @@ export type TicketFile = z.infer<typeof ticketFileSchema>;
 
 export const ticketSchema = z.object({
   ...baseFields,
-  clientId: z.string().min(1),
+  // Bez klienta = interní ticket (změny v CRM, HUBu apod.).
+  clientId: z.string().min(1).optional(),
   instanceId: z.string().optional(),
   type: z.enum(TICKET_TYPES),
   title: z.string().min(1),
@@ -25,6 +26,7 @@ export const ticketSchema = z.object({
   status: z.enum([
     "open",
     "in_progress",
+    "code_review",
     "waiting_client",
     "resolved",
     "closed",
@@ -33,6 +35,8 @@ export const ticketSchema = z.object({
   attachments: z.array(ticketFileSchema),
   // Externí odkazy k tiketu (např. fotky na Google Drive). Může jich být víc.
   links: z.array(z.string().url()),
+  // Odkazy na pull requesty (GitHub), přidávají se v detailu. Starší tickety pole nemají.
+  prLinks: z.array(z.string().url()).optional(),
   // Zpětná vazba z HUBu (spec/context/data-model.md → tickets): klient vidí stav a vlákno.
   source: z.enum(["crm", "hub"]).optional(),
   createdByEmail: z.string().email().optional(),
@@ -45,7 +49,8 @@ export const ticketSchema = z.object({
 export type Ticket = z.infer<typeof ticketSchema>;
 
 export const ticketFormSchema = z.object({
-  clientId: z.string().min(1, "Vyberte klienta"),
+  // Prázdné = interní ticket. Obchodník musí klienta vybrat (hlídá API).
+  clientId: z.string().min(1).optional(),
   instanceId: z.string().optional(),
   type: z.enum(TICKET_TYPES),
   title: z.string().min(1, "Titul je povinný"),

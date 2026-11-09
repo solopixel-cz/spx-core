@@ -6,7 +6,7 @@ import { renderTicketUpdateEmail, type TicketUpdateKind } from "@/lib/email-temp
 
 /**
  * Zpětná vazba z HUBu (tickets se `source: 'hub'`): e-mail a push klientovi
- * k odpovědi týmu nebo ke stavu „Čeká na klienta“ / „Vyřešený“. Posílá se
+ * k odpovědi týmu nebo ke stavu „Čekání na klienta“ / „Hotovo“ (resolved). Posílá se
  * jen na pokyn týmu (zaškrtnutí u odpovědi, tlačítko v detailu ticketu),
  * změna stavu sama nic neposílá. E-mail jde na hubový účet, který ticket
  * založil (z adresy odesílatele v profilu člena týmu), push na zařízení

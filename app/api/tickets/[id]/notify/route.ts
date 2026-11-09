@@ -6,7 +6,7 @@ import { getSalesClientIds } from "@/lib/sales-clients";
 import { logActivity } from "@/lib/activity";
 import { notifyHubClient, teamSender } from "@/lib/ticket-hub";
 
-const LABELS = { waiting_client: "Čeká na klienta", resolved: "Vyřešený" } as const;
+const LABELS = { waiting_client: "Čekání na klienta", resolved: "Hotovo" } as const;
 
 /**
  * Ruční e-mail (a push) klientovi k aktuálnímu stavu ticketu z HUBu:
@@ -30,7 +30,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
     const status = ticket.status as string;
     if (status !== "waiting_client" && status !== "resolved") {
-      return NextResponse.json({ error: "E-mail jde poslat jen ve stavu Čeká na klienta nebo Vyřešený" }, { status: 400 });
+      return NextResponse.json({ error: "E-mail jde poslat jen ve stavu Čekání na klienta nebo Hotovo" }, { status: 400 });
     }
 
     const result = await notifyHubClient({ ticketId: id, ticket, kind: status, sender: await teamSender(user) });

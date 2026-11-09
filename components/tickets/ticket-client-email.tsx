@@ -14,7 +14,7 @@ const COPY: Record<string, { button: string; subject: string }> = {
 
 /**
  * Ruční e-mail klientovi ke stavu ticketu z HUBu (`POST /api/tickets/[id]/notify`).
- * Změna stavu sama nic neposílá. Jen ve stavu Čeká na klienta a Vyřešený.
+ * Změna stavu sama nic neposílá. Jen ve stavu Čekání na klienta a Hotovo.
  */
 export function TicketClientEmail({
   ticketId,

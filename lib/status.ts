@@ -24,11 +24,12 @@ export const invoiceStatus: Record<string, StatusConfig> = {
 
 // Ticket status
 export const ticketStatus: Record<string, StatusConfig> = {
-  open: { label: "Otevřený", color: "blue" },
-  in_progress: { label: "V řešení", color: "blue" },
-  waiting_client: { label: "Čeká na klienta", color: "yellow" },
-  resolved: { label: "Vyřešený", color: "green" },
-  closed: { label: "Uzavřený", color: "gray" },
+  open: { label: "Úkoly", color: "blue" },
+  in_progress: { label: "Zpracovává se", color: "blue" },
+  code_review: { label: "Code review", color: "blue" },
+  waiting_client: { label: "Čekání na klienta", color: "yellow" },
+  resolved: { label: "Hotovo", color: "green" },
+  closed: { label: "Hotovo", color: "gray" },
 };
 
 // Ticket priority

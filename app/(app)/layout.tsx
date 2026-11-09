@@ -7,8 +7,11 @@ import { RefreshProvider } from "@/components/refresh-context";
 
 export default async function AppLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  /** Modály přes intercepting routes (`@modal`), např. detail ticketu. */
+  modal: React.ReactNode;
 }) {
   const user = await getCurrentUser();
 
@@ -34,6 +37,7 @@ export default async function AppLayout({
           <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-8 md:py-8">
             {children}
           </main>
+          {modal}
         </div>
       </RefreshProvider>
     </div>
