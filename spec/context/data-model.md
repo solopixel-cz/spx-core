@@ -755,11 +755,21 @@ Reference od zákazníků poradce z veřejného formuláře. Nic se nezveřejní
   publishedAt?: Timestamp
   publishedBy?: string       // e-mail toho, kdo zveřejnil
   publishSource?: 'manual'   // později 'auto'
+  reply?: {                  // odpověď poradce, jen jednou (spx-hub spec/zadani-reference-odpoved.md)
+    text?: string            // 10–500 znaků; po smazání odpovědi pole chybí
+    createdAt: Timestamp
+    createdBy: string        // e-mail ze session (klient, nebo admin v náhledu); nikdy se nezveřejňuje
+    createdByRole: 'client' | 'admin'
+    deletedAt?: Timestamp    // smazaná odpověď: zámek zůstává, novou napsat nejde
+    deletedBy?: string
+  }
   createdAt: Timestamp
   updatedAt: Timestamp
 }
 ```
 Dotazy jen `where projectSlug in [...]`, řazení v paměti → bez indexu.
+
+**Odpověď poradce (`reply`)** je jednorázová: hub ji zapíše v transakci jen tam, kde pole `reply` ještě vůbec není. Smazání odstraní jen `text`, zámek zůstane. Veřejné API ji pošle jen u zveřejněné reference a jen jako `reply: { text, createdAt }`. Rules se nemění, kolekce je pro klientský SDK zakázaná celá.
 
 **Recenze z Googlu se neukládají.** U projektu s `google.placeId` je veřejné API hubu (`/api/public/references/{slug}`) načte živě z Places API (New), drží je jen v cache Next.js (24 h) a vrací vedle referencí jako `google: { rating, count, url, reviews[] }`. Google vrací nejvýš 5 recenzí podle vlastního výběru, proto se nic neschvaluje; ve Firestore je jen `placeId`. Přihlášení k API: service account z GA4 (scope `cloud-platform`), případně `GOOGLE_PLACES_API_KEY`.
 
@@ -798,6 +808,7 @@ Kdo, kdy a co udělal s referencemi a projekty referencí, a s checklistem Prův
   level?: number             // guide.level: dosažená úroveň 1–3
   referenceId?: string
   action: 'reference.created' | 'reference.published' | 'reference.hidden' | 'reference.deleted'
+        | 'reference.replied' | 'reference.replyDeleted'
         | 'project.created' | 'project.updated' | 'project.tokenRegenerated'
         | 'guide.task_done' | 'guide.task_undone' | 'guide.level'
   actorEmail?: string        // prázdné = zákazník přes veřejný formulář
