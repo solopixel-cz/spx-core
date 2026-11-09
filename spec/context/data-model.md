@@ -313,7 +313,7 @@ Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SD
 }
 ```
 
-**Stavy pro klienta (HUB):** `open` → Přijato, `in_progress` a `code_review` → Řešíme, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
+**Stavy pro klienta (HUB):** `open` (Úkoly) → Víme o tom, `in_progress` a `code_review` → Děláme na tom, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
 
 ### `prospects`
 Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva PŘED klienty. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.
