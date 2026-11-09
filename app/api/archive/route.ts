@@ -157,7 +157,7 @@ export async function POST(request: Request) {
 
       revalidatePath("/prospects");
       revalidatePath("/clients");
-      revalidatePath("/tickets");
+      revalidatePath("/backlog");
 
       // Jeden záznam (`id`) — původní chování: chyba = 400.
       if (!bulk && failed.length > 0) {

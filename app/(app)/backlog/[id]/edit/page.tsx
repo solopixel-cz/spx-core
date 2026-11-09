@@ -14,7 +14,8 @@ export default async function EditTicketPage({
   const { id } = await params;
   const { from } = await searchParams;
   const { user, db, ticket } = await loadTicketForRoute(id);
-  const detailHref = `/tickets/${id}${from ? `?from=${from}` : ""}`;
+  // Z modálu nad nástěnkou (`?from=board`) se po uložení vrací na nástěnku.
+  const detailHref = from === "board" ? "/backlog" : `/backlog/${id}${from ? `?from=${from}` : ""}`;
   if (ticket.deletedAt) redirect(detailHref);
 
   const back = ticketBack(ticket, from);
@@ -32,6 +33,7 @@ export default async function EditTicketPage({
         clients={clients}
         users={users}
         instances={instances}
+        allowInternal={user.role !== "sales" && ticket.source !== "hub"}
         backHref={detailHref}
       />
     </FormPage>

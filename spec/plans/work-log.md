@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-09: Tickety jsou Backlog (Kanban)
+
+- Lukáš chtěl z ticketů jednoduchý Kanban, ve kterém pracuje i s bratrem: sloupce Úkoly, Zpracovává se, Code review, Čekání na klienta, Hotovo (Test sloučil s čekáním na klienta), datum vzniku a priorita na kartě, tickety z HUBu i interní bez klienta.
+- Větev `feat/backlog` z `origin/devel`, verze 1.41.0. Sekce `/backlog` (přesměrování z `/tickets/*`), výchozí nástěnka (`components/tickets/backlog-board.tsx`, @dnd-kit/core), `?view=list` tabulka. Přetažení karty nebo menu „Přesunout do“ uloží stav hned (PATCH). Řazení ve sloupci: priorita, pak nejstarší. Hotovo ukazuje 14 dní, starší pod tlačítkem.
+- Filtry: Kdo (Já, ostatní, Nepřiřazeno), klient včetně Interní, priorita, typ, zdroj. Hodnoty stavů v datech zůstávají, jen názvy v CRM (`lib/ticket-labels.ts`), bez migrace; `closed` patří do Hotovo. Nový stav `code_review`: HUB ho klientovi ukazuje jako „Řešíme“ (spx-hub `fix/stav-code-review`).
+- Interní ticket: `clientId` nepovinné (formulář „Interní“, ne obchodník a ne ticket z HUBu). PATCH umí smazat klienta i vizitku (`null`), obchodník smí měnit jen tickety vlastních klientů, neplatný stav odmítne. Aktivita píše název stavu.
+- Detail: z aplikace se otevírá jako modál nad stránkou (intercepting route `app/(app)/@modal/(.)backlog/[id]`, `[...catchAll]` modál zavře při přechodu jinam), načtení adresy napřímo ukáže stránku. Tlačítka Kopírovat odkaz, Otevřít na celé stránce, Upravit, Archivovat. Vpravo stav, řešitel a priorita (mění se rovnou), klient, vizitka, typ, zdroj, kdo a kdy založil, kdy upraveno; vlevo popis, přílohy, odkazy, pull requesty (`prLinks`, víc odkazů, GitHub jako „spx-core #145“, počet na kartě) a vlákno s klientem. Úprava z modálu (`?from=board`) se vrací na nástěnku. Sdílený loader `loadTicketView`.
+- Ověřeno: tsc, lint, build, nástěnka a detail na testovacích datech (desktop, mobil, tmavý režim, tažení).
+
 ## 2026-11-07: E-maily klientům k ticketům ručně
 
 - Změna stavu ticketu z HUBu už klientovi neposílá e-mail ani push, jen ticket v HUBu označí jako nepřečtený.

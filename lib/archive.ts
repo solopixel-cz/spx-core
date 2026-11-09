@@ -103,7 +103,7 @@ export async function cascadeArchiveClient(clientId: string, actorUid: string) {
   for (const doc of ticketsSnap.docs) {
     if (doc.data().deletedAt) continue;
     const status = doc.data().status as string;
-    if (["open", "in_progress", "waiting_client"].includes(status)) {
+    if (["open", "in_progress", "code_review", "waiting_client"].includes(status)) {
       await doc.ref.update({
         deletedAt: FieldValue.serverTimestamp(),
         deletedBy: actorUid,

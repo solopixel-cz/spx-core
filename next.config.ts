@@ -86,7 +86,9 @@ const nextConfig: NextConfig = {
       { source: "/moje-vizitky/:path*", destination: "/my-cards/:path*", permanent: true },
       { source: "/podklady/:path*", destination: "/submissions/:path*", permanent: true },
       { source: "/ukoly/:path*", destination: "/tasks/:path*", permanent: true },
-      { source: "/tickety/:path*", destination: "/tickets/:path*", permanent: true },
+      { source: "/tickety/:path*", destination: "/backlog/:path*", permanent: true },
+      // Tickety se od 1.41.0 jmenují Backlog (odkazy z HUBu a notifikací vedou na /tickets/[id]).
+      { source: "/tickets/:path*", destination: "/backlog/:path*", permanent: true },
       { source: "/profil/:path*", destination: "/profile/:path*", permanent: true },
     ];
   },

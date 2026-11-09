@@ -54,6 +54,7 @@ import { ProjectsSection, type ProjectData } from "./projects-section";
 import { ConfirmButton } from "@/components/confirm-button";
 import { HubFeaturesToggles } from "./hub-features";
 import type { HubFeatures } from "@/lib/hub-features";
+import { ticketStatusLabels, ticketTypeLabels } from "@/lib/ticket-labels";
 
 interface ClientData {
   id: string;
@@ -136,14 +137,6 @@ const priorityLabels: Record<string, string> = {
   medium: "Střední",
   high: "Vysoká",
   urgent: "Urgentní",
-};
-
-const ticketStatusLabels: Record<string, string> = {
-  open: "Otevřený",
-  in_progress: "V řešení",
-  waiting_client: "Čeká na klienta",
-  resolved: "Vyřešený",
-  closed: "Uzavřený",
 };
 
 function getInitials(name: string): string {
@@ -828,7 +821,7 @@ export function ClientDetailClient({
         <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <Button size="sm" nativeButton={false} render={<Link href={`/tickets/new?clientId=${client.id}`} />}>
+              <Button size="sm" nativeButton={false} render={<Link href={`/backlog/new?clientId=${client.id}`} />}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 Nový ticket
               </Button>
@@ -841,7 +834,7 @@ export function ClientDetailClient({
               {tickets.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/tickets/${t.id}?from=client`}
+                  href={`/backlog/${t.id}?from=client`}
                   className="block rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -859,7 +852,7 @@ export function ClientDetailClient({
                     </Badge>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span>{t.type === "bug" ? "Bug" : "Změna"}</span>
+                    <span>{ticketTypeLabels[t.type] ?? t.type}</span>
                     <span>{ticketStatusLabels[t.status] ?? t.status}</span>
                     {t.createdAt && (
                       <span>

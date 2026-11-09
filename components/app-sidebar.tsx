@@ -10,7 +10,7 @@ import {
   Receipt,
   CreditCard,
   CheckSquare,
-  TicketCheck,
+  SquareKanban,
   ClipboardList,
   Mails,
   Settings,
@@ -63,7 +63,7 @@ const navGroups: NavGroup[] = [
     title: "Provoz",
     items: [
       { label: "Úkoly", href: "/tasks", icon: CheckSquare },
-      { label: "Tickety", href: "/tickets", icon: TicketCheck },
+      { label: "Backlog", href: "/backlog", icon: SquareKanban },
       { label: "Domény", href: "/domains", icon: Globe, roles: ["admin", "member"] },
     ],
   },
