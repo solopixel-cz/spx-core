@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FileText, Loader2, Send } from "lucide-react";
+import { FileText, Link2, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TicketFile } from "@/lib/schemas/ticket";
 import type { TicketMessage } from "@/lib/ticket-route";
+import { MessageText } from "@/components/tickets/message-text";
 
 /** Přílohy z HUBu: obrázky jako náhledy, PDF jako odkaz. */
 export function TicketFiles({ files }: { files: TicketFile[] }) {
@@ -55,6 +56,22 @@ export function TicketThread({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [notify, setNotify] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Z označeného textu udělá odkaz `[text](https://)` a kurzor dá na místo adresy.
+  function insertLink() {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const label = text.slice(start, end).trim() || "zde je ukázka";
+    const snippet = `[${label}](https://)`;
+    setText(text.slice(0, start) + snippet + text.slice(end));
+    const cursor = start + snippet.length - 1;
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(cursor, cursor);
+    });
+  }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +119,7 @@ export function TicketThread({
                 </span>
                 <span>{formatDateTime(m.createdAt)}</span>
               </div>
-              <p className="whitespace-pre-wrap">{m.text}</p>
+              <MessageText text={m.text} />
               <TicketFiles files={m.attachments} />
             </li>
           ))}
@@ -112,6 +129,7 @@ export function TicketThread({
       {!disabled && (
         <form onSubmit={send} className="space-y-2">
           <Textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={4}
@@ -119,6 +137,15 @@ export function TicketThread({
             placeholder="Odpověď klientovi…"
             aria-label="Odpověď klientovi"
           />
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <Button type="button" variant="outline" size="sm" onClick={insertLink}>
+              <Link2 className="mr-1.5 h-4 w-4" />
+              Odkaz
+            </Button>
+            <span>
+              Označte text a klikněte, nebo pište <code className="rounded bg-muted px-1">[text](https://adresa)</code>. Holá adresa je odkaz sama.
+            </span>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             {clientEmail ? (
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">

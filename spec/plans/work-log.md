@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-09: Odkazy ve vlákně se Zpětnou vazbou
+
+- Lukáš chce klientovi posílat odkaz na preview jako text („zde je ukázka“). Ve zprávách (CRM vlákno, popis ticketu, HUB, e-mail s odpovědí) je `[text](https://…)` klikací odkaz s textem, holá adresa je odkaz sama. Jen http(s), bez HTML (`lib/message-links.ts`, stejný soubor ve spx-hub). E-mail: odkaz v HTML, v prostém textu „text (adresa)“.
+- Odpověď v CRM: tlačítko Odkaz udělá z označeného textu `[text](https://)` a dá kurzor na adresu.
+- Na větvi `feat/backlog`, verze 1.42.0; hub `fix/stav-code-review` 1.40.0 (test `tests/message-links.test.ts`, testy hubu 12/12).
+
 ## 2026-11-09: Tickety jsou Backlog (Kanban)
 
 - Lukáš chtěl z ticketů jednoduchý Kanban, ve kterém pracuje i s bratrem: sloupce Úkoly, Zpracovává se, Code review, Čekání na klienta, Hotovo (Test sloučil s čekáním na klienta), datum vzniku a priorita na kartě, tickety z HUBu i interní bez klienta.

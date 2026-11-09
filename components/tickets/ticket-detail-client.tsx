@@ -40,6 +40,7 @@ import {
 import type { TicketDetail, TicketMessage } from "@/lib/ticket-route";
 import { TicketFiles, TicketThread } from "@/components/tickets/ticket-thread";
 import { TicketClientEmail } from "@/components/tickets/ticket-client-email";
+import { MessageText } from "@/components/tickets/message-text";
 
 const NONE = "__none__";
 
@@ -340,7 +341,7 @@ export function TicketDetailClient({
           <div className="min-w-0 space-y-6 p-4 md:px-6 md:py-6">
             <section>
               <SectionTitle>Popis</SectionTitle>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.description}</p>
+              <MessageText text={ticket.description} className="text-sm leading-relaxed" />
               <TicketFiles files={ticket.attachments} />
             </section>
 
