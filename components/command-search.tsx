@@ -118,7 +118,7 @@ export function CommandSearch({
                 {results.tickets.map((t) => (
                   <Command.Item
                     key={`ticket-${t.id}`}
-                    onSelect={() => navigate("/tickets")}
+                    onSelect={() => navigate(`/backlog/${t.id}`)}
                     className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm aria-selected:bg-accent"
                   >
                     <TicketCheck className="h-4 w-4 text-muted-foreground" />

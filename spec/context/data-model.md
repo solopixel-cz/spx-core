@@ -255,20 +255,24 @@ Stránka **Úkoly** (`/ukoly`) zobrazuje otevřené úkoly seskupené podle term
 ```
 
 ### `tickets`
-Bugy, požadavky na změnu vizitky a zpětná vazba klientů. Od 1.39.0 je zakládají i klienti v HUBu (sekce **Zpětná vazba**, `source: 'hub'`): klient vidí jen svoje tickety z HUBu, jejich stav a vlákno zpráv. Tickety založené v CRM klient nevidí.
+V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, Zpracovává se, Code review, Čekání na klienta, Hotovo. Bugy, požadavky na změnu vizitky, zpětná vazba klientů a interní úkoly (bez klienta, změny v CRM, HUBu apod.). Od 1.39.0 je zakládají i klienti v HUBu (sekce **Zpětná vazba**, `source: 'hub'`): klient vidí jen svoje tickety z HUBu, jejich stav a vlákno zpráv. Tickety založené v CRM klient nevidí.
 
 ```ts
 {
-  clientId: string
+  clientId?: string          // chybí = interní ticket (zakládá jen tým, obchodník ho nevidí)
   instanceId?: string
   type: 'bug' | 'change_request' | 'idea' | 'feedback'   // idea = nápad, feedback = zpětná vazba
   title: string              // z HUBu: první řádek textu (max 80 znaků)
   description: string
   priority: 'low' | 'medium' | 'high' | 'urgent'          // z HUBu vždy 'medium'
-  status: 'open' | 'in_progress' | 'waiting_client' | 'resolved' | 'closed'
+  status: 'open' | 'in_progress' | 'code_review' | 'waiting_client' | 'resolved' | 'closed'
+                             // sloupce Backlogu: open = Úkoly, in_progress = Zpracovává se, code_review = Code review,
+                             // waiting_client = Čekání na klienta,
+                             // resolved = Hotovo; closed je starší „Uzavřený“, v CRM také Hotovo (nově se nenastavuje)
   assigneeUid?: string
   attachments: TicketFile[]  // přílohy k zadání (z HUBu fotky a PDF), starší tickety []
   links: string[]            // externí odkazy (např. fotky na Google Drive), validované jako URL
+  prLinks?: string[]         // odkazy na pull requesty, přidávají se v detailu (od 1.41.0)
   source?: 'crm' | 'hub'     // chybí = crm
   createdBy: string          // uid autora (tým v CRM, hubový účet klienta)
   createdByEmail?: string    // jen z HUBu: e-mail hubového účtu (komu poslat odpověď)
@@ -309,7 +313,7 @@ Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SD
 }
 ```
 
-**Stavy pro klienta (HUB):** `open` → Přijato, `in_progress` → Řešíme, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
+**Stavy pro klienta (HUB):** `open` (Úkoly) → Víme o tom, `in_progress` a `code_review` → Děláme na tom, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
 
 ### `prospects`
 Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva PŘED klienty. V UI zobrazeno jako **„Oslovení"** (ne „Prospekti"). Smysl: koordinace více obchodníků, nikdo neosloví dvakrát téhož člověka.

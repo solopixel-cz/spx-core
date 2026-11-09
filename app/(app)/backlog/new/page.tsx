@@ -17,7 +17,7 @@ export default async function NewTicketPage({
   const instances = await loadInstanceOptions(db, new Set(clients.map((c) => c.id)));
 
   const client = clientId ? clients.find((c) => c.id === clientId) : undefined;
-  const backHref = client ? `/clients/${client.id}?tab=tickety` : "/tickets";
+  const backHref = client ? `/clients/${client.id}?tab=tickety` : "/backlog";
 
   return (
     <FormPage
@@ -29,7 +29,7 @@ export default async function NewTicketPage({
               { label: client.name, href: backHref },
               { label: "Nový ticket" },
             ]
-          : [{ label: "Tickety", href: "/tickets" }, { label: "Nový ticket" }]
+          : [{ label: "Backlog", href: "/backlog" }, { label: "Nový ticket" }]
       }
       title="Nový ticket"
     >
@@ -38,6 +38,7 @@ export default async function NewTicketPage({
         users={users}
         instances={instances}
         defaultClientId={client?.id}
+        allowInternal={user.role !== "sales"}
         backHref={backHref}
       />
     </FormPage>

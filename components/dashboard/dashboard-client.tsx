@@ -162,7 +162,7 @@ export function DashboardClient({
     { label: "Oslovení", href: "/prospects", icon: Briefcase },
     { label: "Klient", href: "/clients", icon: UserPlus },
     ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
-    { label: "Ticket", href: "/tickets", icon: TicketCheck },
+    { label: "Ticket", href: "/backlog/new", icon: TicketCheck },
     { label: "Úkol", href: "/tasks", icon: CheckSquare },
   ];
 

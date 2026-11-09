@@ -51,7 +51,7 @@ export default async function AktivitaPage() {
       const href =
         et === "client" ? `/clients/${d.entityId}`
         : et === "lead" ? "/prospects" // leady zrušené
-        : et === "ticket" ? "/tickets"
+        : et === "ticket" ? "/backlog"
         : et === "prospect" ? "/prospects"
         : "/invoices";
       return {
