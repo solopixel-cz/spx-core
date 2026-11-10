@@ -62,6 +62,7 @@ function normalizeUrl(raw: string): string {
  * Formulář ticketu na routách `/backlog/new` a `/backlog/[id]/edit`. Z detailu
  * klienta přichází s předvyplněným klientem. Vizitku/web lze vybrat z instancí
  * zvoleného klienta. Bez klienta je ticket interní (jen tým, ne obchodník).
+ * Nový ticket jde založit i v modálu (`@modal/(.)backlog/new`).
  */
 export function TicketForm({
   ticket,
@@ -72,6 +73,7 @@ export function TicketForm({
   allowInternal = false,
   backHref,
   doneHref,
+  inModal = false,
 }: {
   ticket?: TicketFormValues;
   clients: ClientOption[];
@@ -83,6 +85,8 @@ export function TicketForm({
   backHref: string;
   /** Kam po uložení (výchozí `backHref`). */
   doneHref?: string;
+  /** V modálu: Zrušit zavře modál, po vytvoření se otevře detail nového ticketu. */
+  inModal?: boolean;
 }) {
   const router = useRouter();
   const isEdit = !!ticket;
@@ -166,7 +170,12 @@ export function TicketForm({
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
       clearFormDraft(draftKey);
       toast.success(isEdit ? "Ticket upraven" : "Ticket vytvořen");
-      router.push(doneHref ?? backHref);
+      if (inModal && !isEdit) {
+        const { id } = (await res.json()) as { id: string };
+        router.replace(`/backlog/${id}`);
+      } else {
+        router.push(doneHref ?? backHref);
+      }
       router.refresh();
     } catch (err) {
       toast.error(
@@ -352,8 +361,11 @@ export function TicketForm({
       </div>
 
       <FormActions
-        onCancel={() => clearFormDraft(draftKey)}
-        cancelHref={backHref}
+        onCancel={() => {
+          clearFormDraft(draftKey);
+          if (inModal) router.back();
+        }}
+        cancelHref={inModal ? undefined : backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Vytvořit ticket"}
       />
