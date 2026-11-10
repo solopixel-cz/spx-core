@@ -887,10 +887,6 @@ Zařízení, kde si klient zapnul notifikace (Web Push). ID = sha256(endpoint).s
 }
 ```
 
-## Security rules — principy
-
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`, `hubNotifications`, `hubPushSubscriptions`) jsou pro klientský SDK zakázané.
-
 ### `lectures` (spx-hub)
 Přednáška nebo akce lektora (tabule #25, hub `spec/hodnoceni-prednasek-progress.md`). Patří klientovi, ne vizitce. Jen spx-hub přes Admin SDK. Lektor ji v hubu naplánuje, nahraje materiály a na konci ukáže QR (`/h/{token}` → vizitka `?h={token}`). Na vizitce se bez QR nic neukazuje.
 
@@ -941,7 +937,7 @@ Lektor vidí Líbila / Nelíbila, odpovědi a e-maily (export CSV); e-mail smí 
 
 ## Security rules — principy
 
-- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `lectures`, `lectureRatings`) jsou pro klientský SDK zakázané.
+- Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`, `hubNotifications`, `hubPushSubscriptions`, `lectures`, `lectureRatings`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
 - Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.
