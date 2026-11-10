@@ -3,7 +3,6 @@ import { requireAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Users,
-  FileText,
   Archive,
   User,
   ClipboardList,
@@ -26,13 +25,6 @@ const tiles: Tile[] = [
     description: "Správa členů týmu, rolí a přístupů",
     href: "/settings/users",
     icon: Users,
-    roles: ["admin"],
-  },
-  {
-    label: "E-mailové šablony",
-    description: "E-maily pro oslovení a předání vizitky",
-    href: "/settings/templates",
-    icon: FileText,
     roles: ["admin"],
   },
   {

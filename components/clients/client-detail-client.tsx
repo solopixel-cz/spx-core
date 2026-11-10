@@ -55,12 +55,16 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { HubFeaturesToggles } from "./hub-features";
 import type { HubFeatures } from "@/lib/hub-features";
 import { ticketStatusLabels, ticketTypeLabels } from "@/lib/ticket-labels";
+import { greetingName } from "@/lib/marketing/personalize";
+import { SendEmailDialog } from "./send-email-dialog";
 
 interface ClientData {
   id: string;
   name: string;
   kind: "person" | "company";
   contactName?: string;
+  /** Vlastní oslovení v 5. pádě. */
+  greeting?: string;
   company?: string;
   ico?: string;
   dic?: string;
@@ -278,6 +282,7 @@ export function ClientDetailClient({
   const isCompany = client.kind === "company";
   const router = useRouter();
   const [acting, setActing] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
   // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový úkol…) vedl zpět na ni.
   const pathname = usePathname();
@@ -563,7 +568,7 @@ export function ClientDetailClient({
                 {isAdminOrMember && (
                   <>
                     {(showCardActions || hasCard) && <DropdownMenuSeparator />}
-                    <DropdownMenuItem onClick={() => router.push(`${base}/send/email`)}>
+                    <DropdownMenuItem onClick={() => setSendEmailOpen(true)}>
                       <Mail className="mr-2 h-4 w-4" />
                       Poslat e-mail ze šablony
                     </DropdownMenuItem>
@@ -571,6 +576,16 @@ export function ClientDetailClient({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          {isAdminOrMember && client.email && !isArchived && (
+            <SendEmailDialog
+              open={sendEmailOpen}
+              onOpenChange={setSendEmailOpen}
+              clientId={client.id}
+              clientEmail={client.email}
+              defaultGreeting={greetingName(client)}
+              defaultLink={instances.find((i) => i.deployUrl)?.deployUrl ?? ""}
+            />
           )}
           {isAdminOrMember && !isArchived && (
             <ConfirmButton

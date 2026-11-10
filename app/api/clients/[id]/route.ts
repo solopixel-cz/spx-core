@@ -9,6 +9,7 @@ import { renderSubject, sendTransactionalEmail } from "@/lib/email";
 import { renderDeliveryEmail, DEFAULT_DELIVERY_SUBJECT } from "@/lib/email-templates/delivery";
 import { personalizeTemplate, greetingName } from "@/lib/marketing/personalize";
 import { htmlToText } from "@/lib/marketing/compose";
+import { getSystemTemplate, SYSTEM_TEMPLATE_PREFIX } from "@/lib/email-templates/system";
 import { renderHubInviteEmail, DEFAULT_HUB_INVITE_SUBJECT } from "@/lib/email-templates/hub-invite";
 import { grantHubAccess, hubLoginUrl } from "@/lib/hub";
 
@@ -168,21 +169,44 @@ export async function POST(
         return NextResponse.json({ error: "Odkaz musí být platná URL (http/https)" }, { status: 400 });
       }
 
-      const tplDoc = await db.collection("emailTemplates").doc(templateId).get();
-      if (!tplDoc.exists || tplDoc.data()?.deletedAt) {
-        return NextResponse.json({ error: "Šablona nenalezena" }, { status: 404 });
-      }
-      const tpl = tplDoc.data()!;
-      const tplName = tpl.name as string;
-      const tplHtml = (tpl.html as string) ?? "";
-      const tplSubject = (tpl.subject as string) || tplName || "SoloPixel";
-
-      // Personalizace {{jmeno}}/{{email}}/{{odkaz}} — transakčně (bez marketingové patičky).
       const jmeno = greeting || greetingName(clientData);
       const vars = { jmeno, email: clientData.email as string, odkaz };
-      const renderedSubject = personalizeTemplate(tplSubject, vars);
-      const html = personalizeTemplate(tplHtml, vars);
-      const text = htmlToText(html);
+      let tplName: string;
+      let renderedSubject: string;
+      let html: string;
+      let text: string;
+
+      const systemTpl = templateId.startsWith(SYSTEM_TEMPLATE_PREFIX)
+        ? getSystemTemplate(templateId.slice(SYSTEM_TEMPLATE_PREFIX.length))
+        : undefined;
+      if (systemTpl) {
+        // Hotová šablona: tělo z kódu, předmět z templates/<docId>.
+        if (!systemTpl.forClients) {
+          return NextResponse.json({ error: "Šablona nenalezena" }, { status: 404 });
+        }
+        if (!odkaz) {
+          return NextResponse.json({ error: "Vyplňte odkaz" }, { status: 400 });
+        }
+        const subjectDoc = await db.collection("templates").doc(systemTpl.docId).get();
+        const subjectTemplate = (subjectDoc.data()?.subject as string) || systemTpl.defaultSubject;
+        tplName = systemTpl.name;
+        renderedSubject = renderSubject(subjectTemplate, { jmeno, odkaz });
+        ({ html, text } = systemTpl.render({ jmeno, odkaz }));
+      } else {
+        const tplDoc = await db.collection("emailTemplates").doc(templateId).get();
+        if (!tplDoc.exists || tplDoc.data()?.deletedAt) {
+          return NextResponse.json({ error: "Šablona nenalezena" }, { status: 404 });
+        }
+        const tpl = tplDoc.data()!;
+        tplName = tpl.name as string;
+        const tplHtml = (tpl.html as string) ?? "";
+        const tplSubject = (tpl.subject as string) || tplName || "SoloPixel";
+
+        // Personalizace {{jmeno}}/{{email}}/{{odkaz}} — transakčně (bez marketingové patičky).
+        renderedSubject = personalizeTemplate(tplSubject, vars);
+        html = personalizeTemplate(tplHtml, vars);
+        text = htmlToText(html);
+      }
 
       const result = await sendTransactionalEmail({
         to: clientData.email,

@@ -21,7 +21,8 @@ import {
 import { SortableHead } from "@/components/sortable-head";
 import { formatDateTime } from "@/lib/format";
 import { useTableSort } from "@/lib/use-table-sort";
-import { Plus, FileCode, Users2, BarChart3, Contact, Send } from "lucide-react";
+import { SYSTEM_TEMPLATES } from "@/lib/email-templates/system";
+import { Plus, FileCode, Users2, BarChart3, Contact, Send, ChevronRight } from "lucide-react";
 
 interface TemplateRow {
   id: string;
@@ -101,7 +102,10 @@ export function EmailMarketingClient({
   campaigns,
   counts,
   overview,
+  canEditSystem,
 }: {
+  /** Hotové šablony upravuje jen admin. */
+  canEditSystem: boolean;
   templates: TemplateRow[];
   lists: ListRow[];
   campaigns: CampaignRow[];
@@ -285,7 +289,35 @@ export function EmailMarketingClient({
 
         {/* ---------- ŠABLONY ---------- */}
         <TabsContent value="templates" className="mt-5 space-y-4 md:mt-6">
-          <div className="flex justify-end">
+          {canEditSystem && (
+            <section className="space-y-2">
+              <div>
+                <h2 className="text-sm font-semibold">Hotové šablony</h2>
+                <p className="text-xs text-muted-foreground">
+                  V jednotném designu SoloPixel, upravit jde předmět. Formulář podkladů,
+                  připomenutí a předání jdou poslat klientovi přes Poslat e-mail ze šablony.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {SYSTEM_TEMPLATES.map((t) => (
+                  <Link
+                    key={t.key}
+                    href={`/email-marketing/system/${t.key}`}
+                    className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{t.name}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{t.description}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="flex items-end justify-between gap-2 pt-2">
+            <h2 className="text-sm font-semibold">Vlastní šablony</h2>
             <Button
               size="sm"
               nativeButton={false}

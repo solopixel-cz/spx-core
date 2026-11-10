@@ -6,24 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Save, Send } from "lucide-react";
+import { getSystemTemplate } from "@/lib/email-templates/system";
 
-interface EmailTemplateEditorProps {
-  apiPath: string;
-  renderEmail: (vars: { jmeno: string; odkaz: string }) => { html: string };
-  defaultSubject: string;
-  placeholderHint: string;
-  sampleVars: { jmeno: string; odkaz: string };
-  label: string;
-}
-
-export function EmailTemplateEditor({
-  apiPath,
-  renderEmail,
-  defaultSubject,
-  placeholderHint,
-  sampleVars,
-  label,
-}: EmailTemplateEditorProps) {
+/**
+ * Editor hotové šablony (Email marketing → Šablony): předmět, testovací
+ * e-mail a náhled. Tělo je v kódu, viz `lib/email-templates/system.ts`.
+ */
+export function SystemTemplateEditor({ templateKey }: { templateKey: string }) {
+  const tpl = getSystemTemplate(templateKey)!;
+  const apiPath = `/api/templates/${tpl.docId}`;
+  const defaultSubject = tpl.defaultSubject;
+  const label = `Šablona ${tpl.name}`;
+  const sampleVars = { jmeno: "Jane", odkaz: tpl.sampleLink };
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -83,8 +77,8 @@ export function EmailTemplateEditor({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {placeholderHint}
-        {" "}Testovací e-mail se pošle na vaši adresu.
+        Placeholdery: <code>{"{{jmeno}}"}</code> (oslovení, 5. pád), <code>{"{{odkaz}}"}</code> ({tpl.linkHint}).
+        Testovací e-mail se pošle na vaši adresu.
       </p>
 
       <div className="space-y-2">
@@ -116,15 +110,15 @@ export function EmailTemplateEditor({
         <Label>Náhled e-mailu</Label>
         <div className="rounded-lg border overflow-hidden bg-[#F1F5F9]">
           <iframe
-            srcDoc={renderEmail(sampleVars).html}
+            srcDoc={tpl.render(sampleVars).html}
             sandbox=""
             className="w-full border-0"
             style={{ height: "600px" }}
-            title={`Náhled — ${label}`}
+            title={`Náhled: ${tpl.name}`}
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Tělo e-mailu je ve fixním brandingu SoloPixel — editovatelný je jen předmět.
+          Tělo e-mailu je v jednotném designu SoloPixel, upravit jde jen předmět.
         </p>
       </div>
     </div>
