@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, BellRing, CheckCheck } from "lucide-react";
 import {
   collection,
   doc,
@@ -53,6 +54,28 @@ export function NotificationBell({ uid }: { uid: string }) {
   const { data } = useCollection<NotificationDoc>(q);
   const unread = data.filter((n) => !n.readAt);
 
+  // Má toto zařízení zapnutý Web Push? Bez něj chodí upozornění jen do otevřené záložky.
+  const [devicePush, setDevicePush] = useState<"on" | "off" | "unsupported" | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        if (!cancelled) setDevicePush("unsupported");
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = reg ? await reg.pushManager.getSubscription() : null;
+        if (!cancelled) setDevicePush(sub && Notification.permission === "granted" ? "on" : "off");
+      } catch {
+        if (!cancelled) setDevicePush("off");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Toast při příchodu nové notifikace (ne při prvním načtení).
   const seenRef = useRef<Set<string> | null>(null);
   useEffect(() => {
@@ -64,6 +87,13 @@ export function NotificationBell({ uid }: { uid: string }) {
       if (!seenRef.current.has(n.id)) {
         seenRef.current.add(n.id);
         if (!n.readAt) {
+          // Záložka na pozadí a zařízení bez push: aspoň systémové upozornění
+          // (s push by přišlo dvakrát).
+          if (document.hidden && devicePush !== "on" && "Notification" in window && Notification.permission === "granted") {
+            navigator.serviceWorker?.getRegistration().then((reg) =>
+              reg?.showNotification(n.title, { body: n.body, icon: "/icons/icon-192.png", data: { href: n.href } })
+            );
+          }
           toast(n.title, {
             description: n.body,
             action: {
@@ -74,7 +104,7 @@ export function NotificationBell({ uid }: { uid: string }) {
         }
       }
     }
-  }, [data, router]);
+  }, [data, router, devicePush]);
 
   async function markRead(n: NotificationDoc) {
     if (n.readAt) return;
@@ -159,6 +189,15 @@ export function NotificationBell({ uid }: { uid: string }) {
             ))
           )}
         </div>
+        {devicePush === "off" && (
+          <Link
+            href="/settings/notifications"
+            className="flex items-center gap-2 border-t bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <BellRing className="h-3.5 w-3.5 shrink-0" />
+            Na tomto zařízení nemáte zapnuté upozornění. Zapnout
+          </Link>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
