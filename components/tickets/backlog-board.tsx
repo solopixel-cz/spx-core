@@ -158,8 +158,8 @@ export function BacklogBoard({
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      {/* Sloupce vedle sebe se scrollují do strany, od 1360 px všech 5 v mřížce. */}
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0 min-[1360px]:grid min-[1360px]:grid-cols-5 min-[1360px]:overflow-visible">
+      {/* Sloupce se roztáhnou na celou šířku, nejméně 20rem; co se nevejde, scrolluje do strany. */}
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:snap-none md:px-0">
         {TICKET_STATUSES.map((status) => {
           const all = columns[status];
           const visible = status === "resolved" && !showOldDone ? all.filter((t) => !isOldDone(t)) : all;
@@ -211,7 +211,7 @@ function Column({ status, count, children }: { status: string; count: number; ch
     <section
       ref={setNodeRef}
       className={cn(
-        "flex w-[82vw] max-w-sm shrink-0 snap-start flex-col gap-2 rounded-2xl bg-muted/50 p-2 transition-colors md:w-72 min-[1360px]:w-auto min-[1360px]:max-w-none",
+        "flex w-[82vw] max-w-sm shrink-0 snap-start flex-col gap-2 rounded-2xl bg-muted/50 p-2 transition-colors md:w-auto md:min-w-80 md:max-w-none md:grow md:basis-0",
         isOver && "bg-primary/10 ring-2 ring-primary/30"
       )}
     >
