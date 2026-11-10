@@ -1,17 +1,44 @@
 "use client";
 
-import { createContext, useContext, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useContext, useMemo, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Maximize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const InFormModal = createContext(false);
+const ModalScope = createContext(false);
 
 /** Je formulář v modálu? Zrušit pak zavře modál a uložení nepřidá krok do historie. */
 export function useInFormModal() {
   return useContext(InFormModal);
+}
+
+/**
+ * Router pro formuláře: v modálu `push` nahradí `replace`, aby tlačítko Zpět
+ * po uložení modál znovu neotevřelo.
+ */
+export function useFormRouter() {
+  const router = useRouter();
+  const inModal = useInFormModal();
+  return useMemo(
+    () => (inModal ? { ...router, push: (href: string) => router.replace(href) } : router),
+    [router, inModal]
+  );
+}
+
+/**
+ * Obal modální routy `app/(app)/@modal/(.)…`: stránka uvnitř (její
+ * `FormPage`) se vykreslí jako `FormModal` místo celé stránky.
+ */
+export function FormModalScope({ children }: { children: React.ReactNode }) {
+  return <ModalScope.Provider value={true}>{children}</ModalScope.Provider>;
+}
+
+/** Vykresluje se stránka uvnitř `FormModalScope`? */
+export function useInModalScope() {
+  return useContext(ModalScope);
 }
 
 /**
@@ -28,13 +55,16 @@ export function FormModal({
 }: {
   title: string;
   description?: React.ReactNode;
-  /** Stejný formulář na samostatné stránce. */
-  pageHref: string;
+  /** Stejný formulář na samostatné stránce (výchozí aktuální adresa). */
+  pageHref?: string;
   /** Např. šířka (`sm:max-w-3xl`). */
   className?: string;
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const href = pageHref ?? (search ? `${pathname}?${search}` : pathname);
   const bodyRef = useRef<HTMLDivElement>(null);
   return (
     <Dialog
@@ -59,7 +89,7 @@ export function FormModal({
               variant="ghost"
               size="icon-sm"
               nativeButton={false}
-              render={<a href={pageHref} />}
+              render={<a href={href} />}
               title="Otevřít na celé stránce"
               aria-label="Otevřít na celé stránce"
             >

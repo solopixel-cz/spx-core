@@ -1,22 +1,11 @@
-import { loadCostPaymentForm } from "@/lib/cost-routes";
-import { FormModal } from "@/components/form-modal";
-import { CostPaymentForm } from "@/components/costs/cost-payment-form";
+import Page from "@/app/(app)/costs/payments/new/page";
+import { FormModalScope } from "@/components/form-modal";
 
-/** Zápis platby jako modál nad Náklady; napřímo je to stránka. */
-export default async function CostPaymentModal({
-  searchParams,
-}: {
-  searchParams: Promise<{ serviceId?: string; month?: string }>;
-}) {
-  const { serviceId, month: rawMonth } = await searchParams;
-  const { service, month, payment, title, description } = await loadCostPaymentForm(serviceId, rawMonth);
+/** `/costs/payments/new` jako modál nad aktuální stránkou; napřímo je to stránka. */
+export default function Modal(props: React.ComponentProps<typeof Page>) {
   return (
-    <FormModal
-      title={title}
-      description={description}
-      pageHref={`/costs/payments/new?serviceId=${service.id}&month=${month}`}
-    >
-      <CostPaymentForm service={service} month={month} payment={payment} />
-    </FormModal>
+    <FormModalScope>
+      <Page {...props} />
+    </FormModalScope>
   );
 }

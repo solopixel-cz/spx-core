@@ -1,14 +1,11 @@
-import { loadCostServiceForm } from "@/lib/cost-routes";
-import { FormModal } from "@/components/form-modal";
-import { CostServiceForm } from "@/components/costs/cost-service-form";
+import Page from "@/app/(app)/costs/services/[id]/edit/page";
+import { FormModalScope } from "@/components/form-modal";
 
-/** Úprava služby jako modál nad Náklady; napřímo je to stránka. */
-export default async function EditCostServiceModal({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const service = await loadCostServiceForm(id);
+/** `/costs/services/[id]/edit` jako modál nad aktuální stránkou; napřímo je to stránka. */
+export default function Modal(props: React.ComponentProps<typeof Page>) {
   return (
-    <FormModal title="Upravit službu" description={service.name} pageHref={`/costs/services/${id}/edit`}>
-      <CostServiceForm service={service} />
-    </FormModal>
+    <FormModalScope>
+      <Page {...props} />
+    </FormModalScope>
   );
 }

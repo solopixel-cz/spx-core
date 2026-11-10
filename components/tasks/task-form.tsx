@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { useForm } from "react-hook-form";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,7 +65,7 @@ export function TaskForm({
   defaultClientId?: string;
   backHref: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!task;
 
   const {

@@ -1,14 +1,11 @@
-import { requireRole } from "@/lib/auth";
-import { NEW_COST_SERVICE_DESCRIPTION } from "@/lib/cost-routes";
-import { FormModal } from "@/components/form-modal";
-import { CostServiceForm } from "@/components/costs/cost-service-form";
+import Page from "@/app/(app)/costs/services/new/page";
+import { FormModalScope } from "@/components/form-modal";
 
-/** Nová služba jako modál nad Náklady; napřímo `/costs/services/new` je stránka. */
-export default async function NewCostServiceModal() {
-  await requireRole("admin", "member");
+/** `/costs/services/new` jako modál nad aktuální stránkou; napřímo je to stránka. */
+export default function Modal() {
   return (
-    <FormModal title="Nová služba" description={NEW_COST_SERVICE_DESCRIPTION} pageHref="/costs/services/new">
-      <CostServiceForm />
-    </FormModal>
+    <FormModalScope>
+      <Page />
+    </FormModalScope>
   );
 }

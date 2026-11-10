@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormActions } from "@/components/form-actions";
-import { useInFormModal } from "@/components/form-modal";
+import { useFormRouter, useInFormModal } from "@/components/form-modal";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 import { INTERNAL_LABEL, ticketPriorityLabels, ticketTypeLabels } from "@/lib/ticket-labels";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
@@ -86,7 +85,7 @@ export function TicketForm({
   /** Kam po uložení (výchozí `backHref`). */
   doneHref?: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   // V modálu se po vytvoření otevře detail nového ticketu.
   const inModal = useInFormModal();
   const isEdit = !!ticket;
