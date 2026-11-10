@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { FormActions } from "@/components/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,7 @@ interface ClientFormProps {
  * routách `/clients/new` a `/clients/[id]/edit`; po uložení vede na detail.
  */
 export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientFormProps) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!defaultValues?.id;
   // Onboarding úkoly ze šablony — jen u nového klienta, výchozí zapnuto.
   const [createOnboarding, setCreateOnboarding] = useState(true);

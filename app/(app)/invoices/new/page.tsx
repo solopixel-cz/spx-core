@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { FormPage } from "@/components/form-page";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { billedMonths, subscriptionLabel } from "@/lib/plans";
 import { discountFor, nextBillingDate } from "@/lib/discount";
@@ -94,14 +94,12 @@ export default async function NovaFakturaPage({
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs
-        backHref="/invoices"
-        items={[{ label: "Faktury", href: "/invoices" }, { label: "Nová faktura" }]}
-      />
-      <div className="flex items-center gap-3">
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Nová faktura</h1>
-      </div>
+    <FormPage
+      backHref="/invoices"
+      breadcrumbs={[{ label: "Faktury", href: "/invoices" }, { label: "Nová faktura" }]}
+      title="Nová faktura"
+      full
+    >
       <InvoiceForm
         clients={clients}
         defaultClientId={clientId}
@@ -110,6 +108,6 @@ export default async function NovaFakturaPage({
         subscriptionId={subscriptionId}
         notice={notice}
       />
-    </div>
+    </FormPage>
   );
 }

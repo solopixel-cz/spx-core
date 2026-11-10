@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { FormPage } from "@/components/form-page";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 
 export default async function UpravitFakturaPage({
@@ -49,19 +49,17 @@ export default async function UpravitFakturaPage({
   };
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs
-        backHref={`/invoices/${id}`}
-        items={[
+    <FormPage
+      backHref={`/invoices/${id}`}
+      title="Upravit fakturu"
+      full
+      breadcrumbs={[
           { label: "Faktury", href: "/invoices" },
           { label: (data.number as string) ?? "Faktura", href: `/invoices/${id}` },
           { label: "Upravit" },
         ]}
-      />
-      <div className="flex items-center gap-3">
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Upravit fakturu</h1>
-      </div>
+    >
       <InvoiceForm clients={clients} invoice={invoice} />
-    </div>
+    </FormPage>
   );
 }

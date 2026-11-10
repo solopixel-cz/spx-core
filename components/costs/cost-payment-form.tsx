@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
+import { useFormRouter } from "@/components/form-modal";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +36,7 @@ export function CostPaymentForm({
   month: string;
   payment: CostPayment | null;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const backHref = `/costs?month=${month}`;
 
   const {

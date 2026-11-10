@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
+import { useFormRouter } from "@/components/form-modal";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ const currencyItems = Object.fromEntries(CURRENCIES.map((c) => [c, c === "CZK" ?
 
 /** Placená služba (Vercel, Google Cloud, OpenAI…). U existující i trvalé smazání. */
 export function CostServiceForm({ service }: { service?: CostService }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!service;
 
   const {
@@ -147,7 +147,13 @@ export function CostServiceForm({ service }: { service?: CostService }) {
 
       <div className="space-y-2">
         <Label htmlFor="costAmount">
-          {billing === "usage" ? "Odhad za měsíc *" : billing === "yearly" ? "Částka za rok *" : "Částka za měsíc *"}
+          {billing === "usage"
+            ? "Odhad za měsíc *"
+            : billing === "yearly"
+              ? "Částka za rok *"
+              : billing === "once"
+                ? "Částka *"
+                : "Částka za měsíc *"}
         </Label>
         <div className="flex gap-2">
           <Input id="costAmount" inputMode="decimal" placeholder="20" className="sm:max-w-48" {...register("amount")} />
@@ -179,7 +185,7 @@ export function CostServiceForm({ service }: { service?: CostService }) {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Label htmlFor="costStartedAt">Platíme od *</Label>
+          <Label htmlFor="costStartedAt">{billing === "once" ? "Datum platby *" : "Platíme od *"}</Label>
           <Input id="costStartedAt" type="date" {...register("startedAt")} />
           {errors.startedAt && <p className="text-sm text-destructive">{errors.startedAt.message}</p>}
         </div>
@@ -192,10 +198,12 @@ export function CostServiceForm({ service }: { service?: CostService }) {
             )}
           </div>
         )}
-        <div className="space-y-2">
-          <Label htmlFor="costEndedAt">Zrušeno k</Label>
-          <Input id="costEndedAt" type="date" {...register("endedAt")} />
-        </div>
+        {billing !== "once" && (
+          <div className="space-y-2">
+            <Label htmlFor="costEndedAt">Zrušeno k</Label>
+            <Input id="costEndedAt" type="date" {...register("endedAt")} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

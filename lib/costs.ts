@@ -27,6 +27,7 @@ export const BILLING_LABELS = {
   monthly: "Měsíčně",
   yearly: "Ročně",
   usage: "Podle spotřeby",
+  once: "Jednorázová platba",
 } as const;
 export type CostBilling = keyof typeof BILLING_LABELS;
 
@@ -36,11 +37,12 @@ export interface CostService {
   vendor: string | null;
   category: CostCategory;
   billing: CostBilling;
-  /** Za periodu; u `usage` odhad za měsíc. */
+  /** Za periodu; u `usage` odhad za měsíc, u `once` celá platba. */
   amount: number;
   currency: Currency;
   /** Jen yearly, ISO. */
   nextPaymentAt: string | null;
+  /** U `once` datum platby. */
   startedAt: string;
   endedAt: string | null;
   note: string | null;
@@ -95,11 +97,14 @@ export function monthLabel(month: string): string {
 }
 
 export function isActiveIn(service: CostService, month: string): boolean {
+  // Jednorázová platba patří jen do měsíce, kdy se platila.
+  if (service.billing === "once") return monthKey(service.startedAt) === month;
   return monthKey(service.startedAt) <= month && (!service.endedAt || monthKey(service.endedAt) >= month);
 }
 
-/** Plán v Kč za měsíc: roční / 12, usage = odhad. */
+/** Plán v Kč za měsíc: roční / 12, usage = odhad, jednorázová platba do plánu nepatří. */
 export function planMonthlyCzk(service: CostService, rates: Rates): number {
+  if (service.billing === "once") return 0;
   const czk = service.amount * rates[service.currency];
   return service.billing === "yearly" ? czk / 12 : czk;
 }
@@ -128,7 +133,7 @@ export function monthEntries(
       continue;
     }
     if (!isActiveIn(service, month)) continue;
-    if (service.billing === "monthly") {
+    if (service.billing === "monthly" || service.billing === "once") {
       entries.push({ service, status: "planned", czk: service.amount * rates[service.currency], payment: null });
     } else if (service.billing === "yearly") {
       if (isYearlyDueIn(service, month)) {
@@ -159,7 +164,7 @@ export function planByCategory(
 ): { category: CostCategory | "domains"; czk: number }[] {
   const totals = new Map<CostCategory | "domains", number>();
   for (const s of services) {
-    if (!isActiveIn(s, month)) continue;
+    if (s.billing === "once" || !isActiveIn(s, month)) continue;
     totals.set(s.category, (totals.get(s.category) ?? 0) + planMonthlyCzk(s, rates));
   }
   if (domainsMonthly > 0) totals.set("domains", domainsMonthly);
@@ -210,4 +215,26 @@ export function upcomingDomains(domains: CostDomain[], now: Date = new Date(), d
       return t >= start.getTime() && t <= horizon;
     })
     .sort((a, b) => a.renewalAt!.localeCompare(b.renewalAt!));
+}
+
+/** Skutečnost za měsíc: služby (zápis, jinak plán) + domény obnovované v tom měsíci. */
+export function costsInMonth(
+  services: CostService[],
+  payments: CostPayment[],
+  domains: CostDomain[],
+  month: string,
+  rates: Rates,
+) {
+  const entries = monthEntries(services, payments, month, rates);
+  const dueDomains = domainsDueIn(domains, month);
+  const domainsCzk = sumCzk(dueDomains.map((d) => d.price));
+  return { entries, dueDomains, domainsCzk, total: sumCzk([...entries.map((e) => e.czk), domainsCzk]) };
+}
+
+/** Plán v Kč za měsíc: služby aktivní v měsíci + domény rozpočítané na měsíc. */
+export function planForMonth(services: CostService[], domains: CostDomain[], month: string, rates: Rates): number {
+  return sumCzk([
+    ...services.filter((s) => isActiveIn(s, month)).map((s) => planMonthlyCzk(s, rates)),
+    domainsMonthlyCzk(domains.map((d) => d.price)),
+  ]);
 }
