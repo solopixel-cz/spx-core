@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: Params) {
       currency: data.currency,
       nextPaymentAt: data.billing === "yearly" ? (parseDate(data.nextPaymentAt) ?? null) : null,
       startedAt: parseDate(data.startedAt) ?? new Date(),
-      endedAt: parseDate(data.endedAt) ?? null,
+      endedAt: data.billing === "once" ? null : (parseDate(data.endedAt) ?? null),
       note: data.note?.trim() || null,
       updatedAt: FieldValue.serverTimestamp(),
     });

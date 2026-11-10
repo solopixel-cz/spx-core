@@ -200,7 +200,7 @@ Placené služby pro provoz webů, vizitek a firmy (Vercel, Google Cloud, OpenAI
   name: string                // např. Vercel Pro
   vendor?: string             // dodavatel (Vercel, Google, OpenAI, Anthropic…)
   category: 'hosting' | 'cloud' | 'ai' | 'tools' | 'other'
-  billing: 'monthly' | 'yearly' | 'usage'  // usage = podle spotřeby, `amount` je odhad za měsíc
+  billing: 'monthly' | 'yearly' | 'usage' | 'once'  // usage = podle spotřeby, `amount` je odhad za měsíc; once = jednorázová platba v měsíci `startedAt`, mimo měsíční plán
   amount: number              // částka za periodu v `currency`
   currency: 'CZK' | 'USD' | 'EUR'
   nextPaymentAt?: Timestamp   // jen yearly: příští platba (měsíc výročí); zápis platby v tom měsíci ji posune o rok

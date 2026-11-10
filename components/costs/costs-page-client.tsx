@@ -405,7 +405,9 @@ export function CostsPageClient({
                 subtitle={[CATEGORY_LABELS[s.category], BILLING_LABELS[s.billing]].join(" · ")}
                 badge={<span className="text-sm font-semibold tabular-nums">{formatOriginal(s.amount, s.currency)}</span>}
                 meta={
-                  s.endedAt
+                  s.billing === "once"
+                    ? `Zaplaceno ${fmtDate(s.startedAt)}`
+                    : s.endedAt
                     ? `Zrušeno k ${fmtDate(s.endedAt)}`
                     : `${formatCurrency(planMonthlyCzk(s, rates))} měsíčně${s.nextPaymentAt ? ` · příští platba ${fmtDate(s.nextPaymentAt)}` : ""}`
                 }
@@ -444,6 +446,9 @@ export function CostsPageClient({
                   <TableCell>{CATEGORY_LABELS[s.category]}</TableCell>
                   <TableCell>
                     {BILLING_LABELS[s.billing]}
+                    {s.billing === "once" && (
+                      <div className="text-xs text-muted-foreground">{fmtDate(s.startedAt)}</div>
+                    )}
                     {s.nextPaymentAt && !s.endedAt && (
                       <div className="text-xs text-muted-foreground">příští {fmtDate(s.nextPaymentAt)}</div>
                     )}
@@ -453,7 +458,9 @@ export function CostsPageClient({
                     {s.billing === "usage" && <div className="text-xs text-muted-foreground">odhad</div>}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {s.endedAt ? (
+                    {s.billing === "once" ? (
+                      <span className="text-xs text-muted-foreground">jednorázově</span>
+                    ) : s.endedAt ? (
                       <span className="text-xs text-muted-foreground">zrušeno k {fmtDate(s.endedAt)}</span>
                     ) : (
                       formatCurrency(planMonthlyCzk(s, rates))
