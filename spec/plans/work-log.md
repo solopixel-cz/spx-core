@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-10: Spolehlivější notifikace
+
+- Push chodily na mobil hromadně: `web-push` posílal výchozí naléhavost normal a TTL 4 týdny, telefon je pak drží do probuzení. `lib/push.ts` posílá `urgency: high`, `TTL: 1 den`.
+- PC: push je per zařízení (Nastavení → Notifikace). Zvoneček ukáže odkaz „Zapnout“, když ho zařízení nemá, a při záložce na pozadí bez push ukáže systémové upozornění sám.
+- Větev `v1.44.1`.
+
 ## 2026-11-10: Formuláře nákladů v modálu
 
 - Společný obal `components/form-modal.tsx` (`FormModal`): hlavička jako u detailu ticketu (otevřít na celé stránce, zavřít), fokus do prvního pole, kontext `useInFormModal()`. V modálu „Zrušit“ ve `FormActions` modál zavře a formuláře po uložení dělají `replace` místo `push`.

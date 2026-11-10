@@ -24,6 +24,12 @@ export function ensureConfigured(): boolean {
   return true;
 }
 
+/**
+ * Vysoká naléhavost: telefon (Android Doze, iOS) push doručí hned, ne až při
+ * probuzení hromadně s ostatními. Platnost 1 den, ať staré zprávy nechodí po týdnu.
+ */
+const SEND_OPTIONS = { urgency: "high", TTL: 86_400 } as const;
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -60,7 +66,8 @@ export async function sendPushToUsers(
           try {
             await webpush.sendNotification(
               { endpoint: sub.endpoint, keys: sub.keys },
-              payloadStr
+              payloadStr,
+              SEND_OPTIONS
             );
           } catch (error) {
             const statusCode = (error as { statusCode?: number })?.statusCode;
