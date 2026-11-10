@@ -12,7 +12,7 @@ function serializeTimestamp(val: unknown): string | null {
 }
 
 export default async function EmailMarketingPage() {
-  await requireRole("admin", "member");
+  const user = await requireRole("admin", "member");
   const db = getAdminFirestore();
 
   const [tplSnap, listSnap, prospectsSnap, clientsSnap, campSnap, campEmailSnap] =
@@ -102,6 +102,7 @@ export default async function EmailMarketingPage() {
 
   return (
     <EmailMarketingClient
+      canEditSystem={user.role === "admin"}
       templates={templates}
       lists={lists}
       campaigns={campaigns}

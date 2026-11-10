@@ -684,14 +684,20 @@ Odeslané faktury e-mailem klientovi — stav doručení přes stejný Resend we
 
 Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy loguje aktivitu na fakturu (`entityType:"invoice"`) a na `opened` pošle notifikaci adminům.
 
+### Hotové šablony (`templates/*-email`)
+Registr v `lib/email-templates/system.ts`: tělo v kódu, v `templates/<docId>` jen předmět. Spravují se v Email marketing → Šablony (`/email-marketing/system/[key]`, jen admin), Nastavení je už nemá (`/settings/templates` přesměrovává). Šablony s `forClients` (Formulář podkladů, Připomenutí podkladů, Předání vizitky) jdou poslat klientovi přes Poslat e-mail ze šablony jako `templateId: "system:<key>"` s ručně vloženým odkazem; záznam jde do `previewEmails` jako u vlastních šablon.
+
 ### `templates/outreach-email`
-Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení.
+Šablona oslovovacího e-mailu — `{ subject, body }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Email marketing → Šablony → Hotové šablony.
 
 ### `templates/followup-email`
-Šablona druhého (follow-up) e-mailu — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablony → Follow-up.
+Šablona druhého (follow-up) e-mailu — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Email marketing → Šablony → Hotové šablony.
 
 ### `templates/delivery-email`
-Šablona e-mailu předání vizitky — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablona předání.
+Šablona e-mailu předání vizitky — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Email marketing → Šablony → Hotové šablony.
+
+### `templates/cardform-reminder-email`
+Šablona připomenutí formuláře podkladů: `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Email marketing → Šablony → Hotové šablony. Odesílá se přes Poslat e-mail ze šablony (odkaz vložený ručně) nebo z formuláře podkladů u klienta tlačítkem Připomenout (`POST /api/card-tokens/[token]/remind`) se stejným nevyplněným odkazem; záznam jde do `cardFormEmails` s `kind: "reminder"`.
 
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.

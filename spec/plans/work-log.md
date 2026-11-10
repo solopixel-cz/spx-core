@@ -2,6 +2,20 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-10: Nový ticket v modálu
+
+- „Nový ticket“ hlásil 404: modál detailu `@modal/(.)backlog/[id]` zachytil i `/backlog/new` jako ticket s ID „new“. Nová routa `@modal/(.)backlog/new` ukáže formulář v modálu po vzoru detailu (otevřít na celé stránce, zavřít), po vytvoření se otevře detail nového ticketu. Napřímo zůstává stránka `/backlog/new`.
+- `FormActions` umí Zrušit bez odkazu (`onCancel`), `TicketForm` má `inModal`.
+- Větev `v1.43.0`.
+
+## 2026-11-10: Připomenutí podkladů
+
+- Nová e-mailová šablona „Připomenutí podkladů“ (`lib/email-templates/cardform-reminder.ts`, design jako formulář podkladů), předmět editovatelný v Nastavení → E-mailové šablony (`templates/cardform-reminder-email`).
+- Ve formuláři podkladů u klienta tlačítko Připomenout, když existuje nevyplněný odkaz: `POST /api/card-tokens/[token]/remind` pošle připomenutí se stejným odkazem, zapíše `cardFormEmails` s `kind: "reminder"` a aktivitu u klienta. „Poslat znovu“ dál vytváří nový odkaz.
+- Všechny e-mailové šablony na jednom místě: Email marketing → Šablony má sekci Hotové šablony (Oslovení, Follow-up, Formulář podkladů, Připomenutí podkladů, Předání vizitky; registr `lib/email-templates/system.ts`, úprava na `/email-marketing/system/[key]`, jen admin). Z Nastavení dlaždice zmizela, `/settings/templates` přesměrovává.
+- Poslat e-mail ze šablony je u klienta modál (`components/clients/send-email-dialog.tsx`) místo routy `/clients/[id]/send/email`: hotové šablony pro klienty (`system:<key>`) i vlastní, oslovení, odkaz vložený ručně, předmět a živý náhled vedle formuláře.
+- Větev `feat/pripominka-podkladu` z devel, verze 1.43.0. Lint a build čisté, e-mail ověřen screenshotem, skutečné odeslání neověřeno.
+
 ## 2026-11-09: Odkazy ve vlákně se Zpětnou vazbou
 
 - Lukáš chce klientovi posílat odkaz na preview jako text („zde je ukázka“). Ve zprávách (CRM vlákno, popis ticketu, HUB, e-mail s odpovědí) je `[text](https://…)` klikací odkaz s textem, holá adresa je odkaz sama. Jen http(s), bez HTML (`lib/message-links.ts`, stejný soubor ve spx-hub). E-mail: odkaz v HTML, v prostém textu „text (adresa)“.
