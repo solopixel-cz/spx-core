@@ -2,11 +2,16 @@ import { computeMrr } from "@/lib/mrr";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
+import { costsInMonth, monthKey, planForMonth } from "@/lib/costs";
+import { loadCostData } from "@/lib/cost-routes";
 
 export default async function DashboardPage() {
   const user = await requireAuth();
   const db = getAdminFirestore();
   const isSales = user.role === "sales";
+  // Náklady aktuálního měsíce (stejný výpočet jako v Nákladech), načítají se souběžně.
+  const month = monthKey(new Date());
+  const costDataPromise = isSales ? null : loadCostData(month);
 
   const [
     projectsSnap,
@@ -25,6 +30,14 @@ export default async function DashboardPage() {
     db.collection("domains").get(),
     isSales ? Promise.resolve(null) : db.collection("instances").where("type", "==", "web").get(),
   ]);
+
+  const costData = await costDataPromise;
+  const costsThisMonth = costData
+    ? {
+        total: costsInMonth(costData.services, costData.payments, costData.domains, month, costData.rates).total,
+        plan: planForMonth(costData.services, costData.domains, month, costData.rates),
+      }
+    : null;
 
   // Rozpracované zakázky (poptávka / rozpracováno) — hodnota k vyfakturování (nahradila pipeline leadů)
   let openProjectsValue = 0;
@@ -246,6 +259,7 @@ export default async function DashboardPage() {
       openProjectsCount={openProjectsCount}
       mrr={mrr}
       paidThisMonth={paidThisMonth}
+      costsThisMonth={costsThisMonth}
       invoicedThisMonth={invoicedThisMonth}
       chartSeries={chartSeries}
       overdueInvoices={overdueInvoices}

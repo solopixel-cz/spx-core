@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrency } from "@/lib/format";
 import { CATEGORY_LABELS } from "@/lib/costs";
 
@@ -20,13 +20,34 @@ const SHORT = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zá
 const tick = (m: string) => `${SHORT[Number(m.slice(5)) - 1]} ${m.slice(2, 4)}`;
 const axis = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)} tis.` : `${v}`);
 
-/** Náklady za posledních 12 měsíců po kategoriích (skutečnost, jinak plán). */
-export function CostsChart({ data, categories }: { data: CostsChartRow[]; categories: (keyof typeof CATEGORY_LABELS)[] }) {
+/**
+ * Náklady za posledních 12 měsíců po kategoriích (skutečnost, jinak plán).
+ * Vybraný měsíc je zvýrazněný, klik na sloupec měsíc vybere.
+ */
+export function CostsChart({
+  data,
+  categories,
+  selected,
+  onSelect,
+}: {
+  data: CostsChartRow[];
+  categories: (keyof typeof CATEGORY_LABELS)[];
+  selected?: string;
+  onSelect?: (month: string) => void;
+}) {
   return (
     <div className="space-y-3">
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 4, right: 4, left: -8, bottom: 0 }}
+            onClick={(state) => {
+              const m = state?.activeLabel;
+              if (m && onSelect) onSelect(String(m));
+            }}
+            className={onSelect ? "cursor-pointer" : undefined}
+          >
             <CartesianGrid vertical={false} strokeOpacity={0.15} />
             <XAxis dataKey="month" tickFormatter={tick} tickLine={false} axisLine={false} fontSize={12} />
             <YAxis tickFormatter={axis} tickLine={false} axisLine={false} fontSize={12} width={48} />
@@ -43,7 +64,11 @@ export function CostsChart({ data, categories }: { data: CostsChartRow[]; catego
                 stackId="costs"
                 fill={COLORS[c]}
                 radius={i === categories.length - 1 ? [4, 4, 0, 0] : 0}
-              />
+              >
+                {data.map((row) => (
+                  <Cell key={row.month} fillOpacity={!selected || row.month === selected ? 1 : 0.4} />
+                ))}
+              </Bar>
             ))}
           </BarChart>
         </ResponsiveContainer>

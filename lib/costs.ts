@@ -216,3 +216,25 @@ export function upcomingDomains(domains: CostDomain[], now: Date = new Date(), d
     })
     .sort((a, b) => a.renewalAt!.localeCompare(b.renewalAt!));
 }
+
+/** Skutečnost za měsíc: služby (zápis, jinak plán) + domény obnovované v tom měsíci. */
+export function costsInMonth(
+  services: CostService[],
+  payments: CostPayment[],
+  domains: CostDomain[],
+  month: string,
+  rates: Rates,
+) {
+  const entries = monthEntries(services, payments, month, rates);
+  const dueDomains = domainsDueIn(domains, month);
+  const domainsCzk = sumCzk(dueDomains.map((d) => d.price));
+  return { entries, dueDomains, domainsCzk, total: sumCzk([...entries.map((e) => e.czk), domainsCzk]) };
+}
+
+/** Plán v Kč za měsíc: služby aktivní v měsíci + domény rozpočítané na měsíc. */
+export function planForMonth(services: CostService[], domains: CostDomain[], month: string, rates: Rates): number {
+  return sumCzk([
+    ...services.filter((s) => isActiveIn(s, month)).map((s) => planMonthlyCzk(s, rates)),
+    domainsMonthlyCzk(domains.map((d) => d.price)),
+  ]);
+}

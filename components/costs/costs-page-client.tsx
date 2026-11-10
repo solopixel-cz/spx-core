@@ -28,15 +28,12 @@ import { cn } from "@/lib/utils";
 import {
   BILLING_LABELS,
   CATEGORY_LABELS,
-  domainsDueIn,
-  domainsMonthlyCzk,
+  costsInMonth,
   formatOriginal,
   isActiveIn,
-  monthEntries,
   monthLabel,
-  planByCategory,
+  planForMonth,
   planMonthlyCzk,
-  sumCzk,
   upcomingDomains,
   upcomingYearly,
   type CostDomain,
@@ -108,13 +105,7 @@ export function CostsPageClient({
   const [month, setMonth] = useState(selectedMonth);
   const currentMonth = months[months.length - 1];
 
-  const domainsMonthly = domainsMonthlyCzk(domains.map((d) => d.price));
-  const planMonthly = sumCzk([
-    ...services.filter((s) => isActiveIn(s, currentMonth)).map((s) => planMonthlyCzk(s, rates)),
-    domainsMonthly,
-  ]);
-  const margin = mrr - planMonthly;
-  const byCategory = planByCategory(services, currentMonth, rates, domainsMonthly);
+  const [showInactive, setShowInactive] = useState(false);
   const upcoming = upcomingYearly(services);
   const upcomingDomainList = upcomingDomains(domains);
 
@@ -122,17 +113,15 @@ export function CostsPageClient({
   const perMonth = useMemo(
     () =>
       months.map((m) => {
-        const entries = monthEntries(services, payments, m, rates);
+        const { entries, dueDomains, domainsCzk, total } = costsInMonth(services, payments, domains, m, rates);
         const row: CostsChartRow = { month: m };
         for (const e of entries) row[e.service.category] = (row[e.service.category] ?? 0) + e.czk;
         // Domény se platí celé v měsíci obnovení.
-        const dueDomains = domainsDueIn(domains, m);
-        const domainsCzk = sumCzk(dueDomains.map((d) => d.price));
         if (domainsCzk > 0) row.domains = domainsCzk;
         for (const key of Object.keys(row)) {
           if (key !== "month") row[key as keyof typeof CATEGORY_LABELS] = Math.round(row[key as keyof typeof CATEGORY_LABELS]!);
         }
-        return { month: m, entries, dueDomains, total: sumCzk([...entries.map((e) => e.czk), domainsCzk]), row };
+        return { month: m, entries, dueDomains, total, row };
       }),
     [months, services, payments, rates, domains],
   );
@@ -142,6 +131,22 @@ export function CostsPageClient({
   const current = perMonth[perMonth.length - 1];
   const selected = perMonth.find((p) => p.month === month) ?? current;
   const missingCount = selected.entries.filter((e) => e.status === "missing").length;
+  const selectedName = monthLabel(selected.month);
+  const isCurrent = selected.month === currentMonth;
+
+  // Vše na stránce se řídí vybraným měsícem; plán za rok jen z dnešních cen.
+  const planSelected = planForMonth(services, domains, selected.month, rates);
+  const planCurrent = planForMonth(services, domains, currentMonth, rates);
+  const margin = mrr - selected.total;
+  const byCategory = (Object.keys(CATEGORY_LABELS) as (keyof typeof CATEGORY_LABELS)[])
+    .map((category) => ({ category, czk: selected.row[category] ?? 0 }))
+    .filter((c) => c.czk > 0)
+    .sort((a, b) => b.czk - a.czk);
+  const activeServices = services.filter((s) => isActiveIn(s, selected.month));
+  const inactiveServices = services.filter((s) => !isActiveIn(s, selected.month));
+  const listedServices = showInactive ? [...activeServices, ...inactiveServices] : activeServices;
+  const emptyServices =
+    services.length === 0 ? "Zatím žádná služba. Přidejte Vercel, Google Cloud, OpenAI…" : "V tomto měsíci žádná aktivní služba";
 
   function selectMonth(m: string) {
     setMonth(m);
@@ -149,17 +154,17 @@ export function CostsPageClient({
   }
 
   const stats = [
-    { label: "Plán za měsíc", value: formatCurrency(planMonthly), sub: "pevné služby, odhady a domény" },
-    { label: "Plán za rok", value: formatCurrency(planMonthly * 12), sub: "při dnešních cenách a kurzu" },
     {
-      label: `${monthLabel(currentMonth).split(" ")[0]} skutečně`,
-      value: formatCurrency(current.total),
-      sub: current.entries.some((e) => e.status === "missing") ? "chybí zápis spotřeby" : "zapsané platby a plán",
+      label: `${selectedName} skutečně`,
+      value: formatCurrency(selected.total),
+      sub: missingCount > 0 ? "chybí zápis spotřeby" : "zapsané platby a plán",
     },
+    { label: `Plán ${selectedName}`, value: formatCurrency(planSelected), sub: "pevné služby, odhady a domény" },
+    { label: "Plán za rok", value: formatCurrency(planCurrent * 12), sub: "při dnešních cenách a kurzu" },
     {
       label: "Zbývá z předplatného",
       value: formatCurrency(margin),
-      sub: `příjmy ${formatCurrency(mrr)} měsíčně`,
+      sub: `příjmy ${formatCurrency(mrr)} měsíčně (dnes)`,
       tone: margin < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400",
     },
   ];
@@ -168,10 +173,34 @@ export function CostsPageClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Náklady</h1>
-        <Button size="sm" nativeButton={false} render={<Link href="/costs/services/new" />}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nová služba
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Měsíc řídí přehled, kategorie, platby i služby. */}
+          <Select
+            items={Object.fromEntries(months.map((m) => [m, monthLabel(m)]))}
+            value={selected.month}
+            onValueChange={(v) => v && selectMonth(String(v))}
+          >
+            <SelectTrigger size="sm" className="w-40 first-letter:uppercase" aria-label="Měsíc">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[...months].reverse().map((m) => (
+                <SelectItem key={m} value={m}>
+                  {monthLabel(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!isCurrent && (
+            <Button size="sm" variant="ghost" onClick={() => selectMonth(currentMonth)}>
+              Tento měsíc
+            </Button>
+          )}
+          <Button size="sm" nativeButton={false} render={<Link href="/costs/services/new" />}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nová služba
+          </Button>
+        </div>
       </div>
 
       {ratesApprox && (
@@ -237,7 +266,12 @@ export function CostsPageClient({
           </CardHeader>
           <CardContent>
             {chartCategories.length > 0 ? (
-              <CostsChart data={perMonth.map((p) => p.row)} categories={chartCategories} />
+              <CostsChart
+                data={perMonth.map((p) => p.row)}
+                categories={chartCategories}
+                selected={selected.month}
+                onSelect={selectMonth}
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">Zatím žádné náklady</p>
             )}
@@ -245,10 +279,10 @@ export function CostsPageClient({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Plán podle kategorie</CardTitle>
+            <CardTitle className="text-sm font-medium first-letter:uppercase">Podle kategorie · {selectedName}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {byCategory.length === 0 && <p className="text-sm text-muted-foreground">Zatím žádné služby</p>}
+            {byCategory.length === 0 && <p className="text-sm text-muted-foreground">Za tento měsíc nic</p>}
             {byCategory.map((c) => (
               <div key={c.category} className="space-y-1">
                 <div className="flex justify-between gap-2 text-sm">
@@ -258,7 +292,7 @@ export function CostsPageClient({
                 <div className="h-1.5 rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary"
-                    style={{ width: `${planMonthly ? Math.max(2, (c.czk / planMonthly) * 100) : 0}%` }}
+                    style={{ width: `${selected.total ? Math.max(2, (c.czk / selected.total) * 100) : 0}%` }}
                   />
                 </div>
               </div>
@@ -277,28 +311,12 @@ export function CostsPageClient({
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-semibold">Platby za měsíc</h2>
+            <h2 className="text-lg font-semibold first-letter:uppercase">Platby · {selectedName}</h2>
             <p className="text-sm text-muted-foreground">
               Celkem {formatCurrency(selected.total)}
               {missingCount > 0 && ` · ${missingCount} ${missingCount === 1 ? "služba čeká" : "služby čekají"} na zápis`}
             </p>
           </div>
-          <Select
-            items={Object.fromEntries(months.map((m) => [m, monthLabel(m)]))}
-            value={selected.month}
-            onValueChange={(v) => v && selectMonth(String(v))}
-          >
-            <SelectTrigger className="w-44 first-letter:uppercase">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[...months].reverse().map((m) => (
-                <SelectItem key={m} value={m}>
-                  {monthLabel(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <EntityCardList>
@@ -390,17 +408,29 @@ export function CostsPageClient({
 
       {/* Služby: plán */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Služby</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">Služby</h2>
+            <p className="text-sm text-muted-foreground first-letter:uppercase">
+              {selectedName}: {activeServices.length} {activeServices.length === 1 ? "aktivní" : "aktivních"}
+            </p>
+          </div>
+          {inactiveServices.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => setShowInactive((v) => !v)}>
+              {showInactive ? "Skrýt ostatní" : `Zobrazit ostatní (${inactiveServices.length})`}
+            </Button>
+          )}
+        </div>
 
         <EntityCardList>
-          {services.length === 0 ? (
-            <EntityCardEmpty>Zatím žádná služba. Přidejte Vercel, Google Cloud, OpenAI…</EntityCardEmpty>
+          {listedServices.length === 0 ? (
+            <EntityCardEmpty>{emptyServices}</EntityCardEmpty>
           ) : (
-            services.map((s) => (
+            listedServices.map((s) => (
               <EntityCard
                 key={s.id}
                 href={`/costs/services/${s.id}/edit`}
-                className={s.endedAt ? "opacity-60" : undefined}
+                className={!isActiveIn(s, selected.month) ? "opacity-60" : undefined}
                 title={s.name}
                 subtitle={[CATEGORY_LABELS[s.category], BILLING_LABELS[s.billing]].join(" · ")}
                 badge={<span className="text-sm font-semibold tabular-nums">{formatOriginal(s.amount, s.currency)}</span>}
@@ -430,15 +460,15 @@ export function CostsPageClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.length === 0 && (
+              {listedServices.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Zatím žádná služba. Přidejte Vercel, Google Cloud, OpenAI…
+                    {emptyServices}
                   </TableCell>
                 </TableRow>
               )}
-              {services.map((s) => (
-                <TableRow key={s.id} href={`/costs/services/${s.id}/edit`} className={s.endedAt ? "opacity-60" : undefined}>
+              {listedServices.map((s) => (
+                <TableRow key={s.id} href={`/costs/services/${s.id}/edit`} className={!isActiveIn(s, selected.month) ? "opacity-60" : undefined}>
                   <TableCell>
                     <span className="font-medium">{s.name}</span>
                     {s.vendor && <span className="text-muted-foreground"> · {s.vendor}</span>}

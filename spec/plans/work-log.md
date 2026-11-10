@@ -8,6 +8,7 @@ Nejnovější záznamy nahoře.
 - Náklady: Nová služba, Upravit službu a Zapsat platbu jako modál (`@modal/(.)costs/…`), napřímo zůstávají stránky; načítání dat sdílí `lib/cost-routes.ts`. Nový ticket přešel na `FormModal`.
 - Pak všechny formuláře: `FormPage` je klientská a pod `FormModalScope` se vykreslí jako `FormModal`. Modální routy `@modal/(.)…` jen obalí existující stránku (Backlog nový/úprava, klienti a jejich domény, služby, zakázky, předplatné, náklady, domény, faktury, prospekty, úkoly). Formuláře berou `useFormRouter()` (v modálu `push` = `replace`), faktury přešly na `FormPage` (`full`).
 - Náklady: typ platby „Jednorázová platba“ (`billing: once`): částka se počítá jen v měsíci data platby (`startedAt`), do měsíčního plánu a kategorií nevstupuje, bez „Zrušeno k“.
+- Náklady po měsících: výběr měsíce v hlavičce řídí dlaždice (skutečnost, plán, zbývá z MRR), kategorie, graf (zvýraznění, klik vybere měsíc), platby i služby (aktivní v měsíci, ostatní na tlačítko). Nástěnka má dlaždici Náklady tento měsíc (skutečnost + plán). Sdílené `loadCostData` (lib/cost-routes.ts), `costsInMonth`, `planForMonth` (lib/costs.ts).
 - Větev `v1.44.0`, verze 1.44.0.
 
 ## 2026-11-10: Nový ticket v modálu
