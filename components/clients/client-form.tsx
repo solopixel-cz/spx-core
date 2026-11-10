@@ -1,9 +1,10 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { FormActions } from "@/components/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,7 @@ interface ClientFormProps {
  * routách `/clients/new` a `/clients/[id]/edit`; po uložení vede na detail.
  */
 export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientFormProps) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!defaultValues?.id;
   // Onboarding úkoly ze šablony — jen u nového klienta, výchozí zapnuto.
   const [createOnboarding, setCreateOnboarding] = useState(true);
@@ -44,6 +45,8 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ClientFormData>({
     resolver: zodResolver(clientFormSchema),
@@ -53,6 +56,10 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
       ...defaultValues,
     },
   });
+
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = isEdit ? `client:${defaultValues!.id}` : `client:new:${prospectId ?? ""}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const isCompany = watch("kind") === "company";
   // Automatické oslovení (5. pád) z osoby, kterou e-maily oslovují — náhled v poli Oslovení.
@@ -82,6 +89,7 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
       }
 
       const result = (await res.json().catch(() => ({}))) as { id?: string; tasksGenerated?: number };
+      clearFormDraft(draftKey);
       toast.success(
         isEdit
           ? "Klient aktualizován"
@@ -237,6 +245,7 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
       )}
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={cancelHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Vytvořit klienta"}

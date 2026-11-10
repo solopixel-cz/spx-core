@@ -24,11 +24,12 @@ export const invoiceStatus: Record<string, StatusConfig> = {
 
 // Ticket status
 export const ticketStatus: Record<string, StatusConfig> = {
-  open: { label: "Otevřený", color: "blue" },
-  in_progress: { label: "V řešení", color: "blue" },
-  waiting_client: { label: "Čeká na klienta", color: "yellow" },
-  resolved: { label: "Vyřešený", color: "green" },
-  closed: { label: "Uzavřený", color: "gray" },
+  open: { label: "Úkoly", color: "blue" },
+  in_progress: { label: "Zpracovává se", color: "blue" },
+  code_review: { label: "Code review", color: "blue" },
+  waiting_client: { label: "Čekání na klienta", color: "yellow" },
+  resolved: { label: "Hotovo", color: "green" },
+  closed: { label: "Hotovo", color: "gray" },
 };
 
 // Ticket priority
@@ -43,6 +44,8 @@ export const ticketPriority: Record<string, StatusConfig> = {
 export const ticketType: Record<string, StatusConfig> = {
   bug: { label: "Bug", color: "red" },
   change_request: { label: "Změna", color: "blue" },
+  idea: { label: "Nápad", color: "green" },
+  feedback: { label: "Zpětná vazba", color: "gray" },
 };
 
 // Task status
@@ -101,6 +104,7 @@ export const outreachEmailStatus: Record<string, StatusConfig> = {
   clicked: { label: "Kliknuto", color: "green" },
   bounced: { label: "Nedoručeno", color: "red" },
   complained: { label: "Stížnost", color: "red" },
+  failed: { label: "Neodesláno", color: "red" },
 };
 
 /** CSS classes for status badge colors */
@@ -136,4 +140,12 @@ export const projectStatus: Record<string, StatusConfig> = {
   in_progress: { label: "Rozpracováno", color: "yellow" },
   delivered: { label: "Dodáno", color: "green" },
   cancelled: { label: "Zrušeno", color: "gray" },
+};
+
+// Promo kód (stav počítá promoStatus v lib/schemas/promo-code.ts)
+export const promoCodeStatus: Record<string, StatusConfig> = {
+  active: { label: "Platný", color: "green" },
+  inactive: { label: "Vypnutý", color: "gray" },
+  expired: { label: "Vypršel", color: "red" },
+  exhausted: { label: "Vyčerpaný", color: "yellow" },
 };

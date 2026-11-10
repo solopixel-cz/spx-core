@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { domainFormSchema } from "@/lib/schemas/domain";
+import { domainFormSchema, parsePrice } from "@/lib/schemas/domain";
 import { logActivity } from "@/lib/activity";
 
 /** yyyy-mm-dd → Date (UTC půlnoc). "" smaže pole (null), undefined ponechá. */
@@ -14,20 +14,30 @@ function parseDate(value: string | undefined): Date | null | undefined {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Ověří, že přihlášený smí sahat na doménu (sales jen vlastní klienty). */
+/**
+ * Ověří, že přihlášený smí sahat na doménu (sales jen vlastní klienty,
+ * nepřiřazené domény jen admin/member).
+ */
 async function loadAuthorizedDomain(id: string, user: { uid: string; role: string }) {
   const db = getAdminFirestore();
   const docRef = db.collection("domains").doc(id);
   const existing = await docRef.get();
   if (!existing.exists) return { error: 404 as const };
-  const clientId = existing.data()?.clientId as string;
+  const clientId = (existing.data()?.clientId as string | null | undefined) ?? null;
   if (user.role === "sales") {
+    if (!clientId) return { error: 404 as const };
     const clientDoc = await db.collection("clients").doc(clientId).get();
     if (!clientDoc.exists || clientDoc.data()?.salesOwnerUid !== user.uid) {
       return { error: 404 as const };
     }
   }
-  return { docRef, existing, clientId };
+  return { db, docRef, existing, clientId };
+}
+
+async function logDomain(clientId: string | null, text: string, actorUid: string) {
+  if (!clientId) return;
+  await logActivity({ entityType: "client", entityId: clientId, kind: "system", text, actorUid });
+  revalidatePath(`/clients/${clientId}`);
 }
 
 // PATCH /api/domains/[id]
@@ -45,7 +55,7 @@ export async function PATCH(
     if ("error" in res) {
       return NextResponse.json({ error: "Doména nenalezena" }, { status: 404 });
     }
-    const { docRef, existing, clientId } = res;
+    const { db, docRef, existing, clientId } = res;
 
     const updates: Record<string, unknown> = {
       updatedAt: FieldValue.serverTimestamp(),
@@ -56,6 +66,24 @@ export async function PATCH(
     if (data.hosting !== undefined) updates.hosting = data.hosting.trim() || null;
     if (data.note !== undefined) updates.note = data.note.trim() || null;
     if (data.autoRenew !== undefined) updates.autoRenew = data.autoRenew;
+    const price = parsePrice(data.price);
+    if (price !== undefined) updates.price = price;
+
+    // Přiřazení klienta mění jen správa domén (admin/member).
+    let nextClientId = clientId;
+    if (data.clientId !== undefined && (data.clientId.trim() || null) !== clientId) {
+      if (user.role === "sales") {
+        return NextResponse.json({ error: "Klienta domény mění jen admin" }, { status: 403 });
+      }
+      nextClientId = data.clientId.trim() || null;
+      if (nextClientId) {
+        const clientDoc = await db.collection("clients").doc(nextClientId).get();
+        if (!clientDoc.exists) {
+          return NextResponse.json({ error: "Klient nenalezen" }, { status: 404 });
+        }
+      }
+      updates.clientId = nextClientId;
+    }
 
     const purchasedAt = parseDate(data.purchasedAt);
     if (purchasedAt !== undefined) updates.purchasedAt = purchasedAt;
@@ -71,15 +99,15 @@ export async function PATCH(
 
     await docRef.update(updates);
 
-    await logActivity({
-      entityType: "client",
-      entityId: clientId,
-      kind: "system",
-      text: `Doména „${(updates.name as string) ?? existing.data()?.name}" upravena`,
-      actorUid: user.uid,
-    });
+    const name = (updates.name as string) ?? (existing.data()?.name as string);
+    if (nextClientId !== clientId) {
+      await logDomain(clientId, `Doména „${name}" přesunuta k jinému klientovi`, user.uid);
+      await logDomain(nextClientId, `Doména „${name}" přiřazena`, user.uid);
+    } else {
+      await logDomain(clientId, `Doména „${name}" upravena`, user.uid);
+    }
 
-    revalidatePath(`/clients/${clientId}`);
+    revalidatePath("/domains");
     revalidatePath("/");
     return NextResponse.json({ status: "ok" });
   } catch (error) {
@@ -106,15 +134,9 @@ export async function DELETE(
 
     await docRef.delete();
 
-    await logActivity({
-      entityType: "client",
-      entityId: clientId,
-      kind: "system",
-      text: `Doména „${name}" odebrána`,
-      actorUid: user.uid,
-    });
+    await logDomain(clientId, `Doména „${name}" odebrána`, user.uid);
 
-    revalidatePath(`/clients/${clientId}`);
+    revalidatePath("/domains");
     revalidatePath("/");
     return NextResponse.json({ status: "ok" });
   } catch (error) {

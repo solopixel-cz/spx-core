@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { DIRECT_SOURCE, sourceLabel, type Attribution } from "@/lib/attribution";
+import { planLabel } from "@/lib/plans";
 
 export interface WebInquiry {
   industry: string | null;
@@ -8,6 +9,7 @@ export interface WebInquiry {
   teamType: string | null;
   teamSize: string | null;
   link: string | null;
+  promoCode?: string | null; // od 1.28.0
   message: string | null;
   note: string | null;
 }
@@ -49,9 +51,10 @@ export function WebInquiryCard({
 
       {inquiry && (
         <dl className="space-y-2 text-sm">
+          {inquiry.promoCode && <Row label="Promo kód">{inquiry.promoCode}</Row>}
           {inquiry.industry && <Row label="Obor">{inquiry.industry}</Row>}
           {inquiry.product && <Row label="Produkt">{inquiry.product}</Row>}
-          {inquiry.plan && <Row label="Plán">{inquiry.plan}</Row>}
+          {inquiry.plan && <Row label="Tarif">{planLabel(inquiry.plan)}</Row>}
           {inquiry.teamType && (
             <Row label="Režim">
               {inquiry.teamType === "team" ? "Tým" : "Sólo"}

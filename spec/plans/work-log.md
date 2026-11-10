@@ -2,6 +2,169 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-10: Spolehlivější notifikace
+
+- Push chodily na mobil hromadně: `web-push` posílal výchozí naléhavost normal a TTL 4 týdny, telefon je pak drží do probuzení. `lib/push.ts` posílá `urgency: high`, `TTL: 1 den`.
+- PC: push je per zařízení (Nastavení → Notifikace). Zvoneček ukáže odkaz „Zapnout“, když ho zařízení nemá, a při záložce na pozadí bez push ukáže systémové upozornění sám.
+- Větev `v1.44.1`.
+
+## 2026-11-10: Formuláře nákladů v modálu
+
+- Společný obal `components/form-modal.tsx` (`FormModal`): hlavička jako u detailu ticketu (otevřít na celé stránce, zavřít), fokus do prvního pole, kontext `useInFormModal()`. V modálu „Zrušit“ ve `FormActions` modál zavře a formuláře po uložení dělají `replace` místo `push`.
+- Náklady: Nová služba, Upravit službu a Zapsat platbu jako modál (`@modal/(.)costs/…`), napřímo zůstávají stránky; načítání dat sdílí `lib/cost-routes.ts`. Nový ticket přešel na `FormModal`.
+- Pak všechny formuláře: `FormPage` je klientská a pod `FormModalScope` se vykreslí jako `FormModal`. Modální routy `@modal/(.)…` jen obalí existující stránku (Backlog nový/úprava, klienti a jejich domény, služby, zakázky, předplatné, náklady, domény, faktury, prospekty, úkoly). Formuláře berou `useFormRouter()` (v modálu `push` = `replace`), faktury přešly na `FormPage` (`full`).
+- Náklady: typ platby „Jednorázová platba“ (`billing: once`): částka se počítá jen v měsíci data platby (`startedAt`), do měsíčního plánu a kategorií nevstupuje, bez „Zrušeno k“.
+- Náklady po měsících: výběr měsíce v hlavičce řídí dlaždice (skutečnost, plán, zbývá z MRR), kategorie, graf (zvýraznění, klik vybere měsíc), platby i služby (aktivní v měsíci, ostatní na tlačítko). Nástěnka má dlaždici Náklady tento měsíc (skutečnost + plán). Sdílené `loadCostData` (lib/cost-routes.ts), `costsInMonth`, `planForMonth` (lib/costs.ts).
+- Větev `v1.44.0`, verze 1.44.0.
+
+## 2026-11-10: Nový ticket v modálu
+
+- „Nový ticket“ hlásil 404: modál detailu `@modal/(.)backlog/[id]` zachytil i `/backlog/new` jako ticket s ID „new“. Nová routa `@modal/(.)backlog/new` ukáže formulář v modálu po vzoru detailu (otevřít na celé stránce, zavřít), po vytvoření se otevře detail nového ticketu. Napřímo zůstává stránka `/backlog/new`.
+- `FormActions` umí Zrušit bez odkazu (`onCancel`), `TicketForm` má `inModal`.
+- Větev `v1.43.0`.
+
+## 2026-11-10: Připomenutí podkladů
+
+- Nová e-mailová šablona „Připomenutí podkladů“ (`lib/email-templates/cardform-reminder.ts`, design jako formulář podkladů), předmět editovatelný v Nastavení → E-mailové šablony (`templates/cardform-reminder-email`).
+- Ve formuláři podkladů u klienta tlačítko Připomenout, když existuje nevyplněný odkaz: `POST /api/card-tokens/[token]/remind` pošle připomenutí se stejným odkazem, zapíše `cardFormEmails` s `kind: "reminder"` a aktivitu u klienta. „Poslat znovu“ dál vytváří nový odkaz.
+- Všechny e-mailové šablony na jednom místě: Email marketing → Šablony má sekci Hotové šablony (Oslovení, Follow-up, Formulář podkladů, Připomenutí podkladů, Předání vizitky; registr `lib/email-templates/system.ts`, úprava na `/email-marketing/system/[key]`, jen admin). Z Nastavení dlaždice zmizela, `/settings/templates` přesměrovává.
+- Poslat e-mail ze šablony je u klienta modál (`components/clients/send-email-dialog.tsx`) místo routy `/clients/[id]/send/email`: hotové šablony pro klienty (`system:<key>`) i vlastní, oslovení, odkaz vložený ručně, předmět a živý náhled vedle formuláře.
+- Větev `feat/pripominka-podkladu` z devel, verze 1.43.0. Lint a build čisté, e-mail ověřen screenshotem, skutečné odeslání neověřeno.
+
+## 2026-11-09: Odkazy ve vlákně se Zpětnou vazbou
+
+- Lukáš chce klientovi posílat odkaz na preview jako text („zde je ukázka“). Ve zprávách (CRM vlákno, popis ticketu, HUB, e-mail s odpovědí) je `[text](https://…)` klikací odkaz s textem, holá adresa je odkaz sama. Jen http(s), bez HTML (`lib/message-links.ts`, stejný soubor ve spx-hub). E-mail: odkaz v HTML, v prostém textu „text (adresa)“.
+- Odpověď v CRM: tlačítko Odkaz udělá z označeného textu `[text](https://)` a dá kurzor na adresu.
+- Na větvi `feat/backlog`, verze 1.42.0; hub `fix/stav-code-review` 1.40.0 (test `tests/message-links.test.ts`, testy hubu 12/12).
+
+## 2026-11-09: Tickety jsou Backlog (Kanban)
+
+- Lukáš chtěl z ticketů jednoduchý Kanban, ve kterém pracuje i s bratrem: sloupce Úkoly, Zpracovává se, Code review, Čekání na klienta, Hotovo (Test sloučil s čekáním na klienta), datum vzniku a priorita na kartě, tickety z HUBu i interní bez klienta.
+- Větev `feat/backlog` z `origin/devel`, verze 1.41.0. Sekce `/backlog` (přesměrování z `/tickets/*`), výchozí nástěnka (`components/tickets/backlog-board.tsx`, @dnd-kit/core), `?view=list` tabulka. Přetažení karty nebo menu „Přesunout do“ uloží stav hned (PATCH). Řazení ve sloupci: priorita, pak nejstarší. Hotovo ukazuje 14 dní, starší pod tlačítkem.
+- Filtry: Kdo (Já, ostatní, Nepřiřazeno), klient včetně Interní, priorita, typ, zdroj. Hodnoty stavů v datech zůstávají, jen názvy v CRM (`lib/ticket-labels.ts`), bez migrace; `closed` patří do Hotovo. Nový stav `code_review`: HUB ho klientovi ukazuje jako „Řešíme“ (spx-hub `fix/stav-code-review`).
+- Interní ticket: `clientId` nepovinné (formulář „Interní“, ne obchodník a ne ticket z HUBu). PATCH umí smazat klienta i vizitku (`null`), obchodník smí měnit jen tickety vlastních klientů, neplatný stav odmítne. Aktivita píše název stavu.
+- Detail: z aplikace se otevírá jako modál nad stránkou (intercepting route `app/(app)/@modal/(.)backlog/[id]`, `[...catchAll]` modál zavře při přechodu jinam), načtení adresy napřímo ukáže stránku. Tlačítka Kopírovat odkaz, Otevřít na celé stránce, Upravit, Archivovat. Vpravo stav, řešitel a priorita (mění se rovnou), klient, vizitka, typ, zdroj, kdo a kdy založil, kdy upraveno; vlevo popis, přílohy, odkazy, pull requesty (`prLinks`, víc odkazů, GitHub jako „spx-core #145“, počet na kartě) a vlákno s klientem. Úprava z modálu (`?from=board`) se vrací na nástěnku. Sdílený loader `loadTicketView`.
+- Ověřeno: tsc, lint, build, nástěnka a detail na testovacích datech (desktop, mobil, tmavý režim, tažení).
+
+## 2026-11-07: E-maily klientům k ticketům ručně
+
+- Změna stavu ticketu z HUBu už klientovi neposílá e-mail ani push, jen ticket v HUBu označí jako nepřečtený.
+- Detail ticketu (stav Čeká na klienta / Vyřešený): tlačítko „Poslat e-mail“ (`POST /api/tickets/[id]/notify`), u něj kdy naposledy odešel (`clientNotified`), aktivita „E-mail klientovi: …“. Chyba (chybí e-mail klienta, `HUB_URL`, Resend) se ukáže v toastu.
+- Odpověď ve vlákně: zaškrtávátko „Poslat i e-mailem“ (výchozí zapnuté), bez něj jen do HUBu.
+- Ověřeno: tsc, lint, build, `notifyHubClient` odeslal na `delivered@resend.dev`. Větev `feat/ticket-emaily-rucne` z `origin/devel`, verze 1.40.0.
+
+## 2026-11-06: Favicona v prohlížeči
+
+- CRM v tabu nemělo faviconu: `metadata.icons` v `app/layout.tsx` uvádělo jen `apple` a tím přebilo `app/icon.svg`, v HTML chyběl `<link rel="icon">`. Doplněno `icons.icon: /icon.svg`, ověřeno v HTML.
+- Větev `fix/favicona` z `origin/devel`, verze 1.39.2.
+
+## 2026-11-06: Kampaně neodešly všem
+
+- Kampaň „Novinka – Reference“ na „DBC - Aktivní klienti“ (17) odešla jen 10 lidem, 7 `failed` bez záznamu. Příčina: odesílání po 15 souběžných požadavcích, Resend (limit požadavků za sekundu) zbytek odmítl. Adresy byly v pořádku, nikdo nebyl odhlášený.
+- Větev `fix/kampane-odesilani` z `origin/devel`. Odesílání přes Resend batch API (`sendBatchEmails`, `batchValidation: 'permissive'`, opakování při 429), sdílená logika `lib/marketing/send-campaign.ts`. Neodeslané se ukládají jako `campaignEmails.status: 'failed'` s `error`.
+- Detail kampaně: dlaždice Neodesláno, důvod u příjemce, upozornění „N lidem ze seznamu e-mail neodešel“ s tlačítkem Doposlat (`POST /api/marketing/campaigns/[id]/resend`, jen komu ještě neodešel). Ověřeno odesláním 20 e-mailů na testovací adresy Resendu (16 OK jedním požadavkem, 4 neplatné adresy s důvodem).
+- Verze 1.39.1.
+
+## 2026-11-06: Zpětná vazba z HUBu do ticketů
+
+- Lukáš chtěl v HUBu sekci „Zpětná vazba“ na nápady a hlavně zadání změn na vizitce (když nejsme k dispozici, posíláme klienty tam), s přehledem v CRM. Rozhodl: klient vidí stav a historii, změny zatím bez limitu podle tarifu, vlákno odpovědí ano.
+- Novou kolekci nezakládáme, jsou to tickety: nové typy `idea` (Nápad) a `feedback` (Zpětná vazba), `source: 'hub'`, `createdByEmail`, přílohy jako objekty (`TicketFile`), stav vlákna (`messageCount`, `lastMessage*`, `unreadByTeam`, `unreadByClient`) a podkolekce `tickets/{id}/messages` (data-model).
+- Větev `feat/zpetna-vazba` z `origin/devel`. Seznam ticketů: štítky HUB a Nové, filtr Odkudkoli / Z HUBu / Z CRM. Detail: přílohy (náhledy fotek), vlákno s klientem a odpověď (`POST /api/tickets/[id]/messages`); otevřením se ticket označí jako přečtený.
+- Klientovi (`lib/ticket-hub.ts`): odpověď a přepnutí na „Čeká na klienta“ nebo „Vyřešený“ pošle e-mail z adresy odesílatele v profilu (`lib/email-templates/ticket-update.ts`, odkaz `HUB_URL/feedback/{id}`) a push (`hubNotifications.push.tickets`, `pushToHubClient` v `lib/hub-push.ts`).
+- Hub: spx-hub `feat/zpetna-vazba` 1.36.0. Verze 1.39.0. Rules, Storage rules ani indexy beze změny (zápis jen Admin SDK, dotaz hubu používá index `clientId + createdAt`).
+
+## 2026-11-05: Náklady provozu
+
+- Lukáš chtěl přehled, kolik stojí provoz webů a vizitek (Google Cloud, Vercel, domény, OpenAI, Claude). Rozhodl: evidovat plán i skutečné platby, jen celkový přehled (bez rozpočtu na klienty), bez faktur dodavatelů.
+- Větev `feat/naklady` z `origin/devel`. Nová stránka `/costs` (menu Finance, admin a member): plán za měsíc a rok, skutečnost za aktuální měsíc, zbytek z předplatného (MRR minus plán), graf 12 měsíců po kategoriích, plán podle kategorií, platby za vybraný měsíc (zápis spotřeby), seznam služeb, blížící se roční platby a obnovení domén.
+- Kolekce `costServices` a `costPayments` (data-model, rules jen Admin SDK). Kurz ČNB (`lib/cnb.ts`) ke dni platby, plán aktuálním kurzem. Výpočty v `lib/costs.ts`, MRR vytažené do `lib/mrr.ts` (sdílí dashboard).
+- Domény klientů i naše: nové pole `domains.price` (Kč za rok) ve formuláři domény. V plánu poměrnou částí na měsíc, ve skutečnosti celou cenou v měsíci obnovení.
+- Verze 1.38.0. Po nasazení `firebase deploy --only firestore` (rules nových kolekcí), z mergnutého `main`.
+
+## 2026-11-04: Kontrola měření webů (GA4, Search Console)
+
+- Lukáš chtěl u služeb klientů vidět, jestli je web napojený na Google Analytics a Search Console, a ručně to odklikat (statistiky webů v HUBu bez toho nejdou).
+- Větev `feat/mereni-sluzeb` z `origin/devel`. `instances.ga4ConnectedAt` a `searchConsoleConnectedAt` (jen weby), přepínají se klikem v záložce Služby (`PATCH /api/instances/[id]` s `ga4Connected` / `searchConsoleConnected`, záznam do aktivity). U zaškrtnutého GA4 bez Property ID upozornění.
+- Dashboard (admin, member): karta „Weby bez měření“ s odkazem na Služby klienta. Offline a archivované weby se nepočítají, vizitky se nekontrolují.
+- Verze 1.37.0. Rules a indexy beze změny (dotaz `where type == web` stačí jednopolový index).
+
+## 2026-11-04: Správa domén
+
+- Lukáš chtěl přehled všech domén (má je u Wedosu) s expirací a přiřazením ke klientům. Data zadává ručně, napojení na Wedos WAPI zatím ne (vyžaduje povolené IP, Vercel nemá pevnou).
+- Větev `feat/sprava-domen` z `origin/devel`. Nová stránka `/domains` (menu Provoz, admin a member): souhrn po expiraci / do 30 dnů / bez klienta, filtry, hledání, řazení podle expirace, nepřiřazenou doménu jde přiřadit klientovi přímo v tabulce. Nová a úprava domény na `/domains/new` a `/domains/[id]/edit` s výběrem klienta.
+- `domains.clientId` může být `null` (data-model). API, cron připomínek i widget na dashboardu s tím počítají (nepřiřazené vidí jen admin/member, odkaz vede do správy domén).
+- Detail klienta: u domén v hlavičce i expirace („do 12. 3. 2027“, naléhavé červeně).
+- Verze 1.36.0 (1.35.0 má `feat/notifikace-faktury`, zatím mimo devel). Rules a indexy beze změny.
+
+## 2026-11-04: Přednášky zjednodušené (#25)
+
+- Lukáš chtěl přednášky jinak: lektor v hubu plánuje akce (chystané / proběhlé), nahrává materiály (prezentace, dokumenty, prospekty) a na konci ukáže QR. Posluchač na vizitce dá Líbila / Nelíbila, napíše, co si odnáší, a kdo chce materiály, nechá e-mail. Hvězdy, signály podezřelosti, veřejné shrnutí na vizitce a denní cron pryč.
+- Větev `feat/prednasky-jednoduse` z `origin/devel`. Funkce se v CRM jmenuje „Přednášky“, `firestore.rules` beze změny.
+- `spec/context/data-model.md`: nový tvar `lectures` (materiály, poznámky, 7 dní na hlasování) a `lectureRatings` (liked, takeaway, volitelný e-mail se souhlasem).
+- Verze 1.34.1. Hlavní část ve spx-hub a spx-dbc (`feat/hodnoceni-prednasek`), progress v hubu: `spec/hodnoceni-prednasek-progress.md`.
+
+## 2026-11-04: Hodnocení přednášek (#25), přepínač a rules pro spx-hub
+
+- Zadání `spec/assign/zadani-hodnoceni-prednasek.md` (stejné ve spx-core, spx-hub a spx-dbc), režim bez dozoru.
+- Větev `feat/hodnoceni-prednasek` z `origin/devel` (lokální stav 828adb6, z kontejneru nejde fetch). Bez důvěry referencí (#23): Lukáš 4. 11. rozhodl, že reference se zatím staví jednoduše. Původní větev na `feat/reference-duvera` zůstala lokálně jako `zaloha/hodnoceni-prednasek-s-duverou`.
+- `lib/hub-features.ts`: nová funkce `lectures` „Hodnocení přednášek“. Přepínač v detailu klienta je obecný, objeví se sám. Na tarif vázaná není.
+- `firestore.rules`: kolekce `lectures` a `lectureRatings` jen pro Admin SDK (spx-hub). Kontakty posluchačů se v CRM nezakládají.
+- `spec/context/data-model.md`: obě kolekce, `clients.hubFeatures.lectures`, audit a limity.
+- Verze 1.34.0 (navazuje na 1.33.0 z `feat/akce-sleva-do`, už v `devel`). Hlavní část je ve spx-hub, progress tam: `spec/hodnoceni-prednasek-progress.md`.
+- Po nasazení: `firebase deploy --only firestore` (rules), a to **z mergnutého `main`**, ne z větve.
+
+## 2026-10-30 — QR kód k promo kódu
+
+- Pokyn Lukáše: QR na leták, po naskenování formulář na webu rovnou s promo kódem. Větev `feat/promo-qr` z `feat/odebrat-provize`.
+- Nastavení → Promo kódy: u každého kódu tlačítko QR, dialog s náhledem, odkazem (kopírovat, otevřít) a stažením SVG (tisk) a PNG 1024 px. QR černý na bílém s okrajem, korekce M. Generuje se v prohlížeči knihovnou `qrcode`, nic se neukládá.
+- Odkaz `/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); poptávka tak má zdroj `qr` a kód. Web to umí ve spx-web `feat/promo-z-url` (nasadit spolu nebo dřív).
+- Ověřeno v Chromiu na dočasné stránce (desktop i mobil), stránka smazána.
+- Verze 1.31.0.
+
+## 2026-10-30 — Safari: rozepsané formuláře se neztratí, nová verze se jen nabídne
+
+- Hlášení Lukáše: v Safari na MacBooku se rozepsaný ticket po čase sám obnoví a data zmizí. V kódu CRM nic periodicky neobnovuje, jediný programový reload byl v `sw-register` po `controllerchange` (nová verze service workeru); Safari se u SW chová nespolehlivě. Druhá možná příčina je reload záložky Safari kvůli paměti.
+- `sw-register`: místo automatického `location.reload()` trvalý toast „Je dostupná nová verze CRM“ s tlačítkem Obnovit.
+- Nový hook `lib/hooks/use-form-draft.ts`: koncept formuláře v localStorage (`spx-draft:*`), ukládá se až po první ruční změně (ne při programovém předvyplnění), po znovunačtení se vrátí s toastem „Obnoven rozepsaný koncept“ a volbou Zahodit; po uložení nebo „Zrušit“ se maže, starší než 7 dní se ignoruje. `FormActions` má nový `onCancel`.
+- Zapojeno do formulářů ticketu, úkolu, klienta, domény, instance, zakázky, předplatného a faktury (nové i úpravy; klíč podle ID záznamu nebo kontextu nového).
+- Ověřeno v Chromiu na dočasných stránkách: ticket (pole i odkazy) a faktura (víc položek) se po reloadu obnoví, Zahodit koncept smaže a nezaloží znovu. Safari samotné neověřeno.
+- Verze 1.30.1.
+
+## 2026-10-30 — Dashboard: bez Moje úkoly, Blížící se fakturace a Aktivity, nové KPI a grafy
+
+- Pokyn Lukáše: na dashboardu je nechce. Odebrán hero widget **Moje úkoly** i karta **Blížící se fakturace**; server už nenačítá `tasks` a nepočítá nadcházející fakturace.
+- Zůstává: rychlé akce (vč. + Úkol), Faktury po splatnosti, Blížící se obnovení domén, Dnešní follow-upy, KPI a grafy.
+- KPI okénka (`StatCard`) propracovanější: barevná ikona, jemný barevný přechod a linka nahoře, větší hodnota a doplňující řádek (např. MRR „ročně …“, zakázky „N zakázek k vyfakturování“). Druhá řada má 3 okénka.
+- Jeden graf s přepínači rozdělen na dva (`DashboardCharts`): **Finance za 12 měsíců** (vystaveno vs. přijato, sloupce vedle sebe, součty v hlavičce) a **Klienti a předplatná** (plochy, legenda s aktuální hodnotou slouží jako přepínač). Bez popisků nad body a bez přepínače sloupce/čáry, měsíce česky.
+- Odebrána i karta **Aktivita** (poslední aktivita); server už nenačítá `activity` ani `users`. Celá historie zůstává na `/activity`.
+- Upozornění (po splatnosti, domény, follow-upy) mají počet sloupců podle počtu karet, takže vedle nich nezůstává prázdno. Grafy jsou vedle sebe od šířky xl (1280 px), na užším displeji a mobilu pod sebou přes celou šířku (výška 260 px).
+- Sales na dashboardu vidí jen rychlé akce a upozornění (KPI a grafy byly vždy jen pro admin/member).
+- Ověřeno v prohlížeči na dočasné náhledové stránce s ukázkovými daty (desktop, tmavý režim, mobil), stránka smazána.
+- Verze 1.30.0. Ve stejné větvi `feat/odebrat-provize`, samostatný commit.
+
+## 2026-10-30 — Odebrání provizního systému
+
+- Pokyn Lukáše: provize z CRM úplně pryč. Větev `feat/odebrat-provize` z `origin/devel`.
+- Smazáno: stránka `/commissions` (Provize) a položka v menu i v Nastavení, `/api/commissions`, `/api/settings/commission`, `lib/schemas/commission.ts`, přesměrování `/provize`.
+- Faktury: zaplacení už provizi nevytváří, storno ji nereverzuje, trvalé smazání faktury ani úklidový skript `cancel-cron-invoices` na `commissions` nesahají. Archiv: provize už neblokují trvalé smazání klienta.
+- Uživatelé: pole `commissionRate` pryč ze schématu, `/api/me`, `PATCH /api/users/[id]` a profilu (Sazba provize).
+- Moje vizitky (sales): zůstávají jako seznam klientů s tarifem a cenou, bez souhrnu a tabulky provizí. Komponenta přesunuta do `components/my-cards/`.
+- `firestore.rules`: blok `commissions` odebrán (výchozí zákaz). `firestore.indexes.json`: oba indexy `commissions` odebrány. Stará data ve Firestore zůstávají, nic se nemazalo.
+- Verze 1.29.0 (1.28.0 má `feat/web-poptavka-firma-promo`).
+
+## 2026-10-30 — Poptávka z webu: firma a promo kódy
+
+- Větev `feat/web-poptavka-firma-promo` z `devel`, verze 1.28.0. Navazuje na spx-web `feat/kontakt-firma-promo`.
+- `/api/leads/intake`: firma do `prospects.company`, promo kód do `inquiry.promoCode`; kód se ověří a započítá v transakci se založením kontaktu, neplatný vrátí 422 `promo_invalid` a kontakt nevznikne.
+- Nová kolekce `promoCodes` (ID = kód), správa v Nastavení → Promo kódy (admin): založení, platnost do data, limit použití, poznámka, vypnutí, smazání nepoužitého, seznam poptávek s kódem. `POST /api/promo-codes/validate` pro živou kontrolu z webu (tajemství `x-ingest-secret`). Rules `if false`, data model doplněn.
+- Ověřeno proti emulátoru Firestore a Auth: stavy kódů, souběh na limit (2 ze 3 projdou), odmítnutí neplatného kódu bez kontaktu, admin stránka v prohlížeči (desktop i mobil). Typy a lint čisté.
+- Před nasazením: `firebase deploy --only firestore`; nasadit dřív než web.
+
+## 2026-10-30 — Recenze z Googlu na vizitce: data model
+
+- Větev `docs/reference-google` z `devel`. `hubProjects.google = { placeId, name, address? }` (Google místo poradce, nastavuje hub). Recenze se neukládají, hub je načítá z Places API (New) do cache na 24 h a vrací ve veřejném API jako `google`; bez schvalování (Google vrací nejvýš 5 podle sebe).
+- Rules beze změny (hubProjects jen Admin SDK). Navazuje spx-hub a spx-dbc `feat/reference-google`.
+
 ## 2026-10-16 — Průvodce v SoloPixel HUB: datový model
 
 - Zadání spx-hub `spec/assign/zadani-hub-pruvodce.md` (tabule #18). Průvodce sám je ve spx-hub (`feat/pruvodce`, 1.20.0, podrobnosti v `spec/pruvodce-progress.md` hubu).

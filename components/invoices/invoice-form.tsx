@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useFormRouter, useInFormModal } from "@/components/form-modal";
 import { toast } from "sonner";
 import { useForm, useFieldArray } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, CalendarDays, User } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, Loader2, CalendarDays, User } from "lucide-react";
 import {
   invoiceFormSchema,
   invoiceItemsTotal,
@@ -58,6 +59,7 @@ export function InvoiceForm({
   defaultItems,
   projectId,
   subscriptionId,
+  notice,
 }: {
   clients: ClientOption[];
   invoice?: EditInvoice;
@@ -72,8 +74,11 @@ export function InvoiceForm({
   projectId?: string;
   /** Faktura z předplatného — uloží se `subscriptionId`. */
   subscriptionId?: string;
+  /** Upozornění nad položkami (např. skončená akce předplatného). */
+  notice?: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
+  const inModal = useInFormModal();
   const [submitting, setSubmitting] = useState(false);
   const isEdit = !!invoice;
 
@@ -86,6 +91,7 @@ export function InvoiceForm({
     setValue,
     getValues,
     watch,
+    reset,
     formState: { errors },
   } = useForm<InvoiceFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +108,10 @@ export function InvoiceForm({
       note: invoice?.note ?? "",
     },
   });
+
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = invoice ? `invoice:${invoice.id}` : `invoice:new:${defaultClientId ?? ""}:${projectId ?? ""}:${subscriptionId ?? ""}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
@@ -136,6 +146,7 @@ export function InvoiceForm({
           });
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json().catch(() => ({}));
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Faktura upravena" : `Faktura ${result.number ?? ""} uložena`);
       router.push(isEdit ? `/invoices/${invoice!.id}` : `/invoices/${result.id}`);
       router.refresh();
@@ -223,6 +234,12 @@ export function InvoiceForm({
             <CardTitle className="text-base">Položky</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {notice && (
+              <p className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {notice}
+              </p>
+            )}
             {fields.map((field, idx) => {
               const line = invoiceLineTotal({
                 quantity: Number(items?.[idx]?.quantity) || 0,
@@ -393,14 +410,27 @@ export function InvoiceForm({
                   </Button>
                 </>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                render={<Link href={cancelHref} />}
-                nativeButton={false}
-              >
-                Zrušit
-              </Button>
+              {inModal ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    clearFormDraft(draftKey);
+                    router.back();
+                  }}
+                >
+                  Zrušit
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  render={<Link href={cancelHref} onClick={() => clearFormDraft(draftKey)} />}
+                  nativeButton={false}
+                >
+                  Zrušit
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

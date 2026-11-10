@@ -5,7 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { campaignCreateSchema } from "@/lib/schemas/campaign";
 import { sendTransactionalEmail } from "@/lib/email";
 import { statusOrder } from "@/lib/schemas/email-status";
-import { firstName, greetingName, vocativeFirstName } from "@/lib/marketing/personalize";
+import { firstName } from "@/lib/marketing/personalize";
+import { resolveCampaignTargets, sendCampaignEmails } from "@/lib/marketing/send-campaign";
 import { composeMarketingEmail, type CompanyInfo } from "@/lib/marketing/compose";
 
 function serializeTimestamp(val: unknown): string | null {
@@ -16,14 +17,6 @@ function serializeTimestamp(val: unknown): string | null {
   return null;
 }
 
-interface Recipient {
-  type: "prospect" | "client";
-  id: string;
-  name: string;
-  email: string;
-  /** Oslovení ({{jmeno}}) — u firmy kontaktní osoba. */
-  greeting: string;
-}
 
 // GET — výpis kampaní s agregovanými statistikami
 export async function GET() {
@@ -137,38 +130,9 @@ export async function POST(request: Request) {
     }
     const listData = listDoc.data()!;
     const listName = listData.name as string;
-    const prospectIds = (listData.prospectIds as string[]) ?? [];
-    const clientIds = (listData.clientIds as string[]) ?? [];
 
-    // Rozřešit příjemce
-    const refs = [
-      ...prospectIds.map((pid) => db.collection("prospects").doc(pid)),
-      ...clientIds.map((cid) => db.collection("clients").doc(cid)),
-    ];
-    const recipients: Recipient[] = [];
-    const seenEmails = new Set<string>();
-    if (refs.length > 0) {
-      const docs = await db.getAll(...refs);
-      for (const doc of docs) {
-        if (!doc.exists || doc.data()?.deletedAt) continue;
-        const d = doc.data()!;
-        const email = ((d.email as string) ?? "").trim();
-        if (!email) continue;
-        const lower = email.toLowerCase();
-        if (seenEmails.has(lower)) continue;
-        seenEmails.add(lower);
-        recipients.push({
-          type: doc.ref.parent.id === "prospects" ? "prospect" : "client",
-          id: doc.id,
-          name: (d.name as string) ?? "",
-          email,
-          greeting:
-            doc.ref.parent.id === "prospects"
-              ? vocativeFirstName((d.name as string) ?? "")
-              : greetingName(d),
-        });
-      }
-    }
+    // Příjemci (bez duplicit a odhlášených)
+    const { recipients, targets, skippedUnsubscribed } = await resolveCampaignTargets(db, listData);
 
     if (recipients.length === 0) {
       return NextResponse.json(
@@ -176,14 +140,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // Vyřadit odhlášené (marketingUnsubscribes, doc id = e-mail malými písmeny)
-    const unsubSnap = await db.collection("marketingUnsubscribes").get();
-    const unsubscribed = new Set(unsubSnap.docs.map((d) => d.id));
-    const skippedUnsubscribed = recipients.filter((r) =>
-      unsubscribed.has(r.email.toLowerCase())
-    ).length;
-    const targets = recipients.filter((r) => !unsubscribed.has(r.email.toLowerCase()));
 
     if (targets.length === 0) {
       return NextResponse.json(
@@ -211,51 +167,17 @@ export async function POST(request: Request) {
       createdBy: user.uid,
     });
 
-    // Odeslat po dávkách (omezená souběžnost)
-    let sentCount = 0;
-    let failedCount = 0;
-    const CHUNK = 15;
-    for (let i = 0; i < targets.length; i += CHUNK) {
-      const chunk = targets.slice(i, i + CHUNK);
-      const results = await Promise.allSettled(
-        chunk.map(async (r) => {
-          const jmeno = r.greeting;
-          // Per-příjemce token pro odhlašovací odkaz v patičce
-          const unsubToken = crypto.randomUUID();
-          const composed = composeMarketingEmail({
-            html: tplHtml,
-            subject: tplSubject,
-            vars: { jmeno, email: r.email },
-            unsubscribeUrl: `${baseUrl}/unsubscribe/${unsubToken}`,
-            company,
-          });
-          const result = await sendTransactionalEmail({
-            to: r.email,
-            senderName,
-            senderEmail,
-            subject: composed.subject,
-            html: composed.html,
-            text: composed.text,
-          });
-          await db.collection("campaignEmails").add({
-            campaignId: campaignRef.id,
-            toEmail: r.email,
-            contactType: r.type,
-            contactId: r.id,
-            senderUid: user.uid,
-            resendId: result?.id || "",
-            unsubToken,
-            subject: composed.subject,
-            status: "sent",
-            sentAt: FieldValue.serverTimestamp(),
-            lastEventAt: null,
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-          });
-        })
-      );
-      results.forEach((res) => (res.status === "fulfilled" ? sentCount++ : failedCount++));
-    }
+    // Odeslat přes Resend batch API (limit požadavků za sekundu), neodeslané se uloží jako failed
+    const { sent: sentCount, failed: failedCount } = await sendCampaignEmails({
+      db,
+      campaignId: campaignRef.id,
+      html: tplHtml,
+      subject: tplSubject,
+      company,
+      baseUrl,
+      sender: { senderName, senderEmail, uid: user.uid },
+      targets,
+    });
 
     await campaignRef.update({
       status: failedCount === targets.length ? "failed" : "sent",

@@ -16,7 +16,6 @@ export async function PATCH(
     const body = (await request.json()) as {
       role?: "admin" | "member" | "sales";
       active?: boolean;
-      commissionRate?: number | null;
       senderEmail?: string | null;
       senderName?: string | null;
     };
@@ -35,10 +34,6 @@ export async function PATCH(
     if (typeof body.active === "boolean") {
       await auth.updateUser(id, { disabled: !body.active });
       updates.active = body.active;
-    }
-
-    if (body.commissionRate !== undefined) {
-      updates.commissionRate = body.commissionRate;
     }
 
     if (body.senderEmail !== undefined) {

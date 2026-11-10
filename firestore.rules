@@ -140,6 +140,19 @@ service cloud.firestore {
 
     // Prospect categories — číselník kategorií kontaktů; read for team,
     // write via admin SDK (route handlers)
+    // Promo kódy — jen přes admin SDK (správa v Nastavení, ověření z webu).
+    match /promoCodes/{code} {
+      allow read, write: if false;
+    }
+
+    // Náklady provozu — jen přes admin SDK (přehled /costs).
+    match /costServices/{serviceId} {
+      allow read, write: if false;
+    }
+    match /costPayments/{paymentId} {
+      allow read, write: if false;
+    }
+
     match /prospectCategories/{categoryId} {
       allow read: if isTeam();
       allow write: if false;
@@ -150,12 +163,6 @@ service cloud.firestore {
       allow read: if isTeam();
       allow create: if isTeam();
       allow update, delete: if false;
-    }
-
-    // Commissions — sales reads own, admin/member reads all, write via admin SDK
-    match /commissions/{commId} {
-      allow read: if isTeam() && (isAdminOrMember() || resource.data.salesUid == request.auth.uid);
-      allow write: if false;
     }
 
     // Settings — read for team, write for admin
@@ -232,6 +239,15 @@ service cloud.firestore {
     }
     // Žádosti o referenci e-mailem (osobní jednorázové odkazy, e-maily zákazníků).
     match /hubInvites/{token} {
+      allow read, write: if false;
+    }
+    // Hodnocení přednášek (spx-hub, spec/assign/zadani-hodnoceni-prednasek.md):
+    // přednášky lektorů a hodnocení posluchačů včetně kontaktů a otisků.
+    // Jen spx-hub přes Admin SDK, klientský SDK nic. Kontakty se do CRM nepřenáší.
+    match /lectures/{lectureId} {
+      allow read, write: if false;
+    }
+    match /lectureRatings/{ratingId} {
       allow read, write: if false;
     }
   }

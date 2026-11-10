@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useInFormModal } from "@/components/form-modal";
 
 /**
  * Patička formulářové routy: primární akce + „Zrušit" (odkaz zpět). Na mobilu
  * lepí ke spodnímu okraji, aby byla akce vždy po ruce; na desktopu je v toku.
+ * V modálu (`FormModal`) „Zrušit“ modál zavře.
  */
 export function FormActions({
   cancelHref,
@@ -15,6 +18,7 @@ export function FormActions({
   submitting = false,
   disabled = false,
   onSubmit,
+  onCancel,
   icon,
   children,
 }: {
@@ -25,10 +29,14 @@ export function FormActions({
   disabled?: boolean;
   /** Bez `onSubmit` je tlačítko `type="submit"` (odešle obalující `<form>`). */
   onSubmit?: () => void;
+  /** Při kliknutí na „Zrušit" (např. smazání konceptu formuláře). */
+  onCancel?: () => void;
   icon?: React.ReactNode;
   /** Další akce na opačném konci lišty (např. smazání). */
   children?: React.ReactNode;
 }) {
+  const router = useRouter();
+  const inModal = useInFormModal();
   return (
     <div className="sticky bottom-0 z-10 -mx-4 -mb-6 flex flex-wrap items-center gap-2 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0 md:pt-2 md:backdrop-blur-none">
       <Button
@@ -40,14 +48,28 @@ export function FormActions({
         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : icon}
         {submitting ? submittingLabel : submitLabel}
       </Button>
-      <Button
-        variant="ghost"
-        nativeButton={false}
-        disabled={submitting}
-        render={<Link href={cancelHref} />}
-      >
-        Zrušit
-      </Button>
+      {!inModal ? (
+        <Button
+          variant="ghost"
+          nativeButton={false}
+          disabled={submitting}
+          render={<Link href={cancelHref} onClick={onCancel} />}
+        >
+          Zrušit
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={submitting}
+          onClick={() => {
+            onCancel?.();
+            router.back();
+          }}
+        >
+          Zrušit
+        </Button>
+      )}
       {children && <div className="ml-auto flex items-center gap-2">{children}</div>}
     </div>
   );

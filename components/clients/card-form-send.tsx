@@ -5,13 +5,13 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Copy, Send, Loader2 } from "lucide-react";
+import { BellRing, Check, Copy, Send, Loader2 } from "lucide-react";
 import { buildCardFormUrl } from "@/lib/card-form-url";
 
 /**
  * Formulář podkladů jako routa `/clients/[id]/send/form`. Pošle klientovi
  * e-mail s odkazem na formulář, případně ukáže už vytvořený odkaz ke
- * zkopírování nebo opětovnému odeslání.
+ * zkopírování, připomenutí (stejný odkaz) nebo opětovnému odeslání.
  */
 export function CardFormSend({
   clientId,
@@ -26,7 +26,10 @@ export function CardFormSend({
   backHref: string;
 }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [sentNow, setSentNow] = useState(false);
+  const [remindedNow, setRemindedNow] = useState(false);
+  const [reminding, setReminding] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -37,7 +40,10 @@ export function CardFormSend({
       .then((res) => (res.ok ? res.json() : []))
       .then((tokens: Array<{ id: string; usedAt?: string }>) => {
         const unused = tokens.find((t) => !t.usedAt);
-        if (unused) setUrl(buildCardFormUrl(unused.id));
+        if (unused) {
+          setToken(unused.id);
+          setUrl(buildCardFormUrl(unused.id));
+        }
       })
       .catch(() => {})
       .finally(() => setInitialLoading(false));
@@ -59,6 +65,7 @@ export function CardFormSend({
         emailSent?: boolean;
         emailError?: string;
       };
+      setToken(token);
       setUrl(buildCardFormUrl(token));
       setSentNow(true);
       if (emailSent) {
@@ -75,6 +82,24 @@ export function CardFormSend({
     } finally {
       inFlight.current = false;
       setLoading(false);
+    }
+  }
+
+  async function handleRemind() {
+    if (!token || inFlight.current) return;
+    inFlight.current = true;
+    setReminding(true);
+    try {
+      const res = await fetch(`/api/card-tokens/${token}/remind`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error);
+      setRemindedNow(true);
+      toast.success(`Připomenutí odesláno na ${data.email ?? clientEmail}`);
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Připomenutí se nepodařilo odeslat");
+    } finally {
+      inFlight.current = false;
+      setReminding(false);
     }
   }
 
@@ -95,16 +120,24 @@ export function CardFormSend({
 
   return (
     <div className="space-y-5">
-      {url && !sentNow && (
+      {url && !sentNow && !remindedNow && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-700 dark:bg-amber-950">
           <p className="font-medium text-amber-800 dark:text-amber-300">
             Formulář už byl tomuto klientovi odeslán.
           </p>
           <p className="mt-1 text-amber-700 dark:text-amber-400">
-            Odkaz můžete zkopírovat a poslat ručně. Opětovné odeslání vytvoří nový
-            odkaz a pošle další e-mail.
+            Připomenout pošle připomínku se stejným odkazem. Odkaz můžete také
+            zkopírovat a poslat ručně. Poslat znovu vytvoří nový odkaz a pošle
+            úvodní e-mail ještě jednou.
           </p>
         </div>
+      )}
+
+      {remindedNow && (
+        <p className="text-sm text-muted-foreground">
+          Připomenutí odešlo na{" "}
+          <span className="font-medium text-foreground">{clientEmail}</span>.
+        </p>
       )}
 
       {sentNow && (
@@ -137,13 +170,27 @@ export function CardFormSend({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        {sentNow ? (
+        {sentNow || remindedNow ? (
           <Button nativeButton={false} render={<Link href={backHref} />}>
             Hotovo
           </Button>
         ) : (
           <>
-            <Button onClick={handleSend} disabled={loading}>
+            {token && (
+              <Button onClick={handleRemind} disabled={reminding || loading}>
+                {reminding ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <BellRing className="mr-2 h-4 w-4" />
+                )}
+                {reminding ? "Odesílám..." : "Připomenout"}
+              </Button>
+            )}
+            <Button
+              variant={token ? "outline" : "default"}
+              onClick={handleSend}
+              disabled={loading || reminding}
+            >
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -154,7 +201,7 @@ export function CardFormSend({
             <Button
               variant="ghost"
               nativeButton={false}
-              disabled={loading}
+              disabled={loading || reminding}
               render={<Link href={backHref} />}
             >
               Zrušit

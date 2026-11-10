@@ -54,12 +54,17 @@ import { ProjectsSection, type ProjectData } from "./projects-section";
 import { ConfirmButton } from "@/components/confirm-button";
 import { HubFeaturesToggles } from "./hub-features";
 import type { HubFeatures } from "@/lib/hub-features";
+import { ticketStatusLabels, ticketTypeLabels } from "@/lib/ticket-labels";
+import { greetingName } from "@/lib/marketing/personalize";
+import { SendEmailDialog } from "./send-email-dialog";
 
 interface ClientData {
   id: string;
   name: string;
   kind: "person" | "company";
   contactName?: string;
+  /** Vlastní oslovení v 5. pádě. */
+  greeting?: string;
   company?: string;
   ico?: string;
   dic?: string;
@@ -92,6 +97,9 @@ interface InstanceData {
   deployUrl?: string;
   features: string[];
   notes?: string;
+  ga4PropertyId?: string;
+  ga4ConnectedAt?: string | null;
+  searchConsoleConnectedAt?: string | null;
 }
 
 interface ActivityData {
@@ -135,14 +143,6 @@ const priorityLabels: Record<string, string> = {
   urgent: "Urgentní",
 };
 
-const ticketStatusLabels: Record<string, string> = {
-  open: "Otevřený",
-  in_progress: "V řešení",
-  waiting_client: "Čeká na klienta",
-  resolved: "Vyřešený",
-  closed: "Uzavřený",
-};
-
 function getInitials(name: string): string {
   const parts = name.split(" ").filter(Boolean);
   if (parts.length >= 2)
@@ -158,6 +158,24 @@ function ChipGroup({ label, children }: { label: string; children: React.ReactNo
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
+  );
+}
+
+/** Expirace domény za názvem v čipu („· do 12. 3. 2027"), naléhavá červeně. */
+function DomainExpiry({ domain }: { domain?: DomainData }) {
+  if (!domain?.renewalAt) return null;
+  const s = renewalStatus(domain.renewalAt);
+  const alert = !domain.autoRenew && (s.level === "urgent" || s.level === "overdue");
+  return (
+    <span
+      className={cn("text-muted-foreground", alert && "text-red-600 dark:text-red-400")}
+      suppressHydrationWarning
+    >
+      {" · "}
+      {s.level === "overdue" && !domain.autoRenew
+        ? "po expiraci"
+        : `do ${new Date(domain.renewalAt).toLocaleDateString("cs-CZ")}`}
+    </span>
   );
 }
 
@@ -264,6 +282,7 @@ export function ClientDetailClient({
   const isCompany = client.kind === "company";
   const router = useRouter();
   const [acting, setActing] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
   // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový úkol…) vedl zpět na ni.
   const pathname = usePathname();
@@ -438,6 +457,7 @@ export function ClientDetailClient({
                   }
                 >
                   {inst.domain}
+                  <DomainExpiry domain={domains.find((d) => d.name === inst.domain)} />
                 </ContactChip>
               ))}
               {domains
@@ -449,6 +469,7 @@ export function ClientDetailClient({
                     icon={<Link2 className="h-3.5 w-3.5 shrink-0" />}
                   >
                     {d.name}
+                    <DomainExpiry domain={d} />
                   </ContactChip>
                 ))}
               {(client.hubInvitedAt || client.hubLastSignInAt) && (
@@ -488,7 +509,7 @@ export function ClientDetailClient({
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {domainAlerts.length === 1
-                ? `Obnovit doménu ${domainAlerts[0].d.name} — ${renewalLabel(domainAlerts[0].s)}`
+                ? `Obnovit doménu ${domainAlerts[0].d.name}, ${renewalLabel(domainAlerts[0].s)}`
                 : `${domainAlerts.length} domén potřebuje obnovit`}
             </span>
           </button>
@@ -547,7 +568,7 @@ export function ClientDetailClient({
                 {isAdminOrMember && (
                   <>
                     {(showCardActions || hasCard) && <DropdownMenuSeparator />}
-                    <DropdownMenuItem onClick={() => router.push(`${base}/send/email`)}>
+                    <DropdownMenuItem onClick={() => setSendEmailOpen(true)}>
                       <Mail className="mr-2 h-4 w-4" />
                       Poslat e-mail ze šablony
                     </DropdownMenuItem>
@@ -555,6 +576,16 @@ export function ClientDetailClient({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          {isAdminOrMember && client.email && !isArchived && (
+            <SendEmailDialog
+              open={sendEmailOpen}
+              onOpenChange={setSendEmailOpen}
+              clientId={client.id}
+              clientEmail={client.email}
+              defaultGreeting={greetingName(client)}
+              defaultLink={instances.find((i) => i.deployUrl)?.deployUrl ?? ""}
+            />
           )}
           {isAdminOrMember && !isArchived && (
             <ConfirmButton
@@ -688,7 +719,7 @@ export function ClientDetailClient({
             {!isSales && salesUsers.length > 0 && (
               <div className="rounded-2xl border bg-card p-4 shadow-xs">
                 <h3 className="font-semibold">Obchodní vlastník</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Obchodník s nárokem na provize z faktur tohoto klienta.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Obchodník, který má klienta na starosti.</p>
                 <Select
                   items={{
                     none: "— Bez vlastníka —",
@@ -805,7 +836,7 @@ export function ClientDetailClient({
         <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (
             <div className="flex justify-end">
-              <Button size="sm" nativeButton={false} render={<Link href={`/tickets/new?clientId=${client.id}`} />}>
+              <Button size="sm" nativeButton={false} render={<Link href={`/backlog/new?clientId=${client.id}`} />}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 Nový ticket
               </Button>
@@ -818,7 +849,7 @@ export function ClientDetailClient({
               {tickets.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/tickets/${t.id}?from=client`}
+                  href={`/backlog/${t.id}?from=client`}
                   className="block rounded-xl border bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -836,7 +867,7 @@ export function ClientDetailClient({
                     </Badge>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span>{t.type === "bug" ? "Bug" : "Změna"}</span>
+                    <span>{ticketTypeLabels[t.type] ?? t.type}</span>
                     <span>{ticketStatusLabels[t.status] ?? t.status}</span>
                     {t.createdAt && (
                       <span>

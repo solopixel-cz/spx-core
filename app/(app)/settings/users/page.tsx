@@ -34,7 +34,6 @@ interface UserRow {
   displayName: string;
   role: "admin" | "member" | "sales";
   active: boolean;
-  commissionRate?: number;
   senderEmail?: string;
   senderName?: string;
 }

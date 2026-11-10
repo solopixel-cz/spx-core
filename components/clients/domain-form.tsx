@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { FormActions } from "@/components/form-actions";
@@ -10,6 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 import { domainFormSchema, type DomainFormData } from "@/lib/schemas/domain";
 import type { DomainData } from "./domains-tab";
@@ -20,20 +28,26 @@ function toDateInput(iso: string | null | undefined): string {
   return iso.slice(0, 10);
 }
 
+const NO_CLIENT = "__none__";
+
 /**
- * Formulář domény na routách `/clients/[id]/domains/...`. U existující domény
+ * Formulář domény na routách `/clients/[id]/domains/...` a ve správě domén
+ * `/domains/...` (s `clients` navíc výběr klienta). U existující domény
  * i trvalé odebrání (inline potvrzení).
  */
 export function DomainForm({
   clientId,
   domain,
   backHref,
+  clients,
 }: {
-  clientId: string;
+  clientId: string | null;
   domain?: DomainData;
   backHref: string;
+  /** Správa domén: klienta jde vybrat nebo nechat prázdného. */
+  clients?: { id: string; name: string }[];
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!domain;
 
   const {
@@ -41,24 +55,36 @@ export function DomainForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<DomainFormData>({
     resolver: zodResolver(domainFormSchema),
     defaultValues: domain
       ? {
           name: domain.name,
+          ...(clients ? { clientId: domain.clientId ?? "" } : {}),
           registrar: domain.registrar ?? "",
           account: domain.account ?? "",
           hosting: domain.hosting ?? "",
           purchasedAt: toDateInput(domain.purchasedAt),
           renewalAt: toDateInput(domain.renewalAt),
           autoRenew: domain.autoRenew ?? false,
+          price: domain.price != null ? String(domain.price) : "",
           note: domain.note ?? "",
         }
-      : { autoRenew: false },
+      : { autoRenew: false, ...(clients ? { clientId: clientId ?? "" } : {}) },
   });
 
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `domain:${clients ? "all" : clientId}:${domain?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
+
   const autoRenew = watch("autoRenew") ?? false;
+  const selectedClient = watch("clientId") || NO_CLIENT;
+  const clientItems = clients
+    ? { [NO_CLIENT]: "Bez klienta", ...Object.fromEntries(clients.map((c) => [c.id, c.name])) }
+    : {};
 
   async function onSubmit(data: DomainFormData) {
     try {
@@ -66,12 +92,13 @@ export function DomainForm({
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isEdit ? data : { ...data, clientId }),
+        body: JSON.stringify(isEdit || clients ? data : { ...data, clientId }),
       });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Chyba při ukládání");
       }
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Doména aktualizována" : "Doména přidána");
       router.push(backHref);
       router.refresh();
@@ -102,6 +129,31 @@ export function DomainForm({
         )}
       </div>
 
+      {clients && (
+        <div className="space-y-2">
+          <Label>Klient</Label>
+          <Select
+            items={clientItems}
+            value={selectedClient}
+            onValueChange={(val) =>
+              setValue("clientId", !val || val === NO_CLIENT ? "" : String(val), { shouldDirty: true })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Bez klienta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_CLIENT}>Bez klienta</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="registrar">Registrátor (kde koupeno)</Label>
@@ -129,6 +181,22 @@ export function DomainForm({
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="domainPrice">Cena obnovení za rok (Kč)</Label>
+        <Input
+          id="domainPrice"
+          inputMode="decimal"
+          placeholder="např. 289"
+          className="sm:max-w-48"
+          {...register("price")}
+        />
+        {errors.price ? (
+          <p className="text-sm text-destructive">{errors.price.message}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Započítá se do nákladů po měsících.</p>
+        )}
+      </div>
+
       <div className="flex items-center gap-2">
         <Checkbox
           checked={autoRenew}
@@ -148,6 +216,7 @@ export function DomainForm({
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Přidat"}

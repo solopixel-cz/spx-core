@@ -8,13 +8,14 @@ import {
   Users,
   BookUser,
   Receipt,
-  Percent,
   CreditCard,
   CheckSquare,
-  TicketCheck,
+  SquareKanban,
   ClipboardList,
   Mails,
   Settings,
+  Globe,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,8 @@ const navGroups: NavGroup[] = [
     title: "Provoz",
     items: [
       { label: "Úkoly", href: "/tasks", icon: CheckSquare },
-      { label: "Tickety", href: "/tickets", icon: TicketCheck },
+      { label: "Backlog", href: "/backlog", icon: SquareKanban },
+      { label: "Domény", href: "/domains", icon: Globe, roles: ["admin", "member"] },
     ],
   },
   {
@@ -74,12 +76,7 @@ const navGroups: NavGroup[] = [
         icon: Receipt,
         roles: ["admin", "member"],
       },
-      {
-        label: "Provize",
-        href: "/commissions",
-        icon: Percent,
-        roles: ["admin", "member"],
-      },
+      { label: "Náklady", href: "/costs", icon: Wallet, roles: ["admin", "member"] },
     ],
   },
   {

@@ -3,13 +3,12 @@ import { requireAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Users,
-  FileText,
   Archive,
-  Percent,
   User,
   ClipboardList,
   Bell,
   Receipt,
+  TicketPercent,
 } from "lucide-react";
 
 interface Tile {
@@ -29,17 +28,17 @@ const tiles: Tile[] = [
     roles: ["admin"],
   },
   {
-    label: "E-mailové šablony",
-    description: "E-maily pro oslovení a předání vizitky",
-    href: "/settings/templates",
-    icon: FileText,
-    roles: ["admin"],
-  },
-  {
     label: "Fakturační údaje",
     description: "Údaje dodavatele na fakturách, účet a QR platba",
     href: "/settings/billing-details",
     icon: Receipt,
+    roles: ["admin"],
+  },
+  {
+    label: "Promo kódy",
+    description: "Kódy pro formulář na webu, platnost a počet použití",
+    href: "/settings/promo-codes",
+    icon: TicketPercent,
     roles: ["admin"],
   },
   {
@@ -61,12 +60,6 @@ const tiles: Tile[] = [
     description: "Archivované záznamy — obnova a trvalé mazání",
     href: "/settings/archive",
     icon: Archive,
-  },
-  {
-    label: "Provize",
-    description: "Přehled, vyplácení provizí a výchozí sazba",
-    href: "/commissions",
-    icon: Percent,
   },
   {
     label: "Můj profil",

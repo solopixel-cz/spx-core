@@ -10,7 +10,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 
 let configured: boolean | null = null;
 
-function ensureConfigured(): boolean {
+export function ensureConfigured(): boolean {
   if (configured !== null) return configured;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -23,6 +23,12 @@ function ensureConfigured(): boolean {
   configured = true;
   return true;
 }
+
+/**
+ * Vysoká naléhavost: telefon (Android Doze, iOS) push doručí hned, ne až při
+ * probuzení hromadně s ostatními. Platnost 1 den, ať staré zprávy nechodí po týdnu.
+ */
+const SEND_OPTIONS = { urgency: "high", TTL: 86_400 } as const;
 
 export interface PushPayload {
   title: string;
@@ -60,7 +66,8 @@ export async function sendPushToUsers(
           try {
             await webpush.sendNotification(
               { endpoint: sub.endpoint, keys: sub.keys },
-              payloadStr
+              payloadStr,
+              SEND_OPTIONS
             );
           } catch (error) {
             const statusCode = (error as { statusCode?: number })?.statusCode;

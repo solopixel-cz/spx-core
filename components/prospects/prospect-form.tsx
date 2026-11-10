@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { toast } from "sonner";
 import { FormActions } from "@/components/form-actions";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ export function ProspectForm({
   /** Když je předán, formulář edituje existující kontakt (PATCH), jinak vytváří nový (POST). */
   prospect?: ProspectEditValues;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!prospect;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(prospect?.name ?? "");

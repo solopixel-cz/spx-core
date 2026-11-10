@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 /**
  * Registrace service workeru (jen v produkci — v dev by cache překážela)
@@ -9,9 +10,9 @@ import { useEffect } from "react";
  *    z HTTP cache (jinak by novou verzi nemusel zaznamenat klidně 24 h).
  *  - `registration.update()` při startu, návratu na tab a jednou za hodinu —
  *    PWA v režimu standalone se nezavírá, takže bez toho by update nikdy nepřišel.
- *  - `controllerchange` → jednorázový reload, aby nová verze (vzhled i kód)
- *    naskočila hned, ne až po ručním zavření všech tabů. Guard `hadController`
- *    brání zbytečnému reloadu při úplně první instalaci SW.
+ *  - `controllerchange` → nabídka „Obnovit“ v toastu (ne automatický reload:
+ *    ten v Safari mazal rozepsané formuláře). Guard `hadController` brání
+ *    hlášce při úplně první instalaci SW.
  */
 export function SwRegister() {
   useEffect(() => {
@@ -27,11 +28,15 @@ export function SwRegister() {
     const cleanup: Array<() => void> = [];
 
     const onControllerChange = () => {
-      // Nová verze SW převzala řízení. Reload jen pokud už dřív nějaký SW řídil
-      // (tj. jde o update, ne o úplně první instalaci) a jen jednou.
+      // Nová verze SW převzala řízení. Hláška jen pokud už dřív nějaký SW řídil
+      // (tj. jde o update, ne o úplně první instalaci) a jen jednou. Obnovení
+      // nechává na uživateli, aby nepřišel o rozepsaná data.
       if (!hadController || refreshing) return;
       refreshing = true;
-      window.location.reload();
+      toast("Je dostupná nová verze CRM", {
+        duration: Infinity,
+        action: { label: "Obnovit", onClick: () => window.location.reload() },
+      });
     };
     navigator.serviceWorker.addEventListener(
       "controllerchange",

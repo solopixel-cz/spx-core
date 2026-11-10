@@ -28,7 +28,7 @@ import { useTableSort } from "@/lib/use-table-sort";
 
 export interface DomainData {
   id: string;
-  clientId: string;
+  clientId: string | null;
   name: string;
   registrar?: string | null;
   account?: string | null;
@@ -36,6 +36,7 @@ export interface DomainData {
   purchasedAt?: string | null;
   renewalAt?: string | null;
   autoRenew?: boolean;
+  price?: number | null;
   note?: string | null;
 }
 

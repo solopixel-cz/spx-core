@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { useForm } from "react-hook-form";
+import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
 import { ConfirmButton } from "@/components/confirm-button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,13 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PLANS, SERVICE_LABELS, subscriptionLabel, type PlanKey } from "@/lib/plans";
+import { PLANS, SERVICE_LABELS, billedMonths, subscriptionLabel, type PlanKey } from "@/lib/plans";
 import {
   subscriptionFormSchema,
   subscriptionServices,
   type SubscriptionFormData,
   type SubscriptionService,
 } from "@/lib/schemas/subscription";
+import { discountUntilAfterMonths } from "@/lib/discount";
 import type { SubData, SubInstanceOption } from "./subscription-card";
 
 export const subscriptionStatusLabels: Record<string, string> = {
@@ -58,7 +61,7 @@ export function SubscriptionForm({
   instances: SubInstanceOption[];
   backHref: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!subscription;
 
   const {
@@ -66,6 +69,8 @@ export function SubscriptionForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<SubscriptionFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,12 +86,17 @@ export function SubscriptionForm({
           status: subscription.status as SubscriptionFormData["status"],
           discountPercent: subscription.discountPercent ?? 0,
           discountNote: subscription.discountNote ?? "",
+          discountUntil: toDateInput(subscription.discountUntil),
           internal: subscription.internal ?? false,
           startedAt: toDateInput(subscription.startedAt),
           nextInvoiceAt: toDateInput(subscription.nextInvoiceAt),
         }
       : NEW_DEFAULTS,
   });
+
+  // Rozepsaný formulář přežije znovunačtení stránky (Safari, uspaná záložka).
+  const draftKey = `subscription:${clientId}:${subscription?.id ?? "new"}`;
+  useFormDraft({ key: draftKey, form: { watch, reset, getValues } });
 
   const service = watch("service");
   const isCard = service === "card";
@@ -102,6 +112,7 @@ export function SubscriptionForm({
         body: JSON.stringify(isEdit ? data : { ...data, clientId }),
       });
       if (!res.ok) throw new Error();
+      clearFormDraft(draftKey);
       toast.success(isEdit ? "Předplatné aktualizováno" : "Předplatné založeno");
       router.push(backHref);
       router.refresh();
@@ -147,9 +158,10 @@ export function SubscriptionForm({
   const wPrice = Number(watch("priceMonthly")) || 0;
   const wCycle = watch("billingCycle");
   const wDiscount = Number(watch("discountPercent")) || 0;
-  // priceMonthly je vždy měsíční cena; roční fakturace = 12× (stejně jako cron a faktura).
-  const wFactor = wCycle === "yearly" ? 12 : 1;
+  // priceMonthly je vždy měsíční cena; roční fakturace = billedMonths() (stejně jako cron a faktura).
+  const wFactor = billedMonths({ service, billingCycle: wCycle });
   const wAfterDiscount = Math.round(wPrice * wFactor * (1 - wDiscount / 100));
+  const wDiscountUntil = watch("discountUntil");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -222,7 +234,9 @@ export function SubscriptionForm({
           <Label htmlFor="priceMonthly">Cena za měsíc (Kč)</Label>
           <Input id="priceMonthly" type="number" {...register("priceMonthly")} />
           {wCycle === "yearly" && (
-            <p className="text-xs text-muted-foreground">Fakturuje se ročně: 12 × měsíční cena</p>
+            <p className="text-xs text-muted-foreground">
+              Fakturuje se ročně: {wFactor} × měsíční cena{isCard ? " (2 měsíce zdarma)" : ""}
+            </p>
           )}
           {errors.priceMonthly && <p className="text-sm text-destructive">{errors.priceMonthly.message}</p>}
         </div>
@@ -249,9 +263,29 @@ export function SubscriptionForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="discountNote">Důvod slevy</Label>
-          <Input id="discountNote" placeholder="Např. první rok zdarma" {...register("discountNote")} />
+          <Input id="discountNote" placeholder="Např. akce první 3 měsíce" {...register("discountNote")} />
         </div>
       </div>
+
+      {wDiscount > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="discountUntil">Sleva platí do</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input id="discountUntil" type="date" className="w-auto" {...register("discountUntil")} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setValue("discountUntil", discountUntilAfterMonths(watch("startedAt"), 3))}
+            >
+              První 3 měsíce
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Včetně tohoto dne. Prázdné = trvalá sleva. Po konci akce se fakturuje plná cena.
+          </p>
+        </div>
+      )}
 
       <label className="flex items-start gap-3 rounded-xl border p-3">
         <Checkbox
@@ -312,11 +346,18 @@ export function SubscriptionForm({
           <p className="mt-0.5 text-right text-xs text-muted-foreground">
             <span className="line-through">{(wPrice * wFactor).toLocaleString("cs-CZ")} Kč</span>
             {" "}· sleva −{wDiscount} %
+            {wDiscountUntil && (
+              <>
+                {" "}do {new Date(wDiscountUntil).toLocaleDateString("cs-CZ")}, pak{" "}
+                {(wPrice * wFactor).toLocaleString("cs-CZ")} Kč/{unit(wCycle)}
+              </>
+            )}
           </p>
         )}
       </div>
 
       <FormActions
+        onCancel={() => clearFormDraft(draftKey)}
         cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Založit"}
@@ -348,5 +389,6 @@ const NEW_DEFAULTS: Partial<SubscriptionFormData> = {
   status: "active",
   discountPercent: 0,
   discountNote: "",
+  discountUntil: "",
   internal: false,
 };

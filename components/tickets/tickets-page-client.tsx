@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { LayoutList, Plus, SquareKanban } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -41,13 +41,17 @@ import {
   ticketStatusLabels as statusLabels,
   ticketPriorityVariants as priorityVariants,
   TICKET_STATUSES,
+  ticketColumn,
 } from "@/lib/ticket-labels";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BacklogBoard } from "@/components/tickets/backlog-board";
 import { SortableHead } from "@/components/sortable-head";
 import { useTableSort } from "@/lib/use-table-sort";
 
 interface TicketRow {
   id: string;
-  clientId: string;
+  /** null = interní ticket. */
+  clientId: string | null;
   clientName: string;
   type: string;
   title: string;
@@ -56,11 +60,32 @@ interface TicketRow {
   status: string;
   assigneeUid?: string;
   links: string[];
+  prCount: number;
+  /** Zpětná vazba od klienta z HUBu. */
+  fromHub?: boolean;
+  /** Klient napsal a tým ticket ještě neotevřel. */
+  unread?: boolean;
   createdAt: string | null;
+  updatedAt: string | null;
   deletedAt?: string | null;
 }
 
+function SourceBadges({ t }: { t: TicketRow }) {
+  if (!t.fromHub) return null;
+  return (
+    <>
+      {t.unread && <Badge className="mr-1.5">Nové</Badge>}
+      <Badge variant="secondary" className="mr-1.5">HUB</Badge>
+    </>
+  );
+}
+
 interface ClientOption { id: string; name: string }
+interface UserOption { id: string; name: string }
+
+const SOURCE_LABELS: Record<string, string> = { all: "Odkudkoli", hub: "Z HUBu", crm: "Z CRM" };
+const INTERNAL = "__internal__";
+const UNASSIGNED = "__none__";
 
 // Priorita a stav se řadí podle pořadí (nízká → urgentní, otevřený → uzavřený), neznámé na konec.
 const priorityOrder = Object.keys(priorityLabels);
@@ -69,14 +94,24 @@ function rank(order: string[], value: string): number | null {
   return i === -1 ? null : i;
 }
 
+/** Backlog (`/backlog`): nástěnka po stavech, nebo tabulka (`?view=list`, archiv vždy jako tabulka). */
 export function TicketsPageClient({
   tickets,
   clients,
+  users,
+  currentUid,
+  showInternal = false,
+  view = "board",
   canArchive = false,
   archived = false,
 }: {
   tickets: TicketRow[];
   clients: ClientOption[];
+  users: UserOption[];
+  currentUid: string;
+  /** Filtr „Interní“ (obchodník interní tickety nevidí). */
+  showInternal?: boolean;
+  view?: "board" | "list";
   canArchive?: boolean;
   /** Tabulka archivovaných ticketů (`?archived=1`). */
   archived?: boolean;
@@ -86,13 +121,33 @@ export function TicketsPageClient({
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [now] = useState(() => Date.now());
 
+  const userNames = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u.name])), [users]);
+  const assigneeItems: Record<string, string> = {
+    all: "Všichni",
+    [currentUid]: "Já",
+    ...Object.fromEntries(users.filter((u) => u.id !== currentUid).map((u) => [u.id, u.name])),
+    [UNASSIGNED]: "Nepřiřazeno",
+  };
+  const clientItems: Record<string, string> = {
+    all: "Všichni klienti",
+    ...(showInternal ? { [INTERNAL]: "Interní" } : {}),
+    ...Object.fromEntries(clients.map((c) => [c.id, c.name])),
+  };
+
   const filtered = tickets.filter((t) => {
-    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (view === "list" && statusFilter !== "all" && ticketColumn(t.status) !== statusFilter) return false;
     if (typeFilter !== "all" && t.type !== typeFilter) return false;
     if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
-    if (clientFilter !== "all" && t.clientId !== clientFilter) return false;
+    if (clientFilter === INTERNAL && t.clientId) return false;
+    if (clientFilter !== "all" && clientFilter !== INTERNAL && t.clientId !== clientFilter) return false;
+    if (assigneeFilter === UNASSIGNED && t.assigneeUid) return false;
+    if (assigneeFilter !== "all" && assigneeFilter !== UNASSIGNED && t.assigneeUid !== assigneeFilter) return false;
+    if (sourceFilter === "hub" && !t.fromHub) return false;
+    if (sourceFilter === "crm" && t.fromHub) return false;
     return true;
   });
   // Řazení po filtrech; výchozí abecedně podle klienta.
@@ -103,7 +158,7 @@ export function TicketsPageClient({
       title: (t) => t.title,
       client: (t) => t.clientName,
       priority: (t) => rank(priorityOrder, t.priority),
-      status: (t) => rank(TICKET_STATUSES, t.status),
+      status: (t) => rank(TICKET_STATUSES, ticketColumn(t.status)),
       // Stáří: vzestupně = nejmladší první.
       age: (t) => (t.createdAt ? -new Date(t.createdAt).getTime() : null),
       archivedAt: (t) => (t.deletedAt ? new Date(t.deletedAt) : null),
@@ -113,7 +168,8 @@ export function TicketsPageClient({
   const visibleIds = useMemo(() => filtered.map((t) => t.id), [filtered]);
   const selection = useRowSelection(visibleIds, archived ? "tickets:archive" : "tickets");
 
-  const openTicket = (id: string) => router.push(`/tickets/${id}`);
+  const openTicket = (id: string) => router.push(`/backlog/${id}`);
+  const setView = (next: string) => router.replace(next === "list" ? "/backlog?view=list" : "/backlog", { scroll: false });
 
   function getTimeSince(dateStr: string | null): string {
     if (!dateStr) return "";
@@ -126,11 +182,25 @@ export function TicketsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{archived ? "Archiv ticketů" : "Tickety"}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{archived ? "Archiv ticketů" : "Backlog"}</h1>
         <div className="flex items-center gap-2">
+          {!archived && (
+            <Tabs value={view} onValueChange={(v) => setView(String(v))}>
+              <TabsList className="max-sm:w-auto">
+                <TabsTrigger value="board" aria-label="Nástěnka">
+                  <SquareKanban />
+                  <span className="max-sm:hidden">Nástěnka</span>
+                </TabsTrigger>
+                <TabsTrigger value="list" aria-label="Seznam">
+                  <LayoutList />
+                  <span className="max-sm:hidden">Seznam</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           {canArchive && <ArchiveToggle archived={archived} />}
           {!archived && (
-            <Button size="sm" nativeButton={false} render={<Link href="/tickets/new" />}>
+            <Button size="sm" nativeButton={false} render={<Link href="/backlog/new" />}>
               <Plus className="mr-2 h-4 w-4" />
               Nový ticket
             </Button>
@@ -141,13 +211,21 @@ export function TicketsPageClient({
       {archived && <ArchiveNotice count={tickets.length} />}
 
       <FilterBar>
-        <Select items={{ all: "Všechny stavy", ...statusLabels }} value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
+        <Select items={assigneeItems} value={assigneeFilter} onValueChange={(val) => setAssigneeFilter(val ?? "all")}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Všechny stavy</SelectItem>
-            {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            {Object.entries(assigneeItems).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        {view === "list" && (
+          <Select items={{ all: "Všechny stavy", ...statusLabels }} value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "all")}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Všechny stavy</SelectItem>
+              {TICKET_STATUSES.map((k) => <SelectItem key={k} value={k}>{statusLabels[k]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select items={{ all: "Všechny typy", ...typeLabels }} value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? "all")}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -162,22 +240,24 @@ export function TicketsPageClient({
             {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select
-          items={{
-            all: "Všichni klienti",
-            ...Object.fromEntries(clients.map((c) => [c.id, c.name])),
-          }}
-          value={clientFilter}
-          onValueChange={(val) => setClientFilter(val ?? "all")}
-        >
+        <Select items={clientItems} value={clientFilter} onValueChange={(val) => setClientFilter(val ?? "all")}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Všichni klienti</SelectItem>
-            {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            {Object.entries(clientItems).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select items={SOURCE_LABELS} value={sourceFilter} onValueChange={(val) => setSourceFilter(val ?? "all")}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(SOURCE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
       </FilterBar>
 
+      {view === "board" ? (
+        <BacklogBoard tickets={filtered} userNames={userNames} />
+      ) : (
+      <>
       {/* Mobil: karty */}
       <EntityCardList>
         {filtered.length === 0 ? (
@@ -188,7 +268,7 @@ export function TicketsPageClient({
               key={t.id}
               onClick={selection.active ? () => selection.toggle(t.id) : () => openTicket(t.id)}
               leading={canArchive ? <RowCheckbox selection={selection} id={t.id} /> : undefined}
-              title={t.title}
+              title={<><SourceBadges t={t} />{t.title}</>}
               badge={
                 <Badge variant={priorityVariants[t.priority] ?? "secondary"}>
                   {priorityLabels[t.priority] ?? t.priority}
@@ -243,7 +323,7 @@ export function TicketsPageClient({
                     </TableCell>
                   )}
                   <TableCell><Badge variant="outline">{typeLabels[t.type] ?? t.type}</Badge></TableCell>
-                  <TableCell className="font-medium">{t.title}</TableCell>
+                  <TableCell className="font-medium"><SourceBadges t={t} />{t.title}</TableCell>
                   <TableCell>{t.clientName}</TableCell>
                   <TableCell><Badge variant={priorityVariants[t.priority] ?? "secondary"}>{priorityLabels[t.priority] ?? t.priority}</Badge></TableCell>
                   <TableCell><Badge variant="secondary">{statusLabels[t.status] ?? t.status}</Badge></TableCell>
@@ -254,8 +334,10 @@ export function TicketsPageClient({
           </TableBody>
         </Table>
       </div>
+      </>
+      )}
 
-      {canArchive && (
+      {canArchive && view === "list" && (
         <BulkArchiveBar
           collection="tickets"
           selection={selection}

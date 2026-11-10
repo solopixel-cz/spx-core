@@ -103,7 +103,7 @@ export async function cascadeArchiveClient(clientId: string, actorUid: string) {
   for (const doc of ticketsSnap.docs) {
     if (doc.data().deletedAt) continue;
     const status = doc.data().status as string;
-    if (["open", "in_progress", "waiting_client"].includes(status)) {
+    if (["open", "in_progress", "code_review", "waiting_client"].includes(status)) {
       await doc.ref.update({
         deletedAt: FieldValue.serverTimestamp(),
         deletedBy: actorUid,
@@ -143,14 +143,13 @@ export async function checkDeleteConstraints(
   if (collection === "clients") {
     const checks = await Promise.all([
       db.collection("invoices").where("clientId", "==", id).limit(1).get(),
-      db.collection("commissions").where("clientId", "==", id).limit(1).get(),
       db.collection("instances").where("clientId", "==", id).limit(1).get(),
       db.collection("tickets").where("clientId", "==", id).limit(1).get(),
       db.collection("card-tokens").where("clientId", "==", id).limit(1).get(),
       db.collection("subscriptions").where("clientId", "==", id).limit(1).get(),
       db.collection("projects").where("clientId", "==", id).limit(1).get(),
     ]);
-    const labels = ["faktury", "provize", "instance", "tickety", "tokeny podkladů", "předplatné", "zakázky"];
+    const labels = ["faktury", "instance", "tickety", "tokeny podkladů", "předplatné", "zakázky"];
     const found = labels.filter((_, i) => !checks[i].empty);
     if (found.length > 0) return `Nelze trvale smazat — má navázané ${found.join(", ")}. Ponechejte v archivu.`;
   }
