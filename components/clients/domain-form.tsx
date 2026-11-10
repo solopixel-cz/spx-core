@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { useForm } from "react-hook-form";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +47,7 @@ export function DomainForm({
   /** Správa domén: klienta jde vybrat nebo nechat prázdného. */
   clients?: { id: string; name: string }[];
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!domain;
 
   const {

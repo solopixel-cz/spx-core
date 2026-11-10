@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useFormRouter } from "@/components/form-modal";
 import { useForm } from "react-hook-form";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,7 +68,7 @@ export function InstanceForm({
   instance?: InstanceFormValues;
   backHref: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
   const isEdit = !!instance;
   const [archiving, setArchiving] = useState(false);
 

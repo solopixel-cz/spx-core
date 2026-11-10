@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -18,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormActions } from "@/components/form-actions";
+import { useFormRouter, useInFormModal } from "@/components/form-modal";
 import { ticketFormSchema, type TicketFormData } from "@/lib/schemas/ticket";
 import { INTERNAL_LABEL, ticketPriorityLabels, ticketTypeLabels } from "@/lib/ticket-labels";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
@@ -73,7 +73,6 @@ export function TicketForm({
   allowInternal = false,
   backHref,
   doneHref,
-  inModal = false,
 }: {
   ticket?: TicketFormValues;
   clients: ClientOption[];
@@ -85,10 +84,10 @@ export function TicketForm({
   backHref: string;
   /** Kam po uložení (výchozí `backHref`). */
   doneHref?: string;
-  /** V modálu: Zrušit zavře modál, po vytvoření se otevře detail nového ticketu. */
-  inModal?: boolean;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
+  // V modálu se po vytvoření otevře detail nového ticketu.
+  const inModal = useInFormModal();
   const isEdit = !!ticket;
   // Odkazy k tiketu (např. fotky na Google Drive), spravované mimo react-hook-form.
   const [links, setLinks] = useState<string[]>(ticket?.links ?? []);
@@ -361,11 +360,8 @@ export function TicketForm({
       </div>
 
       <FormActions
-        onCancel={() => {
-          clearFormDraft(draftKey);
-          if (inModal) router.back();
-        }}
-        cancelHref={inModal ? undefined : backHref}
+        onCancel={() => clearFormDraft(draftKey)}
+        cancelHref={backHref}
         submitting={isSubmitting}
         submitLabel={isEdit ? "Uložit" : "Vytvořit ticket"}
       />

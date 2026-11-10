@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useFormRouter, useInFormModal } from "@/components/form-modal";
 import { toast } from "sonner";
 import { useForm, useFieldArray } from "react-hook-form";
 import { clearFormDraft, useFormDraft } from "@/lib/hooks/use-form-draft";
@@ -77,7 +77,8 @@ export function InvoiceForm({
   /** Upozornění nad položkami (např. skončená akce předplatného). */
   notice?: string;
 }) {
-  const router = useRouter();
+  const router = useFormRouter();
+  const inModal = useInFormModal();
   const [submitting, setSubmitting] = useState(false);
   const isEdit = !!invoice;
 
@@ -409,14 +410,27 @@ export function InvoiceForm({
                   </Button>
                 </>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                render={<Link href={cancelHref} onClick={() => clearFormDraft(draftKey)} />}
-                nativeButton={false}
-              >
-                Zrušit
-              </Button>
+              {inModal ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    clearFormDraft(draftKey);
+                    router.back();
+                  }}
+                >
+                  Zrušit
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  render={<Link href={cancelHref} onClick={() => clearFormDraft(draftKey)} />}
+                  nativeButton={false}
+                >
+                  Zrušit
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

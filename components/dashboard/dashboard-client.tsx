@@ -23,6 +23,7 @@ import {
   FileText,
   Hammer,
   BarChart3,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
@@ -125,6 +126,7 @@ export function DashboardClient({
   openProjectsCount = 0,
   mrr,
   paidThisMonth,
+  costsThisMonth = null,
   invoicedThisMonth,
   chartSeries = [],
   overdueInvoices,
@@ -140,6 +142,8 @@ export function DashboardClient({
   openProjectsCount?: number;
   mrr: number;
   paidThisMonth: number;
+  /** Náklady provozu za aktuální měsíc (skutečnost a plán), jen admin/member. */
+  costsThisMonth?: { total: number; plan: number } | null;
   invoicedThisMonth: number;
   chartSeries?: ChartSeries[];
   overdueInvoices: { count: number; sum: number };
@@ -388,7 +392,7 @@ export function DashboardClient({
               href="/invoices"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 [&>*:last-child]:col-span-2 md:[&>*:last-child]:col-span-1">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <StatCard
               label="Zaplaceno tento měsíc"
               value={formatCurrency(paidThisMonth)}
@@ -397,6 +401,16 @@ export function DashboardClient({
               accent="text-emerald-600 dark:text-emerald-400"
               hint="Přijaté platby"
             />
+            {costsThisMonth && (
+              <StatCard
+                label="Náklady tento měsíc"
+                value={formatCurrency(costsThisMonth.total)}
+                icon={Coins}
+                tone="sky"
+                hint={<>plán {formatCurrency(costsThisMonth.plan)}</>}
+                href="/costs"
+              />
+            )}
             <StatCard
               label="Vyfakturováno tento měsíc"
               value={formatCurrency(invoicedThisMonth)}

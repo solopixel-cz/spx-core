@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       currency: data.currency,
       nextPaymentAt: data.billing === "yearly" ? (parseDate(data.nextPaymentAt) ?? null) : null,
       startedAt: parseDate(data.startedAt) ?? new Date(),
-      endedAt: parseDate(data.endedAt) ?? null,
+      endedAt: data.billing === "once" ? null : (parseDate(data.endedAt) ?? null),
       note: data.note?.trim() || null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
