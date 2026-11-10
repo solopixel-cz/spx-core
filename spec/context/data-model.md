@@ -693,6 +693,9 @@ Webhook `findEmailByResendId` hledá `resendId` i v `invoiceEmails`; eventy logu
 ### `templates/delivery-email`
 Šablona e-mailu předání vizitky — `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → Šablona předání.
 
+### `templates/cardform-reminder-email`
+Šablona připomenutí formuláře podkladů: `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Nastavení → E-mailové šablony → Připomenutí podkladů. Odesílá se z formuláře podkladů u klienta tlačítkem Připomenout (`POST /api/card-tokens/[token]/remind`) se stejným nevyplněným odkazem; záznam jde do `cardFormEmails` s `kind: "reminder"`.
+
 ### `templates/onboarding`
 Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.
 

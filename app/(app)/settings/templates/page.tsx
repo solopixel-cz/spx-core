@@ -7,6 +7,7 @@ import { renderOutreachEmail } from "@/lib/email-templates/outreach";
 import { renderFollowupEmail } from "@/lib/email-templates/followup";
 import { renderDeliveryEmail } from "@/lib/email-templates/delivery";
 import { renderCardFormEmail } from "@/lib/email-templates/cardform";
+import { renderCardFormReminderEmail, DEFAULT_CARDFORM_REMINDER_SUBJECT } from "@/lib/email-templates/cardform-reminder";
 import { buildCardFormUrl } from "@/lib/card-form-url";
 
 export default function SablonyPage() {
@@ -25,6 +26,7 @@ export default function SablonyPage() {
           <TabsTrigger value="outreach">Oslovení</TabsTrigger>
           <TabsTrigger value="followup">Follow-up</TabsTrigger>
           <TabsTrigger value="cardform">Formulář podkladů</TabsTrigger>
+          <TabsTrigger value="cardform-reminder">Připomenutí podkladů</TabsTrigger>
           <TabsTrigger value="delivery">Předání vizitky</TabsTrigger>
         </TabsList>
 
@@ -58,6 +60,17 @@ export default function SablonyPage() {
             placeholderHint={`E-mail s odkazem na formulář podkladů, odeslaný klientovi při vygenerování odkazu. Editovatelný je jen předmět. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (odkaz na formulář).`}
             sampleVars={{ jmeno: "Jane", odkaz: buildCardFormUrl("ukazka") }}
             label="Šablona formuláře podkladů"
+          />
+        </TabsContent>
+
+        <TabsContent value="cardform-reminder" className="mt-4">
+          <EmailTemplateEditor
+            apiPath="/api/templates/cardform-reminder-email"
+            renderEmail={renderCardFormReminderEmail}
+            defaultSubject={DEFAULT_CARDFORM_REMINDER_SUBJECT}
+            placeholderHint={`Připomenutí pro klienta, který formulář podkladů ještě nevyplnil. Posílá se tlačítkem Připomenout ve formuláři podkladů u klienta, se stejným odkazem. Editovatelný je jen předmět. Placeholdery: {{jmeno}} (oslovení, 5. pád), {{odkaz}} (odkaz na formulář).`}
+            sampleVars={{ jmeno: "Jane", odkaz: buildCardFormUrl("ukazka") }}
+            label="Šablona připomenutí podkladů"
           />
         </TabsContent>
 
