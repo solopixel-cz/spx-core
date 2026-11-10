@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-10: Nový ticket v modálu
+
+- „Nový ticket“ hlásil 404: modál detailu `@modal/(.)backlog/[id]` zachytil i `/backlog/new` jako ticket s ID „new“. Nová routa `@modal/(.)backlog/new` ukáže formulář v modálu po vzoru detailu (otevřít na celé stránce, zavřít), po vytvoření se otevře detail nového ticketu. Napřímo zůstává stránka `/backlog/new`.
+- `FormActions` umí Zrušit bez odkazu (`onCancel`), `TicketForm` má `inModal`.
+- Větev `v1.43.0`.
+
 ## 2026-11-10: Připomenutí podkladů
 
 - Nová e-mailová šablona „Připomenutí podkladů“ (`lib/email-templates/cardform-reminder.ts`, design jako formulář podkladů), předmět editovatelný v Nastavení → E-mailové šablony (`templates/cardform-reminder-email`).

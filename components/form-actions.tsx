@@ -19,7 +19,8 @@ export function FormActions({
   icon,
   children,
 }: {
-  cancelHref: string;
+  /** Bez `cancelHref` je „Zrušit“ tlačítko s `onCancel` (např. zavření modálu). */
+  cancelHref?: string;
   submitLabel?: string;
   submittingLabel?: string;
   submitting?: boolean;
@@ -43,14 +44,20 @@ export function FormActions({
         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : icon}
         {submitting ? submittingLabel : submitLabel}
       </Button>
-      <Button
-        variant="ghost"
-        nativeButton={false}
-        disabled={submitting}
-        render={<Link href={cancelHref} onClick={onCancel} />}
-      >
-        Zrušit
-      </Button>
+      {cancelHref ? (
+        <Button
+          variant="ghost"
+          nativeButton={false}
+          disabled={submitting}
+          render={<Link href={cancelHref} onClick={onCancel} />}
+        >
+          Zrušit
+        </Button>
+      ) : (
+        <Button type="button" variant="ghost" disabled={submitting} onClick={onCancel}>
+          Zrušit
+        </Button>
+      )}
       {children && <div className="ml-auto flex items-center gap-2">{children}</div>}
     </div>
   );
