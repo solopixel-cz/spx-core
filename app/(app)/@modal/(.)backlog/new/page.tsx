@@ -1,8 +1,8 @@
 import { requireAuth } from "@/lib/auth";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { loadInstanceOptions, loadUserAndClientOptions } from "@/lib/form-options";
-import { TicketModal } from "@/components/tickets/ticket-modal";
-import { NewTicketModalContent } from "@/components/tickets/new-ticket-modal-content";
+import { FormModal } from "@/components/form-modal";
+import { TicketForm } from "@/components/tickets/ticket-form";
 
 /**
  * Nový ticket jako modál: přechod na `/backlog/new` z aplikace (Backlog,
@@ -22,15 +22,19 @@ export default async function NewTicketModalPage({
   const client = clientId ? clients.find((c) => c.id === clientId) : undefined;
 
   return (
-    <TicketModal title="Nový ticket">
-      <NewTicketModalContent
+    <FormModal
+      title="Nový ticket"
+      pageHref={client ? `/backlog/new?clientId=${client.id}` : "/backlog/new"}
+      className="sm:max-w-3xl"
+    >
+      <TicketForm
         clients={clients}
         users={users}
         instances={instances}
         defaultClientId={client?.id}
         allowInternal={user.role !== "sales"}
-        pageHref={client ? `/backlog/new?clientId=${client.id}` : "/backlog/new"}
+        backHref="/backlog"
       />
-    </TicketModal>
+    </FormModal>
   );
 }

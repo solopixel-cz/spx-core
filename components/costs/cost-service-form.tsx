@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
+import { useInFormModal } from "@/components/form-modal";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,9 @@ const currencyItems = Object.fromEntries(CURRENCIES.map((c) => [c, c === "CZK" ?
 /** Placená služba (Vercel, Google Cloud, OpenAI…). U existující i trvalé smazání. */
 export function CostServiceForm({ service }: { service?: CostService }) {
   const router = useRouter();
+  // V modálu uložení nepřidá krok do historie (Zpět by modál znovu otevřel).
+  const inModal = useInFormModal();
+  const go = (href: string) => (inModal ? router.replace(href) : router.push(href));
   const isEdit = !!service;
 
   const {
@@ -71,7 +75,7 @@ export function CostServiceForm({ service }: { service?: CostService }) {
       });
       if (!res.ok) throw new Error((await res.json()).error || "Chyba při ukládání");
       toast.success(isEdit ? "Služba uložena" : "Služba přidána");
-      router.push("/costs");
+      go("/costs");
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Nepodařilo se uložit službu");
@@ -83,7 +87,7 @@ export function CostServiceForm({ service }: { service?: CostService }) {
       const res = await fetch(`/api/costs/services/${service!.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast.success("Služba smazána");
-      router.push("/costs");
+      go("/costs");
       router.refresh();
     } catch {
       toast.error("Nepodařilo se smazat službu");

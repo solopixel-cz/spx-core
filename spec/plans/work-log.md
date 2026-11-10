@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-10: Formuláře nákladů v modálu
+
+- Společný obal `components/form-modal.tsx` (`FormModal`): hlavička jako u detailu ticketu (otevřít na celé stránce, zavřít), fokus do prvního pole, kontext `useInFormModal()`. V modálu „Zrušit“ ve `FormActions` modál zavře a formuláře po uložení dělají `replace` místo `push`.
+- Náklady: Nová služba, Upravit službu a Zapsat platbu jako modál (`@modal/(.)costs/…`), napřímo zůstávají stránky; načítání dat sdílí `lib/cost-routes.ts`. Nový ticket přešel na `FormModal`.
+- Větev `v1.44.0`, verze 1.44.0.
+
 ## 2026-11-10: Nový ticket v modálu
 
 - „Nový ticket“ hlásil 404: modál detailu `@modal/(.)backlog/[id]` zachytil i `/backlog/new` jako ticket s ID „new“. Nová routa `@modal/(.)backlog/new` ukáže formulář v modálu po vzoru detailu (otevřít na celé stránce, zavřít), po vytvoření se otevře detail nového ticketu. Napřímo zůstává stránka `/backlog/new`.

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { FormActions } from "@/components/form-actions";
+import { useInFormModal } from "@/components/form-modal";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,9 @@ export function CostPaymentForm({
   payment: CostPayment | null;
 }) {
   const router = useRouter();
+  // V modálu uložení nepřidá krok do historie (Zpět by modál znovu otevřel).
+  const inModal = useInFormModal();
+  const go = (href: string) => (inModal ? router.replace(href) : router.push(href));
   const backHref = `/costs?month=${month}`;
 
   const {
@@ -67,7 +71,7 @@ export function CostPaymentForm({
       });
       if (!res.ok) throw new Error((await res.json()).error || "Chyba při ukládání");
       toast.success("Platba zapsána");
-      router.push(backHref);
+      go(backHref);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Nepodařilo se zapsat platbu");
@@ -79,7 +83,7 @@ export function CostPaymentForm({
       const res = await fetch(`/api/costs/payments/${payment!.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast.success("Zápis smazán");
-      router.push(backHref);
+      go(backHref);
       router.refresh();
     } catch {
       toast.error("Nepodařilo se smazat zápis");
