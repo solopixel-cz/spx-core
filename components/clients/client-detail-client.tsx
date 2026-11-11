@@ -65,6 +65,8 @@ interface ClientData {
   greeting?: string;
   company?: string;
   ico?: string;
+  /** IČO jen z podkladů, u klienta zatím uložené není. */
+  icoFromSubmission?: boolean;
   dic?: string;
   billingStreet?: string;
   billingZip?: string;
@@ -665,7 +667,12 @@ export function ClientDetailClient({
                 {client.ico && (
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">IČO</dt>
-                    <dd>{client.ico}</dd>
+                    <dd className="text-right">
+                      {client.ico}
+                      {client.icoFromSubmission && (
+                        <span className="block text-xs text-muted-foreground">z podkladů, ke klientovi neuloženo</span>
+                      )}
+                    </dd>
                   </div>
                 )}
                 {client.dic && (
