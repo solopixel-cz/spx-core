@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-11: IČO z podkladů u klienta
+
+- Formulář podkladů na webu IČO sbírá (povinné, 8 číslic), ale v CRM nebylo vidět. Po vyplnění (`/api/submissions/notify`) se propíše do `clients.ico`, když klient IČO ještě nemá (`lib/submission-ico.ts`).
+- Detail klienta bez vlastního IČO ukáže IČO z posledních podkladů s poznámkou „z podkladů, ke klientovi neuloženo“ (starší podklady bez migrace). Detail podkladů IČO ukazuje (štítek s odkazem do ARES).
+- Větev `v1.45.0`.
+
 ## 2026-11-11: Úkoly zrušeny, nahradil je Backlog
 
 - Odebráno: menu Úkoly, `/tasks` (stránky, modály, API), cron `task-reminders` (i z `vercel.json`), záložka a dlaždice Úkoly u klienta, rychlá akce na nástěnce, výchozí stránka v profilu, Nastavení → Onboarding (`templates/onboarding`) a zakládání onboarding úkolů u nového klienta, kontrola úkolů při mazání ticketu.

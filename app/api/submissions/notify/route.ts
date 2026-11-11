@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { normalizeSubmission } from "@/lib/submission-view-model";
 import { sendTransactionalEmail } from "@/lib/email";
 import { notify } from "@/lib/notifications";
+import { copySubmissionIcoToClient } from "@/lib/submission-ico";
 
 /**
  * Interní upozornění na nový vyplněný podklad.
@@ -82,6 +83,9 @@ export async function POST(request: NextRequest) {
     });
 
     await ref.update({ notifiedAt: FieldValue.serverTimestamp() });
+
+    // IČO z podkladů ke klientovi (když ho ještě nemá), aby bylo v detailu i na faktuře.
+    await copySubmissionIcoToClient(db, token, data).catch(() => false);
 
     await notify({
       type: "submission.filled",
