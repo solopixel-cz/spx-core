@@ -164,11 +164,6 @@ export async function checkDeleteConstraints(
     if (doc.exists && doc.data()?.invoiceId) return "Nelze trvale smazat — zakázka je vyfakturovaná.";
   }
 
-  if (collection === "tickets") {
-    const tasks = await db.collection("tasks").where("ticketId", "==", id).limit(1).get();
-    if (!tasks.empty) return "Nelze trvale smazat — má navázané úkoly.";
-  }
-
   if (collection === "prospects") {
     // Převedený kontakt (na klienta, historicky na lead) se trvale nemaže.
     const doc = await db.collection("prospects").doc(id).get();

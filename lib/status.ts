@@ -48,12 +48,6 @@ export const ticketType: Record<string, StatusConfig> = {
   feedback: { label: "Zpětná vazba", color: "gray" },
 };
 
-// Task status
-export const taskStatus: Record<string, StatusConfig> = {
-  open: { label: "Otevřený", color: "blue" },
-  done: { label: "Hotovo", color: "green" },
-};
-
 // Instance status
 export const instanceStatus: Record<string, StatusConfig> = {
   setup: { label: "Příprava", color: "yellow" },

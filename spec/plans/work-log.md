@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-11: Úkoly zrušeny, nahradil je Backlog
+
+- Odebráno: menu Úkoly, `/tasks` (stránky, modály, API), cron `task-reminders` (i z `vercel.json`), záložka a dlaždice Úkoly u klienta, rychlá akce na nástěnce, výchozí stránka v profilu, Nastavení → Onboarding (`templates/onboarding`) a zakládání onboarding úkolů u nového klienta, kontrola úkolů při mazání ticketu.
+- `/tasks` a `/ukoly` přesměrují na `/backlog`. Rules pro `tasks` a 3 indexy odebrány, po nasazení `firebase deploy --only firestore` (smazání indexů potvrdit). Data v kolekci `tasks` zůstala.
+- Větev `v1.45.0`.
+
 ## 2026-11-11: Faktura „Vystaveno“ místo „Odesláno“
 
 - Stav faktury `sent` znamená vystavenou fakturu čekající na platbu, ne odeslaný e-mail. V UI a exportu se jmenuje „Vystaveno“, data beze změny.

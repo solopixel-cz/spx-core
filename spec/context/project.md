@@ -9,8 +9,7 @@
 1. **Klienti & DBC instance** — evidence klientů (finanční poradci) a jejich vizitek: stav, doména, verze, konfigurace (`ADVISOR_SLUG`), odkaz na repo/deploy.
 2. **Oslovení → klient** — kontakty k oslovení a poptávky z webu; z kontaktu se rovnou vytváří klient. (Leady a kanban pipeline zrušené 2026-09-30.)
 3. **Fakturace & předplatné** — tarify, fakturační cyklus, splatnosti, stav plateb, upomínky.
-4. **Úkoly & onboarding** — úkoly vázané na klienta, onboarding checklisty ze šablon.
-5. **Tickety** — hlášení bugů a požadavků na změnu vizitky, vázané na klienta/instanci, s prioritou a stavem.
+4. **Backlog (tickety)** — hlášení bugů a požadavků na změnu vizitky, vázané na klienta/instanci, s prioritou a stavem.
 
 ## Tech stack
 
@@ -40,13 +39,13 @@
 
 ## Datový model
 
-Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `instances`, `prospects`, `projects`, `subscriptions`, `invoices`, `tasks`, `tickets`, `activity`.
+Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `instances`, `prospects`, `projects`, `subscriptions`, `invoices`, `tickets`, `activity`.
 
 ## UI/UX koncept
 
-- **Layout:** levý sidebar (Dashboard, Oslovení, Klienti, Fakturace, Úkoly, Tickety, Nastavení) + horní lišta s globálním vyhledáváním (cmd+K) a profilem.
-- **Dashboard:** přehled — MRR, rozpracované zakázky, faktury po splatnosti, otevřené tickety, dnešní úkoly.
-- **Klient = centrální entita:** detail klienta má záložky (Přehled, Služby, Domény, Faktury, Úkoly, Tickety, Aktivita; aktivní záložka v URL `?tab=`). Vše ostatní na něj odkazuje.
+- **Layout:** levý sidebar (Dashboard, Oslovení, Klienti, Fakturace, Backlog, Nastavení) + horní lišta s globálním vyhledáváním (cmd+K) a profilem.
+- **Dashboard:** přehled — MRR, rozpracované zakázky, faktury po splatnosti, otevřené tickety.
+- **Klient = centrální entita:** detail klienta má záložky (Přehled, Služby, Domény, Faktury, Tickety, Aktivita; aktivní záložka v URL `?tab=`). Vše ostatní na něj odkazuje.
 - **Routy, ne modály (fáze 33):** úprava, vytvoření, detail i akce (odeslání e-mailu, předání vizitky) mají vlastní routu s drobečky a šipkou zpět (`FormPage` + `FormActions`, na mobilu lepicí lišta s akcí). Menu a dropdowny jen navigují. Měkké mazání = hned + toast „Vrátit zpět" (`toastWithUndo`, u kolekcí bez archivu `deferredDelete`); nevratné akce = inline potvrzení (`ConfirmButton`). Výjimky: Cmd+K a mobilní navigační Sheet.
 - Tabulky s filtrováním, multiselectem a archivem.
 - **Jazyk UI: čeština.** Interní nástroj, žádná i18n.

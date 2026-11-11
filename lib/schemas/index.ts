@@ -5,7 +5,6 @@ export { projectSchema, type Project } from "./project";
 export { domainSchema, type Domain } from "./domain";
 export { subscriptionSchema, type Subscription } from "./subscription";
 export { invoiceSchema, type Invoice } from "./invoice";
-export { taskSchema, type Task } from "./task";
 export { ticketSchema, type Ticket } from "./ticket";
 export { activitySchema, type Activity } from "./activity";
 export { cardTokenSchema, type CardToken } from "./card-token";
