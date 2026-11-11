@@ -16,11 +16,9 @@ import {
   Mail,
   Phone,
   Globe,
-  Repeat,
   FileText,
   Plus,
 } from "lucide-react";
-import { taskRecurrenceLabels } from "@/lib/schemas/task";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -259,7 +257,6 @@ export function ClientDetailClient({
   activities,
   subscriptions = [],
   invoices = [],
-  tasks = [],
   tickets = [],
   salesUsers = [],
   userRole = "member" as "admin" | "member" | "sales",
@@ -271,7 +268,6 @@ export function ClientDetailClient({
   activities: ActivityData[];
   subscriptions?: SubData[];
   invoices?: InvoiceData[];
-  tasks?: Array<{ id: string; title: string; status: string; dueAt: string | null; assigneeUid: string; recurrence?: string }>;
   tickets?: Array<{ id: string; type: string; title: string; priority: string; status: string; createdAt: string | null }>;
   salesUsers?: Array<{ id: string; displayName: string }>;
   userRole?: "admin" | "member" | "sales";
@@ -284,7 +280,7 @@ export function ClientDetailClient({
   const [acting, setActing] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [savingOwner, setSavingOwner] = useState(false);
-  // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový úkol…) vedl zpět na ni.
+  // Záložka žije v URL (`?tab=`), aby návrat z podstránek (úprava, nový ticket…) vedl zpět na ni.
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [tab, setTabState] = useState(searchParams.get("tab") ?? "prehled");
@@ -295,7 +291,6 @@ export function ClientDetailClient({
   const base = `/clients/${client.id}`;
 
   // Souhrny pro přehledové dlaždice
-  const openTasks = tasks.filter((t) => t.status !== "done").length;
   const openTickets = tickets.filter(
     (t) => !["resolved", "closed"].includes(t.status)
   ).length;
@@ -609,7 +604,7 @@ export function ClientDetailClient({
       </div>
 
       {/* Přehledové dlaždice — tapnutí přepne na záložku */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${isSales ? "" : "md:grid-cols-3"}`}>
         <StatTile
           label="Služby"
           value={instances.length + liveProjects.length}
@@ -634,12 +629,6 @@ export function ClientDetailClient({
           />
         )}
         <StatTile
-          label="Úkoly"
-          value={openTasks}
-          hint="otevřené"
-          onClick={() => setTab("ukoly")}
-        />
-        <StatTile
           label="Tickety"
           value={openTickets}
           hint="otevřené"
@@ -654,7 +643,6 @@ export function ClientDetailClient({
           <TabsTrigger value="instance">Služby</TabsTrigger>
           <TabsTrigger value="domeny">Domény</TabsTrigger>
           {!isSales && <TabsTrigger value="faktury">Faktury</TabsTrigger>}
-          <TabsTrigger value="ukoly">Úkoly</TabsTrigger>
           <TabsTrigger value="tickety">Tickety</TabsTrigger>
           <TabsTrigger value="aktivita">Aktivita</TabsTrigger>
         </TabsList>
@@ -797,41 +785,6 @@ export function ClientDetailClient({
             />
           </TabsContent>
         )}
-
-        <TabsContent value="ukoly" className="mt-5 space-y-4 md:mt-6">
-          {!isArchived && (
-            <div className="flex justify-end">
-              <Button size="sm" nativeButton={false} render={<Link href={`/tasks/new?clientId=${client.id}`} />}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nový úkol
-              </Button>
-            </div>
-          )}
-          {tasks.length === 0 ? (
-            <p className="text-muted-foreground">Žádné úkoly</p>
-          ) : (
-            <div className="space-y-2.5">
-              {tasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card p-3.5 shadow-xs"
-                >
-                  <span className={`text-sm ${t.status === "done" ? "line-through text-muted-foreground" : "font-medium"}`}>{t.title}</span>
-                  <div className="flex items-center gap-2">
-                    {t.recurrence && t.recurrence !== "none" && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Repeat className="h-3 w-3" />
-                        {taskRecurrenceLabels[t.recurrence as keyof typeof taskRecurrenceLabels] ?? t.recurrence}
-                      </Badge>
-                    )}
-                    <Badge variant={t.status === "done" ? "secondary" : "outline"}>{t.status === "done" ? "Hotovo" : "Otevřený"}</Badge>
-                    {t.dueAt && <span className="text-xs text-muted-foreground">{new Date(t.dueAt).toLocaleDateString("cs-CZ")}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
         <TabsContent value="tickety" className="mt-5 space-y-4 md:mt-6">
           {!isArchived && (

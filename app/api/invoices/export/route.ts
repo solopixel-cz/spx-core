@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Koncept",
-  sent: "Odesláno",
+  sent: "Vystaveno",
   paid: "Zaplaceno",
   overdue: "Po splatnosti",
   cancelled: "Stornováno",

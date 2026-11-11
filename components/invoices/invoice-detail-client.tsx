@@ -20,7 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
-import { invoiceStatus, outreachEmailStatus } from "@/lib/status";
+import { isOpenInvoice } from "@/components/invoices/invoice-ui";
+import { invoiceEmailStatus, invoiceStatus, outreachEmailStatus } from "@/lib/status";
 import { invoiceLineTotal } from "@/lib/schemas/invoice";
 
 interface InvoiceItem {
@@ -144,6 +145,9 @@ export function InvoiceDetailClient({
             <div className="flex items-center gap-2">
               <h1 className="font-mono text-xl font-bold">{invoice.number}</h1>
               <StatusBadge map={invoiceStatus} value={invoice.status} />
+              {(emails[0]?.status || isOpenInvoice(invoice.status)) && (
+                <StatusBadge map={invoiceEmailStatus} value={emails[0]?.status ?? "not_sent"} />
+              )}
             </div>
             <Link
               href={`/clients/${invoice.clientId}`}

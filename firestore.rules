@@ -83,13 +83,6 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Tasks — read for team, status update for team
-    match /tasks/{taskId} {
-      allow read: if isTeam();
-      allow update: if isTeam() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
-      allow create, delete: if false;
-    }
-
     // Tickets — read for team, create/update for team
     match /tickets/{ticketId} {
       allow read: if isTeam();

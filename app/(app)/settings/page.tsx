@@ -5,7 +5,6 @@ import {
   Users,
   Archive,
   User,
-  ClipboardList,
   Bell,
   Receipt,
   TicketPercent,
@@ -39,13 +38,6 @@ const tiles: Tile[] = [
     description: "Kódy pro formulář na webu, platnost a počet použití",
     href: "/settings/promo-codes",
     icon: TicketPercent,
-    roles: ["admin"],
-  },
-  {
-    label: "Onboarding",
-    description: "Checklist úkolů, který se vytvoří při založení klienta",
-    href: "/settings/onboarding",
-    icon: ClipboardList,
     roles: ["admin"],
   },
   {

@@ -76,7 +76,6 @@ const defaultPages = [
   { value: "/", label: "Dashboard" },
   { value: "/clients", label: "Klienti" },
   { value: "/prospects", label: "Oslovení" },
-  { value: "/tasks", label: "Úkoly" },
   { value: "/backlog", label: "Backlog" },
 ];
 

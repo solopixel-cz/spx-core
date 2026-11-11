@@ -17,8 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
 import { clientFormSchema, type ClientFormData } from "@/lib/schemas/client";
 import { vocativeFirstName } from "@/lib/marketing/personalize";
 
@@ -37,8 +35,6 @@ interface ClientFormProps {
 export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientFormProps) {
   const router = useFormRouter();
   const isEdit = !!defaultValues?.id;
-  // Onboarding úkoly ze šablony — jen u nového klienta, výchozí zapnuto.
-  const [createOnboarding, setCreateOnboarding] = useState(true);
 
   const {
     register,
@@ -79,7 +75,7 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
           ...(data.kind === "company"
             ? { ...data, company: "" }
             : { ...data, contactName: "" }),
-          ...(isEdit ? {} : { createOnboarding, ...(prospectId ? { prospectId } : {}) }),
+          ...(isEdit ? {} : (prospectId ? { prospectId } : {})),
         }),
       });
 
@@ -88,15 +84,9 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
         throw new Error(err.error || "Chyba při ukládání");
       }
 
-      const result = (await res.json().catch(() => ({}))) as { id?: string; tasksGenerated?: number };
+      const result = (await res.json().catch(() => ({}))) as { id?: string };
       clearFormDraft(draftKey);
-      toast.success(
-        isEdit
-          ? "Klient aktualizován"
-          : result.tasksGenerated
-            ? `Klient vytvořen, onboarding úkolů: ${result.tasksGenerated}`
-            : "Klient vytvořen"
-      );
+      toast.success(isEdit ? "Klient aktualizován" : "Klient vytvořen");
       const targetId = isEdit ? defaultValues!.id : result.id;
       router.push(targetId ? `/clients/${targetId}` : "/clients");
       router.refresh();
@@ -227,22 +217,6 @@ export function ClientForm({ defaultValues, prospectId, cancelHref }: ClientForm
         <Label htmlFor="notes">Poznámky</Label>
         <Textarea id="notes" rows={3} {...register("notes")} />
       </div>
-
-      {!isEdit && (
-        <label className="flex items-start gap-3 rounded-xl border p-3">
-          <Checkbox
-            checked={createOnboarding}
-            onCheckedChange={setCreateOnboarding}
-            className="mt-0.5"
-          />
-          <span className="text-sm">
-            <span className="font-medium">Vytvořit onboarding úkoly</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              Podle šablony v Nastavení → Onboarding.
-            </span>
-          </span>
-        </label>
-      )}
 
       <FormActions
         onCancel={() => clearFormDraft(draftKey)}

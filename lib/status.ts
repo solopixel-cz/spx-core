@@ -16,7 +16,7 @@ export const clientStatus: Record<string, StatusConfig> = {
 // Invoice status
 export const invoiceStatus: Record<string, StatusConfig> = {
   draft: { label: "Koncept", color: "gray" },
-  sent: { label: "Odesláno", color: "blue" },
+  sent: { label: "Vystaveno", color: "blue" },
   paid: { label: "Zaplaceno", color: "green" },
   overdue: { label: "Po splatnosti", color: "red" },
   cancelled: { label: "Stornováno", color: "gray" },
@@ -46,12 +46,6 @@ export const ticketType: Record<string, StatusConfig> = {
   change_request: { label: "Změna", color: "blue" },
   idea: { label: "Nápad", color: "green" },
   feedback: { label: "Zpětná vazba", color: "gray" },
-};
-
-// Task status
-export const taskStatus: Record<string, StatusConfig> = {
-  open: { label: "Otevřený", color: "blue" },
-  done: { label: "Hotovo", color: "green" },
 };
 
 // Instance status
@@ -105,6 +99,12 @@ export const outreachEmailStatus: Record<string, StatusConfig> = {
   bounced: { label: "Nedoručeno", color: "red" },
   complained: { label: "Stížnost", color: "red" },
   failed: { label: "Neodesláno", color: "red" },
+};
+
+// Stav e-mailu faktury: jako u oslovení, navíc „Zatím neodesláno“ u vystavené faktury bez e-mailu
+export const invoiceEmailStatus: Record<string, StatusConfig> = {
+  ...outreachEmailStatus,
+  not_sent: { label: "Zatím neodesláno", color: "gray" },
 };
 
 /** CSS classes for status badge colors */

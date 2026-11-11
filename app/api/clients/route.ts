@@ -4,7 +4,6 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { clientFormSchema } from "@/lib/schemas/client";
 import { logActivity } from "@/lib/activity";
-import { createOnboardingTasks } from "@/lib/onboarding";
 
 // GET /api/clients
 export async function GET() {
@@ -34,15 +33,13 @@ export async function GET() {
 
 // POST /api/clients
 // Volitelně `prospectId` = převod kontaktu z Oslovení (vlastník kontaktu → obchodní
-// vlastník klienta, kontakt → „converted") a `createOnboarding` (výchozí true) =
-// onboarding úkoly ze šablony.
+// vlastník klienta, kontakt → „converted").
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     const body = await request.json();
     const data = clientFormSchema.parse(body);
     const prospectId = typeof body.prospectId === "string" ? body.prospectId : null;
-    const createOnboarding = body.createOnboarding !== false;
 
     const db = getAdminFirestore();
 
@@ -102,20 +99,7 @@ export async function POST(request: Request) {
       });
     }
 
-    let tasksGenerated = 0;
-    if (createOnboarding) {
-      try {
-        tasksGenerated = await createOnboardingTasks(db, {
-          clientId: docRef.id,
-          assigneeUid: salesOwnerUid ?? user.uid,
-          actorUid: user.uid,
-        });
-      } catch {
-        // Onboarding úkoly jsou best-effort — klient už existuje.
-      }
-    }
-
-    return NextResponse.json({ id: docRef.id, tasksGenerated });
+    return NextResponse.json({ id: docRef.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });

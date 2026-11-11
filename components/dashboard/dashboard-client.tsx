@@ -8,7 +8,6 @@ import {
   Receipt,
   TicketCheck,
   Briefcase,
-  CheckSquare,
   AlertCircle,
   ArrowRight,
   Plus,
@@ -167,7 +166,6 @@ export function DashboardClient({
     { label: "Klient", href: "/clients", icon: UserPlus },
     ...(!isSales ? [{ label: "Faktura", href: "/invoices/new", icon: Receipt }] : []),
     { label: "Ticket", href: "/backlog/new", icon: TicketCheck },
-    { label: "Úkol", href: "/tasks", icon: CheckSquare },
   ];
 
   return (
