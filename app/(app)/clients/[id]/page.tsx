@@ -6,6 +6,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { ClientDetailClient } from "@/components/clients/client-detail-client";
 import { toSubData } from "@/lib/subscription-data";
 import { getHubLastSignIn } from "@/lib/hub";
+import { submissionIcoForClient } from "@/lib/submission-ico";
 
 export default async function ClientDetailPage({
   params,
@@ -24,7 +25,11 @@ export default async function ClientDetailPage({
   if (isSales && doc.data()?.salesOwnerUid !== user.uid) notFound();
 
   const data = doc.data()!;
-  const hubLastSignInAt = await getHubLastSignIn(data.hubUid as string | undefined);
+  const [hubLastSignInAt, submissionIco] = await Promise.all([
+    getHubLastSignIn(data.hubUid as string | undefined),
+    // Bez vlastního IČO ukážeme to z podkladů (starší podklady, než se začalo propisovat).
+    data.ico ? null : submissionIcoForClient(db, id).catch(() => null),
+  ]);
   const client = {
     id: doc.id,
     name: data.name as string,
@@ -32,7 +37,8 @@ export default async function ClientDetailPage({
     contactName: data.contactName as string | undefined,
     greeting: data.greeting as string | undefined,
     company: data.company as string | undefined,
-    ico: data.ico as string | undefined,
+    ico: (data.ico as string | undefined) || submissionIco || undefined,
+    icoFromSubmission: !data.ico && !!submissionIco,
     dic: data.dic as string | undefined,
     billingStreet: data.billingStreet as string | undefined,
     billingZip: data.billingZip as string | undefined,

@@ -32,7 +32,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   contactName?: string       // jen firma: kontaktní osoba (oslovení v e-mailech)
   greeting?: string          // ruční oslovení v 5. pádě; jen oprava automatiky (`personalGreeting()` skloňuje křestní jméno knihovnou czech-vocative), jinak prázdné
   company?: string           // jen osoba: značka / síť (OVB, ZFP…); u firmy se nepoužívá
-  ico?: string               // odběratel na faktuře
+  ico?: string               // odběratel na faktuře; prázdné doplní IČO z podkladů (/api/submissions/notify), detail klienta bez něj ukáže IČO z podkladů
   dic?: string
   billingStreet?: string     // fakturační adresa (ulice a č.p.)
   billingZip?: string        // PSČ
@@ -491,7 +491,7 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
   token: string
   basic: {
     fullName: string
-    ico?: string           // IČO — v CRM/AI se nikdy nevypisuje
+    ico?: string           // IČO; v detailu podkladů (odkaz do ARES), u klienta, AI ho nedostává; po vyplnění se propíše ke klientovi (clients.ico, jen když je prázdné)
     phone?: string
     email: string
     companyBrand?: string

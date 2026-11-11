@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  Building2,
   CheckCircle,
   CheckCircle2,
   Check,
@@ -163,6 +164,14 @@ export function SubmissionDetailClient({ submission: s }: { submission: Submissi
           {s.phone && (
             <Chip href={`tel:${s.phone.replace(/\s/g, "")}`} icon={<Phone className="h-3.5 w-3.5 shrink-0" />}>
               {s.phone}
+            </Chip>
+          )}
+          {s.ico && (
+            <Chip
+              href={`https://ares.gov.cz/ekonomicke-subjekty?ico=${encodeURIComponent(s.ico)}`}
+              icon={<Building2 className="h-3.5 w-3.5 shrink-0" />}
+            >
+              IČO {s.ico}
             </Chip>
           )}
           {s.hasDomain === "ano" && s.customDomain && toUrl(s.customDomain) && (
@@ -455,7 +464,11 @@ function Chip({
       {inner}
     </Link>
   ) : (
-    <a href={href} className={className}>
+    <a
+      href={href}
+      className={className}
+      {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    >
       {inner}
     </a>
   );
