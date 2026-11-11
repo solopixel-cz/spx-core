@@ -2,6 +2,12 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-11: Faktura „Vystaveno“ místo „Odesláno“
+
+- Stav faktury `sent` znamená vystavenou fakturu čekající na platbu, ne odeslaný e-mail. V UI a exportu se jmenuje „Vystaveno“, data beze změny.
+- Vystavená faktura bez e-mailu má vedle šedý štítek „Zatím neodesláno“ (seznam, karta klienta, detail); po odeslání ukazuje stav e-mailu jako dřív.
+- Větev `v1.45.0`.
+
 ## 2026-11-10: Spolehlivější notifikace
 
 - Push chodily na mobil hromadně: `web-push` posílal výchozí naléhavost normal a TTL 4 týdny, telefon je pak drží do probuzení. `lib/push.ts` posílá `urgency: high`, `TTL: 1 den`.

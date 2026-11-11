@@ -186,7 +186,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
   dueAt: Timestamp
   paidAt?: Timestamp
   sentAt?: Timestamp
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'   // 'sent' = vystaveno (v UI „Vystaveno“), neznamená odeslaný e-mail
 }
 ```
 

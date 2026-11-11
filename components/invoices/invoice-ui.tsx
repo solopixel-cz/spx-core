@@ -14,12 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/status-badge";
-import { outreachEmailStatus } from "@/lib/status";
+import { invoiceEmailStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
 export const invoiceStatusLabels: Record<string, string> = {
   draft: "Koncept",
-  sent: "Odesláno",
+  sent: "Vystaveno",
   paid: "Zaplaceno",
   overdue: "Po splatnosti",
   cancelled: "Stornováno",
@@ -52,13 +52,14 @@ export function isOpenInvoice(status: string): boolean {
   return status === "sent" || status === "overdue";
 }
 
-/** Odznak stavu, pod ním drobně stav posledního e-mailu (pokud je). */
+/** Odznak stavu, pod ním drobně stav posledního e-mailu; u vystavené faktury bez e-mailu „Zatím neodesláno“. */
 export function InvoiceStatusCell({ status, emailStatus }: { status: string; emailStatus?: string | null }) {
+  const email = emailStatus ?? (isOpenInvoice(status) ? "not_sent" : null);
   return (
     <div className="flex flex-col items-start gap-1">
       <Badge variant={statusVariants[status] ?? "secondary"}>{invoiceStatusLabels[status] ?? status}</Badge>
-      {emailStatus && (
-        <StatusBadge map={outreachEmailStatus} value={emailStatus} className="px-1.5 py-0 text-[11px] font-normal" />
+      {email && (
+        <StatusBadge map={invoiceEmailStatus} value={email} className="px-1.5 py-0 text-[11px] font-normal" />
       )}
     </div>
   );
