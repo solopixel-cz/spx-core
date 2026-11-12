@@ -68,9 +68,9 @@ export function renderHubInviteEmail(vars: {
                             <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> Dobrý den, ${jmeno}, </p>
                             <p style="margin:0 0 12px 0; font-size:16px; line-height:26px; color:#334155;"> zřídili jsme vám přístup do SoloPixel HUB. Na jednom místě v něm najdete: </p>
                             <ul style="margin:0 0 16px 0; padding:0 0 0 20px; font-size:16px; line-height:26px; color:#334155;">
-                                <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Přehled</strong> vaší vizitky</li>
+                                <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Přehled</strong> vaší vizitky nebo webu</li>
                                 <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Fakturaci</strong>: vaše služby a faktury ke stažení v PDF s QR platbou</li>
-                                <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Statistiky</strong> návštěv vizitky, pokud je máte aktivní</li>
+                                <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Statistiky</strong> návštěv vizitky nebo webu, pokud je máte aktivní</li>
                                 <li style="margin:0 0 8px 0;"><strong style="color:#0F172A;">Pomoc</strong>, když si s něčím nebudete vědět rady</li>
                             </ul>
                             <p style="margin:0 0 16px 0; font-size:16px; line-height:26px; color:#334155;"> Do HUB budeme postupně přidávat další užitečné funkce. </p>
@@ -118,7 +118,7 @@ export function renderHubInviteEmail(vars: {
                         <td style="background:#F8FAFC; padding:24px 48px; border-top:1px solid #E2E8F0;" class="px">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#94A3B8;"><strong style="color:#475569;">SoloPixel</strong> · Frýdek-Místek<br /><a href="mailto:hello@solopixel.cz" style="color:#0F766E; text-decoration:none;">hello@solopixel.cz</a> &nbsp;·&nbsp; <a href="tel:+420774291077" style="color:#0F766E; text-decoration:none;">+420 774 291 077</a> &nbsp;·&nbsp; <a href="https://www.solopixel.cz/?utm_source=email&amp;utm_medium=hub-invite&amp;utm_content=footer-brand" style="color:#0F766E; text-decoration:none;">www.solopixel.cz</a><br /><br /><span style="color:#B6C0CC;">Tento e-mail jste dostali, protože používáte digitální vizitku SoloPixel.</span></td>
+                                    <td style="font-family:'Montserrat', Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#94A3B8;"><strong style="color:#475569;">SoloPixel</strong> · Frýdek-Místek<br /><a href="mailto:hello@solopixel.cz" style="color:#0F766E; text-decoration:none;">hello@solopixel.cz</a> &nbsp;·&nbsp; <a href="tel:+420774291077" style="color:#0F766E; text-decoration:none;">+420 774 291 077</a> &nbsp;·&nbsp; <a href="https://www.solopixel.cz/?utm_source=email&amp;utm_medium=hub-invite&amp;utm_content=footer-brand" style="color:#0F766E; text-decoration:none;">www.solopixel.cz</a><br /><br /><span style="color:#B6C0CC;">Tento e-mail jste dostali, protože u SoloPixel máte digitální vizitku nebo web.</span></td>
                                 </tr>
                             </table>
                         </td>
@@ -133,9 +133,9 @@ export function renderHubInviteEmail(vars: {
   const text = `Dobrý den, ${vars.jmeno},
 
 zřídili jsme vám přístup do SoloPixel HUB. Na jednom místě v něm najdete:
-- Přehled vaší vizitky
+- Přehled vaší vizitky nebo webu
 - Fakturaci: vaše služby a faktury ke stažení v PDF s QR platbou
-- Statistiky návštěv vizitky, pokud je máte aktivní
+- Statistiky návštěv vizitky nebo webu, pokud je máte aktivní
 - Pomoc, když si s něčím nebudete vědět rady
 
 Do HUB budeme postupně přidávat další užitečné funkce.
@@ -160,7 +160,7 @@ SoloPixel, váš digitální parťák
 
 ---
 SoloPixel · Frýdek-Místek · www.solopixel.cz
-Tento e-mail jste dostali, protože používáte digitální vizitku SoloPixel.`;
+Tento e-mail jste dostali, protože u SoloPixel máte digitální vizitku nebo web.`;
 
   return { html, text };
 }

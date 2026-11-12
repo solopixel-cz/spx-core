@@ -306,6 +306,8 @@ export function ClientDetailClient({
   const cardInstances = instances.filter((i) => i.type === "card");
   const hasCard = cardInstances.length > 0;
   const showCardActions = hasCard || (instances.length === 0 && projects.length === 0);
+  // Do SoloPixel HUB smí každý, kdo u nás má vizitku nebo web.
+  const hasHubService = instances.length > 0;
   const liveProjects = projects.filter((p) => p.status !== "cancelled");
   const openProjects = projects.filter((p) => p.status === "inquiry" || p.status === "in_progress");
 
@@ -489,7 +491,7 @@ export function ClientDetailClient({
                   </span>
                 </p>
               )}
-              {(client.hubInvitedAt || instances.some((i) => i.type !== "web")) && (
+              {(client.hubInvitedAt || hasHubService) && (
                 <HubFeaturesToggles clientId={client.id} features={client.hubFeatures} />
               )}
             </ChipGroup>
@@ -525,7 +527,7 @@ export function ClientDetailClient({
             Upravit
           </Button>
           {/* Všechno, co odchází klientovi e-mailem, v jednom menu */}
-          {client.email && !isArchived && (showCardActions || hasCard || isAdminOrMember) && (
+          {client.email && !isArchived && (showCardActions || hasHubService || isAdminOrMember) && (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                 <Send className="mr-2 h-4 w-4" />
@@ -550,9 +552,9 @@ export function ClientDetailClient({
                     )}
                   </DropdownMenuGroup>
                 )}
-                {hasCard && (
+                {hasHubService && (
                   <>
-                    <DropdownMenuSeparator />
+                    {(showCardActions || hasCard) && <DropdownMenuSeparator />}
                     <DropdownMenuGroup>
                       <DropdownMenuLabel>SoloPixel HUB</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => router.push(`${base}/send/hub`)}>
@@ -564,7 +566,7 @@ export function ClientDetailClient({
                 )}
                 {isAdminOrMember && (
                   <>
-                    {(showCardActions || hasCard) && <DropdownMenuSeparator />}
+                    {(showCardActions || hasCard || hasHubService) && <DropdownMenuSeparator />}
                     <DropdownMenuItem onClick={() => setSendEmailOpen(true)}>
                       <Mail className="mr-2 h-4 w-4" />
                       Poslat e-mail ze šablony

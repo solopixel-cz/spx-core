@@ -45,11 +45,11 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   notes?: string
   leadId?: string            // historické: odkud klient vznikl (leady zrušené)
   prospectId?: string        // klient vznikl převodem z Oslovení
-  hubUid?: string            // Auth UID klientského účtu ve spx-hub (claims { role: 'client', clientId })
+  hubUid?: string            // Auth UID klientského účtu ve spx-hub (claims { role: 'client', clientId }); pozvat jde klienta s vizitkou nebo webem (od 1.46.0)
   hubInvitedAt?: Timestamp   // poslední odeslaná pozvánka do hubu
   hubInvitedBy?: string      // uid, kdo pozvánku poslal
   hubFeatures?: {            // funkce klientské zóny zapnuté týmem (budoucí placený doplněk); chybí = vypnuto
-    stats?: boolean          // Statistiky návštěv vizitky (GA4)
+    stats?: boolean          // Statistiky návštěv vizitky i webu (GA4, `instances.ga4PropertyId`)
     statsPlus?: boolean      // Rozšířené statistiky (placený doplněk, zadání #22); platí jen se stats, vypnutí stats vypne i statsPlus
     references?: boolean     // Reference (sběr a zveřejnění)
     lectures?: boolean       // Přednášky (zadání #25), na tarif vázané není
@@ -66,7 +66,7 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
 {
   clientId: string
   type: 'card' | 'web'       // 'card' = DBC vizitka (má slug), 'web' = klientský web (má hosting)
-  advisorSlug?: string       // povinný jen pro vizitku (type === 'card')
+  advisorSlug?: string       // povinný jen pro vizitku (type === 'card'); u webu nepovinný, jen pro reference v HUBu (od 1.46.0)
   hosting?: string           // jen pro web: Vercel | Wedos | Forpsi | Netlify | Cloudflare
   ga4PropertyId?: string     // číselné Property ID z GA4 (ne měřicí ID G-…) — statistiky v hubu; čte ho spx-hub přes service account
   ga4ConnectedAt?: Timestamp | null           // jen web: ručně odškrtnuto „GA4 napojeno“ (service account má přístup do property)
@@ -702,7 +702,7 @@ Jednorázové 6místné kódy pro přihlášení do klientské zóny (vedle magi
 ```
 
 ### `hubProjects` (spx-hub)
-Projekt referencí jedné vizitky, ID dokumentu = `advisorSlug`. Vzniká v hubu při prvním otevření Referencí klientem, který má zapnuté `clients.hubFeatures.references`. Vlastník a doména se tu **nevedou** — čtou se vždy z `instances` (jeden zdroj pravdy). Zapisuje a čte jen spx-hub přes Admin SDK.
+Projekt referencí jedné vizitky nebo webu (od hub 1.41.0 i `instances` typu `web` se slugem), ID dokumentu = `advisorSlug`. Vzniká v hubu při prvním otevření Referencí klientem, který má zapnuté `clients.hubFeatures.references`. Vlastník a doména se tu **nevedou** — čtou se vždy z `instances` (jeden zdroj pravdy). Zapisuje a čte jen spx-hub přes Admin SDK.
 
 ```ts
 // hubProjects/{advisorSlug}

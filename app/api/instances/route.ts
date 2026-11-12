@@ -62,8 +62,8 @@ export async function POST(request: Request) {
     const docRef = await db.collection("instances").add({
       ...data,
       clientId,
-      // Vizitka má slug, web má hosting — druhé pole se drží prázdné.
-      advisorSlug: isWeb ? null : data.advisorSlug?.trim() || null,
+      // Vizitka má slug, web hosting a slug jen kvůli referencím v HUBu.
+      advisorSlug: data.advisorSlug?.trim() || null,
       hosting: isWeb ? data.hosting || null : null,
       ga4PropertyId: data.ga4PropertyId || null,
       repoUrl: data.repoUrl || null,
