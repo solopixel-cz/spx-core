@@ -20,6 +20,16 @@ Nejnovější záznamy nahoře.
 - Vystavená faktura bez e-mailu má vedle šedý štítek „Zatím neodesláno“ (seznam, karta klienta, detail); po odeslání ukazuje stav e-mailu jako dřív.
 - Větev `v1.45.0`.
 
+## 2026-11-10: Filtry Backlogu přežijí refresh
+
+- Karel si vyfiltroval svoje tickety a po refreshi byl filtr pryč. Nový hook `lib/hooks/use-persistent-filters.ts`: stav filtrů žije v URL (`?assignee=…&client=…`) a zároveň v localStorage (`spx-filters:<klíč>`). Při příchodu bez parametrů se použije uložený stav, **URL má přednost** — odkaz na vyfiltrovaný seznam vede vždy na to samé.
+- Do URL se píše přes `history.replaceState` (Next.js History API), ne `router.replace` — filtrování je čistě klientské, takže se nedotazuje server a historie prohlížeče se neplní.
+- Okrajové případy: první návštěva = výchozí hodnoty; hodnota mimo aktuální nabídku (smazaný klient, deaktivovaný řešitel, „Interní“ u obchodníka) se zahodí a nad lištou se objeví vysvětlení místo prázdné nástěnky; čtení i zápis do localStorage v try/catch (privátní okno, zakázané úložiště).
+- Backlog (`components/tickets/tickets-page-client.tsx`): šest `useState` nahradil hook, přidáno „Zrušit filtry“ (jen když je něco vyfiltrováno), přepnutí nástěnka/seznam už nezahazuje parametry z URL. Nástěnka a archiv mají vlastní uložený stav, klíč obsahuje uid (sdílený prohlížeč).
+- Hook je sdílený záměrně, ale zapojený jen v Backlogu — Oslovení, Klienti a Aktivita mají stejnou lištu a jsou na řadě po domluvě (Úkoly mezitím zrušeny).
+- Větev `feat/backlog-filtry-pamet`, verze 1.46.0 (1.45.0 mezitím vydána jinou větví). Lint a build čisté; Karel ověřil filtr v URL lokálně, zapamatování přes localStorage zatím neověřeno.
+- Pozn.: dev server lokálně padal na přihlášení — Norton Web/Mail Shield rozšifrovává TLS a `firebase-admin` neověřil certifikát Google API. Řeší `NODE_EXTRA_CA_CERTS` s Nortonovou CA (nastaveno v uživatelském prostředí, mimo repo).
+
 ## 2026-11-10: Spolehlivější notifikace
 
 - Push chodily na mobil hromadně: `web-push` posílal výchozí naléhavost normal a TTL 4 týdny, telefon je pak drží do probuzení. `lib/push.ts` posílá `urgency: high`, `TTL: 1 den`.
