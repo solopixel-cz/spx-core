@@ -2,14 +2,33 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-11: IČO z podkladů u klienta
+
+- Formulář podkladů na webu IČO sbírá (povinné, 8 číslic), ale v CRM nebylo vidět. Po vyplnění (`/api/submissions/notify`) se propíše do `clients.ico`, když klient IČO ještě nemá (`lib/submission-ico.ts`).
+- Detail klienta bez vlastního IČO ukáže IČO z posledních podkladů s poznámkou „z podkladů, ke klientovi neuloženo“ (starší podklady bez migrace). Detail podkladů IČO ukazuje (štítek s odkazem do ARES).
+- Větev `v1.45.0`.
+
+## 2026-11-11: Úkoly zrušeny, nahradil je Backlog
+
+- Odebráno: menu Úkoly, `/tasks` (stránky, modály, API), cron `task-reminders` (i z `vercel.json`), záložka a dlaždice Úkoly u klienta, rychlá akce na nástěnce, výchozí stránka v profilu, Nastavení → Onboarding (`templates/onboarding`) a zakládání onboarding úkolů u nového klienta, kontrola úkolů při mazání ticketu.
+- `/tasks` a `/ukoly` přesměrují na `/backlog`. Rules pro `tasks` a 3 indexy odebrány, po nasazení `firebase deploy --only firestore` (smazání indexů potvrdit). Data v kolekci `tasks` zůstala.
+- Větev `v1.45.0`.
+
+## 2026-11-11: Faktura „Vystaveno“ místo „Odesláno“
+
+- Stav faktury `sent` znamená vystavenou fakturu čekající na platbu, ne odeslaný e-mail. V UI a exportu se jmenuje „Vystaveno“, data beze změny.
+- Vystavená faktura bez e-mailu má vedle šedý štítek „Zatím neodesláno“ (seznam, karta klienta, detail); po odeslání ukazuje stav e-mailu jako dřív.
+- Větev `v1.45.0`.
+
 ## 2026-11-10: Filtry Backlogu přežijí refresh
 
 - Karel si vyfiltroval svoje tickety a po refreshi byl filtr pryč. Nový hook `lib/hooks/use-persistent-filters.ts`: stav filtrů žije v URL (`?assignee=…&client=…`) a zároveň v localStorage (`spx-filters:<klíč>`). Při příchodu bez parametrů se použije uložený stav, **URL má přednost** — odkaz na vyfiltrovaný seznam vede vždy na to samé.
 - Do URL se píše přes `history.replaceState` (Next.js History API), ne `router.replace` — filtrování je čistě klientské, takže se nedotazuje server a historie prohlížeče se neplní.
 - Okrajové případy: první návštěva = výchozí hodnoty; hodnota mimo aktuální nabídku (smazaný klient, deaktivovaný řešitel, „Interní“ u obchodníka) se zahodí a nad lištou se objeví vysvětlení místo prázdné nástěnky; čtení i zápis do localStorage v try/catch (privátní okno, zakázané úložiště).
 - Backlog (`components/tickets/tickets-page-client.tsx`): šest `useState` nahradil hook, přidáno „Zrušit filtry“ (jen když je něco vyfiltrováno), přepnutí nástěnka/seznam už nezahazuje parametry z URL. Nástěnka a archiv mají vlastní uložený stav, klíč obsahuje uid (sdílený prohlížeč).
-- Hook je sdílený záměrně, ale zapojený jen v Backlogu — Úkoly, Oslovení, Klienti a Aktivita mají stejnou lištu a jsou na řadě po domluvě.
-- Větev `feat/backlog-filtry-pamet`, verze 1.45.0. Lint a build čisté; ověření v prohlížeči zbývá na Karlovi (worktree nemá `.env.local` a přihlášení do CRM).
+- Hook je sdílený záměrně, ale zapojený jen v Backlogu — Oslovení, Klienti a Aktivita mají stejnou lištu a jsou na řadě po domluvě (Úkoly mezitím zrušeny).
+- Větev `feat/backlog-filtry-pamet`, verze 1.46.0 (1.45.0 mezitím vydána jinou větví). Lint a build čisté; Karel ověřil filtr v URL lokálně, zapamatování přes localStorage zatím neověřeno.
+- Pozn.: dev server lokálně padal na přihlášení — Norton Web/Mail Shield rozšifrovává TLS a `firebase-admin` neověřil certifikát Google API. Řeší `NODE_EXTRA_CA_CERTS` s Nortonovou CA (nastaveno v uživatelském prostředí, mimo repo).
 
 ## 2026-11-10: Spolehlivější notifikace
 

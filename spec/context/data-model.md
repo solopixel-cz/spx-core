@@ -32,7 +32,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   contactName?: string       // jen firma: kontaktní osoba (oslovení v e-mailech)
   greeting?: string          // ruční oslovení v 5. pádě; jen oprava automatiky (`personalGreeting()` skloňuje křestní jméno knihovnou czech-vocative), jinak prázdné
   company?: string           // jen osoba: značka / síť (OVB, ZFP…); u firmy se nepoužívá
-  ico?: string               // odběratel na faktuře
+  ico?: string               // odběratel na faktuře; prázdné doplní IČO z podkladů (/api/submissions/notify), detail klienta bez něj ukáže IČO z podkladů
   dic?: string
   billingStreet?: string     // fakturační adresa (ulice a č.p.)
   billingZip?: string        // PSČ
@@ -58,7 +58,6 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
 ```
 
 - **Klientská zóna (spx-hub):** „Pozvat do hubu" v detailu klienta (`/clients/[id]/send/hub`, `POST /api/clients/[id]` akce `hub_invite`) založí nebo znovu použije Auth účet pro `email` klienta, nastaví claims a pošle pozvánku s odkazem na přihlášení do hubu (`HUB_URL/login?email=…`). Účet z týmu ani klientský účet jiného klienta nepřepíše (`lib/hub.ts`).
-- **Onboarding úkoly:** při založení klienta (`POST /api/clients`, `createOnboarding` výchozí true, zaškrtávátko ve formuláři) ze šablony `templates/onboarding` → `lib/onboarding.ts`; řešitel = obchodní vlastník, jinak tvůrce.
 
 ### `instances`
 Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisorSlug`), nebo **web** (`type: 'web'`, má `hosting`). Obvykle 1:1 ke klientovi, ale model umožňuje víc.
@@ -142,7 +141,7 @@ Vlastní (zakoupené) domény. 1:N ke klientovi — klient může mít víc dom�
 }
 ```
 
-(Dříve: stav `won` vytvořil klienta + onboarding úkoly. Nově onboarding úkoly vznikají při založení klienta, viz `clients`.)
+(Dříve: stav `won` vytvořil klienta + onboarding úkoly. Úkoly zrušeny v 1.45.0.)
 
 ### `subscriptions`
 Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + správa webu. Každé se fakturuje zvlášť (cron = 1 faktura na předplatné). Název do UI a faktur: `subscriptionLabel()` v `lib/plans.ts`. Ukončení: stav `cancelled` (zůstane v historii). Omylem založené předplatné bez faktur může admin trvale smazat (`DELETE /api/subscriptions/[id]`, zaloguje se u klienta); s fakturami jde jen zrušit. Akce na omezenou dobu: `discountUntil` (sleva platí pro období začínající nejpozději ten den; cron, předvyplnění faktury i upozornění v detailu klienta přes `lib/discount.ts`, období se 100% slevou cron přeskočí a posune).
@@ -186,7 +185,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
   dueAt: Timestamp
   paidAt?: Timestamp
   sentAt?: Timestamp
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'   // 'sent' = vystaveno (v UI „Vystaveno“), neznamená odeslaný e-mail
 }
 ```
 
@@ -235,24 +234,8 @@ Skutečně zaplacená částka služby za měsíc. ID dokumentu `{serviceId}_{YY
 - **Kurz:** ČNB denní kurz (`lib/cnb.ts`, cache 12 h), u platby ke dni `paidAt` (bez data poslední den měsíce, nejvýš dnes). Plán přepočítává aktuálním kurzem.
 - Čte a zapisuje jen Admin SDK (`/api/costs/...`), rules žádný přístup.
 
-### `tasks`
-```ts
-{
-  title: string
-  description?: string
-  clientId?: string
-  leadId?: string
-  ticketId?: string          // úkol jako pracovní krok ticketu
-  assigneeUid: string
-  dueAt?: Timestamp
-  status: 'open' | 'done'
-  doneAt?: Timestamp         // razítko odbavení; nastaveno při přechodu na „done", smazáno při znovuotevření — pohání deník hotových úkolů
-  recurrence?: 'none' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'  // opakovaný úkol; při označení „hotovo" se založí další výskyt s posunutým dueAt
-  checklistTemplateId?: string  // pokud vznikl z onboarding šablony
-}
-
-Stránka **Úkoly** (`/ukoly`) zobrazuje otevřené úkoly seskupené podle termínu (Po termínu / Dnes / Tento týden / Později / Bez termínu) a hotové úkoly jako deník seskupený podle dne odbavení (`doneAt`). Filtr Moje/Všechny; v „Všechny" nese úkol barevný štítek řešitele.
-```
+### `tasks` (zrušeno)
+Sekce Úkoly zrušena v 1.45.0, nahradil ji Backlog (`tickets`). CRM kolekci nečte ani nezapisuje, rules nic nepovolují (výchozí zákaz), indexy odebrány. Stará data v kolekci zůstala.
 
 ### `tickets`
 V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, Zpracovává se, Code review, Čekání na klienta, Hotovo. Bugy, požadavky na změnu vizitky, zpětná vazba klientů a interní úkoly (bez klienta, změny v CRM, HUBu apod.). Od 1.39.0 je zakládají i klienti v HUBu (sekce **Zpětná vazba**, `source: 'hub'`): klient vidí jen svoje tickety z HUBu, jejich stav a vlákno zpráv. Tickety založené v CRM klient nevidí.
@@ -508,7 +491,7 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
   token: string
   basic: {
     fullName: string
-    ico?: string           // IČO — v CRM/AI se nikdy nevypisuje
+    ico?: string           // IČO; v detailu podkladů (odkaz do ARES), u klienta, AI ho nedostává; po vyplnění se propíše ke klientovi (clients.ico, jen když je prázdné)
     phone?: string
     email: string
     companyBrand?: string
@@ -699,8 +682,8 @@ Registr v `lib/email-templates/system.ts`: tělo v kódu, v `templates/<docId>` 
 ### `templates/cardform-reminder-email`
 Šablona připomenutí formuláře podkladů: `{ subject }` s placeholdery `{{jmeno}}` a `{{odkaz}}`. Edituje admin v Email marketing → Šablony → Hotové šablony. Odesílá se přes Poslat e-mail ze šablony (odkaz vložený ručně) nebo z formuláře podkladů u klienta tlačítkem Připomenout (`POST /api/card-tokens/[token]/remind`) se stejným nevyplněným odkazem; záznam jde do `cardFormEmails` s `kind: "reminder"`.
 
-### `templates/onboarding`
-Šablony checklistů — pole kroků `{ title, offsetDays }`. Při výhře leadu se rozgenerují do `tasks`.
+### `templates/onboarding` (zrušeno)
+Šablona onboarding úkolů, zrušena s Úkoly v 1.45.0 (Nastavení → Onboarding odebráno). Dokument může v DB zůstat, nic ho nečte.
 
 ### `counters`
 `counters/invoices` → `{ year: number, seq: number }`. Inkrement v transakci. `seq` je syrové pořadí (1, 2, …); číslo faktury = `RRRR-` + `(7000 + seq)` na 4 místa (`2026-7001`). Blok (7000) je v `lib/invoice-number.ts` (`INVOICE_NUMBER_BLOCK_START`).
@@ -940,8 +923,8 @@ Lektor vidí Líbila / Nelíbila, odpovědi a e-maily (export CSV); e-mail smí 
 - Vše jen pro **tým** — helper `isTeam()` = přihlášený s claimem `role` v `admin | member | sales`. Firebase Auth je sdílený s klientskou zónou **spx-hub**: klientské účty mají claims `{ role: 'client', clientId }` a do SPX Core nesmí nic (ani rules, ani aplikace — `getCurrentUser()` vrací `null`, session cookie se pro ně nevytvoří). Účet bez role claimu nemá přístup nikam. Výjimky bez přihlášení: `card-tokens` (get, označení `usedAt`), `card-submissions` (create), Storage `cards/`. Do spx-hub se kromě klientů smí přihlásit i **admin týmu** (`role == 'admin'`, správa referencí všech vizitek); `member` a `sales` ne. Kolekce hubu (`hubLoginCodes`, `hubProjects`, `hubReferences`, `hubAuditLog`, `hubInvites`, `hubGuide`, `hubNotifications`, `hubPushSubscriptions`, `lectures`, `lectureRatings`) jsou pro klientský SDK zakázané.
 - Zápis do `users` a mazání čehokoli jen `role == 'admin'` (z custom claims).
 - `activity` je append-only (no update/delete).
-- Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets, tasks.status); zbytek přes Route Handlers s admin SDK.
+- Klientský SDK zapisuje jen tam, kde je realtime UX (leads.stage, tickets); zbytek přes Route Handlers s admin SDK.
 
 ## Indexy
 
-Composite indexy se přidávají průběžně dle dotazů (`firestore.indexes.json` v repu). Očekávané: `leads(stage, updatedAt)`, `tickets(status, priority)`, `invoices(status, dueAt)`, `tasks(assigneeUid, status, dueAt)`.
+Composite indexy se přidávají průběžně dle dotazů (`firestore.indexes.json` v repu). Očekávané: `leads(stage, updatedAt)`, `tickets(status, priority)`, `invoices(status, dueAt)`.
