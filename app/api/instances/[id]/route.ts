@@ -45,7 +45,7 @@ export async function PATCH(
     // Přepnutí typu: vizitka drží slug, web drží hosting — druhé pole vyčistit.
     if (data.type !== undefined) {
       const isWeb = data.type === "web";
-      updates.advisorSlug = isWeb ? null : data.advisorSlug?.trim() || null;
+      updates.advisorSlug = data.advisorSlug?.trim() || null;
       updates.hosting = isWeb ? data.hosting || null : null;
     }
 

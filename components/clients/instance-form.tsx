@@ -186,25 +186,34 @@ export function InstanceForm({
       </div>
 
       {isWeb ? (
-        <div className="space-y-2">
-          <Label>Hosting</Label>
-          <Select
-            items={hostingItems}
-            value={watch("hosting") ?? ""}
-            onValueChange={(val) => setValue("hosting", val ?? "")}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Vyberte hosting" />
-            </SelectTrigger>
-            <SelectContent>
-              {hostingProviders.map((h) => (
-                <SelectItem key={h} value={h}>
-                  {h}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <>
+          <div className="space-y-2">
+            <Label>Hosting</Label>
+            <Select
+              items={hostingItems}
+              value={watch("hosting") ?? ""}
+              onValueChange={(val) => setValue("hosting", val ?? "")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Vyberte hosting" />
+              </SelectTrigger>
+              <SelectContent>
+                {hostingProviders.map((h) => (
+                  <SelectItem key={h} value={h}>
+                    {h}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="advisorSlug">Slug pro reference</Label>
+            <Input id="advisorSlug" {...register("advisorSlug")} />
+            <p className="text-xs text-muted-foreground">
+              Jen když web sbírá reference v SoloPixel HUB. Bez slugu se Reference u webu nezaloží.
+            </p>
+          </div>
+        </>
       ) : (
         <div className="space-y-2">
           <Label htmlFor="advisorSlug">Slug *</Label>
