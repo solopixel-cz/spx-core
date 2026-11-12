@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-12: SoloPixel HUB i pro klienty jen s webem
+
+- Pozvánku do HUBu („Odeslat klientovi → SoloPixel HUB“) jde poslat každému klientovi s vizitkou nebo webem, dřív jen s vizitkou. Přepínače funkcí v hubu se u klienta s webem ukážou i před pozvánkou.
+- Text pozvánky mluví o vizitce nebo webu.
+- Web v CRM (Služby) může mít nepovinný slug („Slug pro reference“). Podle něj hub zakládá reference webu, bez slugu je web bez referencí.
+- Hub na své straně otevírá Statistiky a Reference i pro web (spx-hub). Prvním takovým klientem je Ladislav Lukáč (povinnerucenizde.cz).
+- Větev `v1.46.0`.
+
 ## 2026-11-11: IČO z podkladů u klienta
 
 - Formulář podkladů na webu IČO sbírá (povinné, 8 číslic), ale v CRM nebylo vidět. Po vyplnění (`/api/submissions/notify`) se propíše do `clients.ico`, když klient IČO ještě nemá (`lib/submission-ico.ts`).
