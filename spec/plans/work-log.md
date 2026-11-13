@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-13: Funkce HUBu v záložce Služby, Vyhledávání jako funkce
+
+- Nová funkce HUBu `search` (Vyhledávání, data z Google Search Console). Nezávisí na Statistikách, výchozí stav vypnuto.
+- Funkce HUBu se spravují v kartě „SoloPixel HUB“ nahoře v záložce Služby: stav pozvánky a přihlášení, tlačítko pozvánky, přepínače po skupinách (Měření, Obsah) s popisem a závislostí. Popisy a skupiny jsou v `lib/hub-features.ts`.
+- V hlavičce klienta zůstal jen čip „HUB · N funkcí“, který otevře záložku Služby.
+- Hub od 1.44.0 skrývá v menu funkce, které klient nemá zapnuté. Nasadit core před hubem.
+- Větev `v1.47.0`.
+
 ## 2026-11-12: SoloPixel HUB i pro klienty jen s webem
 
 - Pozvánku do HUBu („Odeslat klientovi → SoloPixel HUB“) jde poslat každému klientovi s vizitkou nebo webem, dřív jen s vizitkou. Přepínače funkcí v hubu se u klienta s webem ukážou i před pozvánkou.
