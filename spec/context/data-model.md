@@ -51,6 +51,7 @@ Klienti — **osoba** (typicky finanční poradce) nebo **firma** (fáze 34A).
   hubFeatures?: {            // funkce klientské zóny zapnuté týmem (budoucí placený doplněk); chybí = vypnuto
     stats?: boolean          // Statistiky návštěv vizitky i webu (GA4, `instances.ga4PropertyId`)
     statsPlus?: boolean      // Rozšířené statistiky (placený doplněk, zadání #22); platí jen se stats, vypnutí stats vypne i statsPlus
+    search?: boolean         // Vyhledávání (Google Search Console, hub /search), nezávislé na stats
     references?: boolean     // Reference (sběr a zveřejnění)
     lectures?: boolean       // Přednášky (zadání #25), na tarif vázané není
   }

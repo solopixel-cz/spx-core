@@ -50,8 +50,8 @@ import { SubscriptionCard, type SubData } from "@/components/subscriptions/subsc
 import { ClientInvoicesTab } from "./client-invoices-tab";
 import { ProjectsSection, type ProjectData } from "./projects-section";
 import { ConfirmButton } from "@/components/confirm-button";
-import { HubFeaturesToggles } from "./hub-features";
-import type { HubFeatures } from "@/lib/hub-features";
+import { HubSection } from "./hub-features";
+import { HUB_FEATURES, type HubFeature, type HubFeatures } from "@/lib/hub-features";
 import { ticketStatusLabels, ticketTypeLabels } from "@/lib/ticket-labels";
 import { greetingName } from "@/lib/marketing/personalize";
 import { SendEmailDialog } from "./send-email-dialog";
@@ -151,6 +151,13 @@ function getInitials(name: string): string {
 }
 
 /** Kontaktní pill chip — s odkazem (mailto/tel/web) je klikatelný. */
+/** „3 funkce“ / „bez funkcí“ pro čip HUBu v hlavičce. */
+function hubFeatureCount(features: HubFeatures): string {
+  const n = (Object.keys(HUB_FEATURES) as HubFeature[]).filter((f) => features[f]).length;
+  if (n === 0) return "bez funkcí";
+  return `${n} ${n === 1 ? "funkce" : n < 5 ? "funkce" : "funkcí"}`;
+}
+
 /** Pojmenovaná skupina chipů v hlavičce klienta. */
 function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -471,28 +478,18 @@ export function ClientDetailClient({
                     <DomainExpiry domain={d} />
                   </ContactChip>
                 ))}
-              {(client.hubInvitedAt || client.hubLastSignInAt) && (
-                <p className="flex basis-full items-center gap-1.5 text-xs text-muted-foreground">
-                  <UserCheck className="h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    SoloPixel HUB
-                    {client.hubInvitedAt &&
-                      ` · pozvánka ${new Date(client.hubInvitedAt).toLocaleDateString("cs-CZ")}`}
-                    {client.hubLastSignInAt
-                      ? ` · naposledy přihlášen ${new Date(client.hubLastSignInAt).toLocaleString("cs-CZ", {
-                          day: "numeric",
-                          month: "numeric",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "Europe/Prague",
-                        })}`
-                      : " · zatím se nepřihlásil"}
-                  </span>
-                </p>
-              )}
+              {/* Funkce HUBu se spravují v záložce Služby, tady jen souhrn. */}
               {(client.hubInvitedAt || hasHubService) && (
-                <HubFeaturesToggles clientId={client.id} features={client.hubFeatures} />
+                <button
+                  type="button"
+                  onClick={() => setTab("instance")}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm transition-all hover:border-primary/40 hover:text-primary active:scale-[0.98]"
+                >
+                  <UserCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 truncate">
+                    HUB · {hubFeatureCount(client.hubFeatures)}
+                  </span>
+                </button>
               )}
             </ChipGroup>
           )}
@@ -768,6 +765,15 @@ export function ClientDetailClient({
         </TabsContent>
 
         <TabsContent value="instance" className="mt-5 space-y-8 md:mt-6">
+          {(client.hubInvitedAt || hasHubService) && (
+            <HubSection
+              clientId={client.id}
+              features={client.hubFeatures}
+              invitedAt={client.hubInvitedAt}
+              lastSignInAt={client.hubLastSignInAt}
+              inviteHref={client.email && !isArchived && hasHubService ? `${base}/send/hub` : undefined}
+            />
+          )}
           <InstancesTab clientId={client.id} instances={instances} />
           <ProjectsSection
             clientId={client.id}
