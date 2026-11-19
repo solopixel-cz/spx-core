@@ -91,10 +91,6 @@ export async function PATCH(
     const renewalAt = parseDate(data.renewalAt);
     if (renewalAt !== undefined) {
       updates.renewalAt = renewalAt;
-      // Nový termín obnovení → připomínka pro tento cyklus začíná znovu.
-      const prev = existing.data()?.renewalAt?.toDate?.()?.getTime();
-      const next = renewalAt?.getTime();
-      if (prev !== next) updates.renewalReminderSentAt = null;
     }
 
     await docRef.update(updates);

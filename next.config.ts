@@ -68,7 +68,9 @@ const nextConfig: NextConfig = {
       // settings + podcesty s vlastním překladem
       { source: "/nastaveni/archiv", destination: "/settings/archive", permanent: true },
       { source: "/nastaveni/fakturacni-udaje", destination: "/settings/billing-details", permanent: true },
-      { source: "/nastaveni/notifikace", destination: "/settings/notifications", permanent: true },
+      { source: "/nastaveni/notifikace", destination: "/profile/notifications", permanent: true },
+      // Notifikace jsou osobní, patří pod profil (avatar), ne do Nastavení CRM.
+      { source: "/settings/notifications", destination: "/profile/notifications", permanent: true },
       { source: "/nastaveni/sablony", destination: "/settings/templates", permanent: true },
       { source: "/nastaveni/uzivatele", destination: "/settings/users", permanent: true },
       { source: "/nastaveni/:path*", destination: "/settings/:path*", permanent: true },

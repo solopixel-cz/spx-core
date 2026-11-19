@@ -8,7 +8,7 @@ import {
   invoiceItemsTotal,
   expandPeriodPlaceholders,
 } from "@/lib/schemas/invoice";
-import { markInvoicePaid, cancelInvoice } from "@/lib/invoice-actions";
+import { markInvoicePaid, cancelInvoice, rewindSubscriptionPeriod } from "@/lib/invoice-actions";
 
 export async function PATCH(
   request: Request,
@@ -118,6 +118,7 @@ export async function DELETE(
     const projectsSnap = await db.collection("projects").where("invoiceId", "==", id).get();
     projectsSnap.docs.forEach((d) => batch.update(d.ref, { invoiceId: null }));
     await batch.commit();
+    if (data.status !== "draft" && data.status !== "cancelled") await rewindSubscriptionPeriod(db, data);
 
     // Audit stopa u klienta (faktura už neexistuje).
     if (data.clientId) {

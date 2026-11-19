@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { sendTransactionalEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
 import { notifyInvoiceIssued } from "@/lib/hub-push";
+import { advanceSubscriptionPeriod } from "@/lib/invoice-actions";
 import { companySchema } from "@/lib/schemas/company";
 import { personalGreeting } from "@/lib/marketing/personalize";
 import {
@@ -202,6 +203,7 @@ export async function POST(
         amount: invoice.amount,
         dueAt: invoice.dueAt?.toDate?.() ?? null,
       });
+      await advanceSubscriptionPeriod(db, id);
     }
 
     await logActivity({

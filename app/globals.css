@@ -145,3 +145,32 @@
     @apply font-heading;
   }
 }
+
+/* Dashboard: jemný nástup karet a proužků. Konečný stav je vidět i bez animace;
+   kdo má v systému omezený pohyb, animace nedostane. Zpoždění přes --delay. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes meter-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@utility animate-rise {
+  animation: rise-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+@utility animate-meter {
+  transform-origin: left;
+  animation: meter-grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--delay, 150ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-meter {
+    animation: none;
+  }
+}

@@ -10,6 +10,7 @@ import {
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { logActivity } from "@/lib/activity";
 import { notifyInvoiceIssued } from "@/lib/hub-push";
+import { advanceSubscriptionPeriod } from "@/lib/invoice-actions";
 
 export async function GET(request: Request) {
   try {
@@ -108,6 +109,9 @@ export async function POST(request: Request) {
       text: `Faktura ${number} ${status === "draft" ? "uložena jako koncept" : "vystavena"} na ${amount.toLocaleString("cs-CZ")} Kč`,
       actorUid: user.uid,
     });
+
+    // Faktura z předplatného pokryje jeho období (kalendář úkol odškrtne).
+    if (status === "sent" && data.subscriptionId) await advanceSubscriptionPeriod(db, docRef.id);
 
     // Notifikace do zařízení klienta v HUBu (koncept ne, ten klient nevidí).
     if (status === "sent") await notifyInvoiceIssued({ clientId: data.clientId, number, amount, dueAt });

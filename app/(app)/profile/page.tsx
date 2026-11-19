@@ -30,7 +30,8 @@ import { PageHeader } from "@/components/page-header";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
-import { Camera, Trash2, Save } from "lucide-react";
+import Link from "next/link";
+import { Bell, Camera, ChevronRight, Trash2, Save } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const profileSchema = z.object({
@@ -261,13 +262,24 @@ export default function ProfilPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs
-        backHref="/settings"
-        items={[{ label: "Nastavení", href: "/settings" }, { label: "Profil" }]}
-      />
+      <Breadcrumbs backHref="/" items={[{ label: "Můj profil" }]} />
       <PageHeader title={profile.displayName}>
         <p className="text-sm text-muted-foreground">{roleLabels[profile.role] ?? profile.role}</p>
       </PageHeader>
+
+      <Link
+        href="/profile/notifications"
+        className="flex items-center gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/50"
+      >
+        <span className="rounded-lg bg-muted p-2">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">Notifikace</span>
+          <span className="block text-sm text-muted-foreground">Push na tomto zařízení a ranní souhrn</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
 
       <Tabs defaultValue="profil">
         <TabsList>

@@ -94,7 +94,6 @@ export async function POST(request: Request) {
       autoRenew: data.autoRenew ?? false,
       price: parsePrice(data.price) ?? null,
       note: data.note?.trim() || null,
-      renewalReminderSentAt: null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: user.uid,

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Menu, Search, LogOut, User, Loader2, RefreshCw } from "lucide-react";
+import { Bell, Menu, Search, LogOut, User, Loader2, RefreshCw } from "lucide-react";
 import { getClientAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -147,6 +147,11 @@ export function AppTopbar({
               <User className="mr-2 h-4 w-4" />
               Můj profil
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/profile/notifications")}>
+              <Bell className="mr-2 h-4 w-4" />
+              Notifikace
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(e) => {
                 // Zabraň zavření menu, ať je spinner vidět během odhlašování

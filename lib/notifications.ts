@@ -1,11 +1,12 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendPushToUsers } from "@/lib/push";
+import { wantsNotification } from "@/lib/notification-prefs";
 
 /**
- * Interní notifikace. Aktuálně míří všem adminům (malý tým, centrální dohled) —
- * zapíše in-app záznam do `notifications/{id}` pro každého admina a zároveň
- * pošle Web Push na jejich zařízení. Volá se ze serverových event bodů
+ * Interní notifikace týmu: in-app záznam do `notifications/{id}` pro každého
+ * příjemce a zároveň Web Push na jeho zařízení. Kdo co dostává, si každý
+ * nastaví v profilu (Notifikace). Volá se ze serverových event bodů
  * (poptávka z webu, vyplněné podklady, otevřený e-mail s formulářem…).
  *
  * Notifikace nikdy neshodí hlavní operaci — chyby jen zaloguje.
@@ -62,18 +63,21 @@ export async function notifyUsers(
   }
 }
 
-/** Notifikace všem aktivním adminům (centrální dohled). */
+/**
+ * Notifikace týmu: aktivním adminům a memberům, kteří mají daný druh zapnutý
+ * v profilu (`users.notificationPrefs`, chybí = zapnuto).
+ */
 export async function notify(params: NotifyParams): Promise<void> {
   try {
     const db = getAdminFirestore();
-    const adminsSnap = await db
+    const teamSnap = await db
       .collection("users")
-      .where("role", "==", "admin")
+      .where("role", "in", ["admin", "member"])
       .get();
-    const adminUids = adminsSnap.docs
-      .filter((doc) => doc.data().active !== false)
+    const uids = teamSnap.docs
+      .filter((doc) => doc.data().active !== false && wantsNotification(doc.data().notificationPrefs, params.type))
       .map((doc) => doc.id);
-    await notifyUsers(adminUids, params);
+    await notifyUsers(uids, params);
   } catch (error) {
     console.error("[notify] failed", error);
   }
