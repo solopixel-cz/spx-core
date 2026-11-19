@@ -37,7 +37,9 @@ import {
   ticketStatusLabels,
   ticketTypeLabels,
 } from "@/lib/ticket-labels";
-import type { TicketDetail, TicketMessage } from "@/lib/ticket-route";
+import type { TicketComment, TicketDetail, TicketMessage } from "@/lib/ticket-route";
+import { TicketChat } from "@/components/tickets/ticket-chat";
+import { TagEditor } from "@/components/tickets/ticket-tags";
 import { TicketFiles, TicketThread } from "@/components/tickets/ticket-thread";
 import { TicketClientEmail } from "@/components/tickets/ticket-client-email";
 import { MessageText } from "@/components/tickets/message-text";
@@ -70,11 +72,14 @@ function prLabel(url: string): string {
 /**
  * Detail ticketu: na stránce `/backlog/[id]` i v modálu nad nástěnkou (`inModal`).
  * Vlevo obsah (popis, přílohy, odkazy, PR, vlákno s klientem), vpravo vlastnosti,
- * stav, řešitel a priorita se mění rovnou tady.
+ * stav, kdo má úkol na starosti, priorita a štítky se mění rovnou tady.
  */
 export function TicketDetailClient({
   ticket,
   messages,
+  comments,
+  currentUid,
+  knownTags,
   users,
   instanceDomain,
   editHref,
@@ -84,6 +89,10 @@ export function TicketDetailClient({
 }: {
   ticket: TicketDetail;
   messages: TicketMessage[];
+  comments: TicketComment[];
+  currentUid: string;
+  /** Štítky z jiných ticketů (nabídka). */
+  knownTags: string[];
   users: { id: string; name: string }[];
   instanceDomain: string | null;
   editHref: string;
@@ -99,7 +108,7 @@ export function TicketDetailClient({
   const detailPath = `/backlog/${ticket.id}`;
 
   const assigneeItems: Record<string, string> = {
-    [NONE]: "Nepřiřazeno",
+    [NONE]: "Nikdo",
     ...Object.fromEntries(users.map((u) => [u.id, u.name])),
   };
   if (ticket.assigneeUid && !assigneeItems[ticket.assigneeUid]) assigneeItems[ticket.assigneeUid] = "Neaktivní uživatel";
@@ -282,7 +291,7 @@ export function TicketDetailClient({
                 />
               </div>
             )}
-            <Field label="Řešitel">
+            <Field label="Má na starosti">
               <Select
                 items={assigneeItems}
                 value={ticket.assigneeUid ?? NONE}
@@ -316,6 +325,9 @@ export function TicketDetailClient({
                   {Object.entries(ticketPriorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Štítky">
+              <TagEditor tags={ticket.tags} knownTags={knownTags} disabled={archived} onSave={(tags) => patch("tags", { tags })} />
             </Field>
 
             <dl className="space-y-2.5 border-t pt-4 text-sm">
@@ -375,6 +387,8 @@ export function TicketDetailClient({
             {ticket.source === "hub" && (
               <TicketThread ticketId={ticket.id} messages={messages} clientEmail={ticket.createdByEmail} disabled={archived} />
             )}
+
+            <TicketChat ticketId={ticket.id} comments={comments} currentUid={currentUid} users={users} disabled={archived} />
           </div>
         </div>
       </div>

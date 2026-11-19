@@ -131,7 +131,7 @@ export function TicketForm({
     ...Object.fromEntries(clients.map((c) => [c.id, c.name])),
   };
   const assigneeItems = {
-    [NONE]: "Nepřiřazeno",
+    [NONE]: "Nikdo",
     ...Object.fromEntries(users.map((u) => [u.id, u.displayName])),
   };
   const instanceItems = {
@@ -275,7 +275,7 @@ export function TicketForm({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Řešitel</Label>
+          <Label>Má na starosti</Label>
           <Select
             items={assigneeItems}
             value={watch("assigneeUid") ?? NONE}
@@ -287,7 +287,7 @@ export function TicketForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>Nepřiřazeno</SelectItem>
+              <SelectItem value={NONE}>Nikdo</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.displayName}

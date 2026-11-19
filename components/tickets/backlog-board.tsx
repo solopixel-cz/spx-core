@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { GitPullRequest, MoreHorizontal } from "lucide-react";
+import { GitPullRequest, MessageSquare, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
+import { TagChip } from "@/components/tickets/ticket-tags";
 import {
   TICKET_STATUSES,
   ticketColumn,
@@ -47,6 +48,9 @@ export interface BoardTicket {
   assigneeUid?: string;
   /** Počet odkazů na pull requesty. */
   prCount?: number;
+  /** Počet zpráv v chatu. */
+  commentCount?: number;
+  tags?: string[];
   fromHub?: boolean;
   unread?: boolean;
   createdAt: string | null;
@@ -325,6 +329,13 @@ function CardBody({
           {formatDate(ticket.createdAt)}
         </span>
       </div>
+      {!!ticket.tags?.length && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {ticket.tags.map((t) => (
+            <TagChip key={t} tag={t} />
+          ))}
+        </div>
+      )}
       <div className="mt-2.5 flex items-center gap-1.5">
         <Badge variant={ticketPriorityVariants[ticket.priority] ?? "secondary"}>
           {ticketPriorityLabels[ticket.priority] ?? ticket.priority}
@@ -336,6 +347,12 @@ function CardBody({
           </Badge>
         )}
         <span className="flex-1" />
+        {!!ticket.commentCount && (
+          <span title="Zprávy v chatu" className="flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground tabular-nums">
+            <MessageSquare className="h-3.5 w-3.5" />
+            {ticket.commentCount}
+          </span>
+        )}
         {!!ticket.prCount && (
           <span title="Pull requesty" className="flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground tabular-nums">
             <GitPullRequest className="h-3.5 w-3.5" />
@@ -351,7 +368,7 @@ function CardBody({
           </span>
         ) : (
           <span
-            title="Nepřiřazeno"
+            title="Nikdo nemá na starosti"
             className="h-6 w-6 shrink-0 rounded-full border border-dashed border-muted-foreground/40"
           />
         )}

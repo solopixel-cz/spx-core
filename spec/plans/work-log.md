@@ -2,6 +2,10 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-19: Chat v Backlogu a kalendář na mobilu (v1.50.0)
+
+- Větev `v1.50.0` z devel (po vydání 1.49.0): přenesený chat u úkolů z nemergnuté `v1.48.0` (cherry-pick 9d0158c) a kalendář na mobilu po dnech (šipky, týdenní pás s tečkami, měsíční mřížka až od `sm`).
+
 ## 2026-11-19: Kalendář událostí a ranní souhrn
 
 - Nová stránka Kalendář (`/calendar`, admin a member). Ukazuje měsíc s událostmi, seznam po termínu, vybraný den a příštích 7 dní. Události se počítají z dat CRM (`lib/calendar.ts`): vystavit fakturu z předplatného, splatnost a po splatnosti, obnovení domén, konec akce, roční platby služeb.
