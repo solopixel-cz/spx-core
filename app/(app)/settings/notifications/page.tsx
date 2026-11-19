@@ -1,10 +1,11 @@
 import { requireAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import Link from "next/link";
 import { PushToggle } from "@/components/notifications/push-toggle";
 
 export default async function NotifikacePage() {
-  await requireAuth();
+  const user = await requireAuth();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -39,6 +40,24 @@ export default async function NotifikacePage() {
           </p>
         </CardContent>
       </Card>
+
+      {(user.role === "admin" || user.role === "member") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ranní souhrn z kalendáře</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Každé ráno přehled toho, co je potřeba udělat: faktury k vystavení, splatnosti, domény. E-mail a odběr v Google Kalendáři si
+              nastavíš v{" "}
+              <Link href="/calendar" className="font-medium text-primary underline-offset-4 hover:underline">
+                Kalendáři
+              </Link>
+              .
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

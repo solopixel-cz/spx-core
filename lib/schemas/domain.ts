@@ -13,7 +13,6 @@ export const domainSchema = z.object({
   autoRenew: z.boolean().optional(), // automatické obnovení zapnuto (netlačí připomínku)
   price: z.number().nonnegative().nullable().optional(), // cena obnovení v Kč za rok (náklady /costs)
   note: z.string().optional(),
-  renewalReminderSentAt: timestampSchema.optional(), // throttle cron připomínky
 });
 
 export type Domain = z.infer<typeof domainSchema>;

@@ -146,6 +146,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Kalendář — soukromé odkazy pro Google Kalendář a záznamy ranních souhrnů, jen admin SDK.
+    match /calendarFeeds/{token} {
+      allow read, write: if false;
+    }
+    match /calendarDigests/{digestId} {
+      allow read, write: if false;
+    }
+
     match /prospectCategories/{categoryId} {
       allow read: if isTeam();
       allow write: if false;
