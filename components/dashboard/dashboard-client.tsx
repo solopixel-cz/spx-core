@@ -17,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import { isOverdue, type CalendarEvent } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
-import { DashboardCharts, type ChartSeries } from "./dashboard-chart";
+import { TrendTiles, type ChartSeries } from "./trend-tiles";
 import { TodayCard } from "./today-card";
 
 export interface DashboardData {
@@ -269,7 +269,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Úvodní pás: pozdrav, souhrn dne a rychlé akce. Pixelový vzor odkazuje na SoloPixel. */}
-      <header className={cn("relative overflow-hidden rounded-2xl bg-card px-4 py-5 ring-1 ring-foreground/10 sm:px-6", headerRise.className)} style={headerRise.style}>
+      <header className={cn("relative overflow-hidden rounded-2xl bg-card px-4 py-5 ring-1 ring-foreground/10 sm:px-6 lg:py-4", headerRise.className)} style={headerRise.style}>
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(110%_140%_at_0%_0%,color-mix(in_oklch,var(--primary)_13%,transparent),transparent_62%)]"
@@ -322,14 +322,16 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           style={rise(1).style}
         />
 
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:order-1">
+        <div className="grid min-w-0 items-start gap-4 sm:grid-cols-2 xl:order-1">
+          {data.chartSeries.length > 0 && <TrendTiles series={data.chartSeries} className={cn("sm:col-span-2", rise(2).className)} style={rise(2).style} />}
+
           {money && (
             <Area
               title="Peníze"
               icon={Wallet}
               accent="emerald"
               href="/invoices"
-              step={2}
+              step={3}
               lead={formatCurrency(money.mrr)}
               leadLabel={<>pravidelně měsíčně (MRR), ročně {formatCurrency(money.mrr * 12)}</>}
               visual={<Progress value={money.paid} max={money.invoiced} label="Zaplaceno z vyfakturovaného tento měsíc" className="bg-emerald-500" />}
@@ -363,7 +365,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             icon={Users}
             accent="primary"
             href="/clients"
-            step={3}
+            step={4}
             lead={clients.active}
             leadLabel={`${plural(clients.active, "aktivní klient", "aktivní klienti", "aktivních klientů")}${isSales ? " (tvoji)" : ""}`}
             visual={
@@ -386,7 +388,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             icon={Handshake}
             accent="sky"
             href="/prospects"
-            step={4}
+            step={5}
             lead={formatCurrency(sales.openProjectsValue)}
             leadLabel={`${sales.openProjects} ${plural(sales.openProjects, "rozpracovaná zakázka", "rozpracované zakázky", "rozpracovaných zakázek")} k vyfakturování`}
             visual={
@@ -413,7 +415,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               icon={Wrench}
               accent="violet"
               href="/backlog"
-              step={5}
+              step={6}
               lead={ops.open}
               leadLabel={`${plural(ops.open, "otevřený úkol", "otevřené úkoly", "otevřených úkolů")} v Backlogu`}
               visual={
@@ -436,11 +438,6 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </Area>
           )}
 
-          {data.chartSeries.length > 0 && (
-            <div className={cn("min-w-0 sm:col-span-2", rise(6).className)} style={rise(6).style}>
-              <DashboardCharts series={data.chartSeries} />
-            </div>
-          )}
         </div>
       </div>
     </div>
