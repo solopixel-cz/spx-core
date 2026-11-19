@@ -19,7 +19,8 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   phone?: string
   senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
   senderName?: string        // override jména odesílatele; bez hodnoty = displayName. Mění jen admin.
-  calendarDigestEmail?: boolean  // ranní souhrn z kalendáře i e-mailem; chybí = ano. Mění si každý sám v Kalendáři.
+  calendarDigestEmail?: boolean  // ranní souhrn z kalendáře i e-mailem; chybí = ano. Mění si každý sám (profil → Notifikace nebo Kalendář).
+  notificationPrefs?: Record<string, boolean>  // co komu chodí do zvonečku a push: leads, submissions, hub, emailOpened, billing, calendar (lib/notification-prefs.ts); chybí = zapnuto. Dostávají admin a member, sales ne.
 }
 ```
 
@@ -287,7 +288,7 @@ V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, 
 ```
 
 #### `tickets/{id}/messages` (podkolekce)
-Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), jen když je u odpovědi zaškrtnuté „Poslat i e-mailem“ (výchozí). Zpráva klienta upozorní adminy (`notifications` + push).
+Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), jen když je u odpovědi zaškrtnuté „Poslat i e-mailem“ (výchozí). Zpráva klienta upozorní adminy a membery se zapnutým `notificationPrefs.hub` (`notifications` + push).
 
 ```ts
 {

@@ -5,6 +5,7 @@ import { addDays, loadCalendarEvents, pragueDay } from "@/lib/calendar";
 import { buildDigest, digestEmail, digestIsEmpty, digestSummary, DOMAIN_HEADS_UP_DAYS } from "@/lib/calendar-digest";
 import { sendTransactionalEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
+import { wantsNotification } from "@/lib/notification-prefs";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -62,7 +63,8 @@ export async function GET(request: NextRequest) {
       }
       summary.recipients++;
 
-      await notifyUsers([userDoc.id], {
+      // Zvoneček + push jen se zapnutým souhrnem (profil → Notifikace); e-mail má vlastní volbu.
+      if (wantsNotification(u.notificationPrefs, "calendar.digest")) await notifyUsers([userDoc.id], {
         type: "calendar.digest",
         title: "Dnes v kalendáři",
         body: digestSummary(digest),
