@@ -12,7 +12,7 @@ export default async function TicketDetailPage({
 }) {
   const { id } = await params;
   const { from } = await searchParams;
-  const { user, ticket, messages, users, instanceDomain } = await loadTicketView(id);
+  const { user, ticket, messages, comments, users, knownTags, instanceDomain } = await loadTicketView(id);
   const back = ticketBack(ticket, from);
 
   return (
@@ -21,6 +21,9 @@ export default async function TicketDetailPage({
       <TicketDetailClient
         ticket={ticket}
         messages={messages}
+        comments={comments}
+        currentUid={user.uid}
+        knownTags={knownTags}
         users={users}
         instanceDomain={instanceDomain}
         editHref={`/backlog/${id}/edit${from ? `?from=${from}` : ""}`}

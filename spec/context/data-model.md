@@ -257,10 +257,11 @@ V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, 
                              // sloupce Backlogu: open = Úkoly, in_progress = Zpracovává se, code_review = Code review,
                              // waiting_client = Čekání na klienta,
                              // resolved = Hotovo; closed je starší „Uzavřený“, v CRM také Hotovo (nově se nenastavuje)
-  assigneeUid?: string
+  assigneeUid?: string       // kdo má úkol na starosti (v UI „Má na starosti“)
   attachments: TicketFile[]  // přílohy k zadání (z HUBu fotky a PDF), starší tickety []
   links: string[]            // externí odkazy (např. fotky na Google Drive), validované jako URL
   prLinks?: string[]         // odkazy na pull requesty, přidávají se v detailu (od 1.41.0)
+  tags?: string[]            // štítky pro přehled (od 1.48.0): nejvýš 8, max 24 znaků, bez duplicit; barva podle textu, filtr na nástěnce
   source?: 'crm' | 'hub'     // chybí = crm
   createdBy: string          // uid autora (tým v CRM, hubový účet klienta)
   createdByEmail?: string    // jen z HUBu: e-mail hubového účtu (komu poslat odpověď)
@@ -275,6 +276,9 @@ V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, 
     at: Timestamp
     byUid: string
   }
+  // Chat týmu (všechny tickety, od 1.48.0):
+  commentCount?: number      // počet zpráv v chatu týmu (ikona na kartě v Backlogu)
+  lastCommentAt?: Timestamp
 }
 
 // TicketFile (přílohy ticketu i zpráv)
@@ -300,6 +304,21 @@ Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SD
   createdAt: Timestamp
 }
 ```
+
+#### `tickets/{id}/comments` (podkolekce, od 1.48.0)
+Chat týmu u ticketu: dotazy a poznámky mezi námi. Klient ho nevidí (HUB čte jen `messages`). Zapisuje jen core přes Admin SDK (`POST /api/tickets/[id]/comments`), rules podkolekci klientskému SDK nepovolují. Nová zpráva upozorní (`notifications` + push, typ `ticket.comment`) řešitele, zakladatele (jen u ticketů z CRM) a každého, kdo už v chatu psal, kromě autora.
+
+```ts
+{
+  authorUid: string
+  authorName: string         // displayName autora
+  text: string               // max 4000 znaků, Markdown (lib/chat-markdown.ts): kód, seznamy, tučně, odkazy, seznamy ke schválení
+  votes?: { [uid: string]: { [list: string]: { [item: string]: "yes" | "no" } } }  // ✓/✗ u bodů seznamů ke schválení (POST …/comments/[commentId]/vote)
+  createdAt: Timestamp
+}
+```
+
+Seznam ke schválení = nadpis a pod ním body `- [ ] …` (libovolný počet; i `A) …`, `B) …`, jak píše Claude). Každý člen týmu dá u každého bodu ✓ nebo ✗, jde změnit i zrušit.
 
 **Stavy pro klienta (HUB):** `open` (Úkoly) → Víme o tom, `in_progress` a `code_review` → Děláme na tom, `waiting_client` → Čekáme na vás, `resolved` / `closed` → Hotovo. Změna stavu klientovi nic neposílá, jen ticket v HUBu označí jako nepřečtený. E-mail a push ke stavu `waiting_client` nebo `resolved` pošle tým ručně tlačítkem v detailu ticketu (`POST /api/tickets/[id]/notify`), čas a autor se uloží do `clientNotified`.
 

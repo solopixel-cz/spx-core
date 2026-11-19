@@ -53,6 +53,8 @@ export default async function BacklogPage({
       assigneeUid: data.assigneeUid as string | undefined,
       links: (data.links as string[] | undefined) ?? [],
       prCount: ((data.prLinks as string[] | undefined) ?? []).length,
+      commentCount: (data.commentCount as number | undefined) ?? 0,
+      tags: (data.tags as string[] | undefined) ?? [],
       fromHub: data.source === "hub",
       unread: data.unreadByTeam === true,
       createdAt: toIso(data.createdAt),

@@ -8,13 +8,16 @@ import { TicketDetailClient } from "@/components/tickets/ticket-detail-client";
  */
 export default async function TicketModalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { user, ticket, messages, users, instanceDomain } = await loadTicketView(id);
+  const { user, ticket, messages, comments, users, knownTags, instanceDomain } = await loadTicketView(id);
 
   return (
     <TicketModal title={ticket.title}>
       <TicketDetailClient
         ticket={ticket}
         messages={messages}
+        comments={comments}
+        currentUid={user.uid}
+        knownTags={knownTags}
         users={users}
         instanceDomain={instanceDomain}
         editHref={`/backlog/${id}/edit?from=board`}

@@ -21,6 +21,7 @@ export interface TicketDetail {
   links: string[];
   /** Odkazy na pull requesty. */
   prLinks: string[];
+  tags: string[];
   attachments: TicketFile[];
   /** `hub` = zpětná vazba od klienta z HUBu (klient vidí stav a vlákno). */
   source: "crm" | "hub";
@@ -60,6 +61,32 @@ export async function loadTicketMessages(db: FirebaseFirestore.Firestore, id: st
   });
 }
 
+export interface TicketComment {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  text: string;
+  /** Hlasy v seznamech ke schválení: uid → (číslo seznamu → (číslo bodu → ✓/✗)). */
+  votes: Record<string, Record<string, Record<string, "yes" | "no">>>;
+  createdAt: string | null;
+}
+
+/** Chat týmu u ticketu (`tickets/{id}/comments`), od nejstarší zprávy. Klient ho nevidí. */
+export async function loadTicketComments(db: FirebaseFirestore.Firestore, id: string): Promise<TicketComment[]> {
+  const snap = await db.collection("tickets").doc(id).collection("comments").orderBy("createdAt", "asc").get();
+  return snap.docs.map((doc) => {
+    const c = doc.data();
+    return {
+      id: doc.id,
+      authorUid: (c.authorUid as string | undefined) ?? "",
+      authorName: (c.authorName as string | undefined) ?? "",
+      text: (c.text as string | undefined) ?? "",
+      votes: (c.votes as TicketComment["votes"] | undefined) ?? {},
+      createdAt: toIso(c.createdAt),
+    };
+  });
+}
+
 /** Ticket pro routu `/backlog/[id]/...` se stejným guardem jako seznam (sales jen tickety vlastních klientů). */
 export async function loadTicketForRoute(id: string) {
   const user = await requireAuth();
@@ -86,6 +113,7 @@ export async function loadTicketForRoute(id: string) {
     assigneeUid: t.assigneeUid as string | undefined,
     links: (t.links as string[] | undefined) ?? [],
     prLinks: (t.prLinks as string[] | undefined) ?? [],
+    tags: (t.tags as string[] | undefined) ?? [],
     // Starší tickety mají v attachments prázdné pole (dřív Storage cesty, nikdy nevyužité).
     attachments: ((t.attachments as unknown[] | undefined) ?? []).filter(
       (f): f is TicketFile => typeof f === "object" && f !== null && "url" in f
@@ -111,25 +139,33 @@ export async function loadTicketForRoute(id: string) {
 
 /**
  * Vše pro detail ticketu (stránka `/backlog/[id]` i modál nad nástěnkou):
- * ticket, vlákno, vizitka, tým pro výběr řešitele. Otevřením se ticket od
- * klienta označí jako přečtený (štítek „Nové“ zmizí).
+ * ticket, vlákno s klientem, chat, vizitka, tým (kdo má úkol na starosti) a
+ * štítky použité u jiných ticketů (nabídka při přidávání).
+ * Otevřením se ticket od klienta označí jako přečtený (štítek „Nové“ zmizí).
  */
 export async function loadTicketView(id: string) {
   const { user, db, ticket } = await loadTicketForRoute(id);
-  const [usersSnap, instanceDoc, messages] = await Promise.all([
+  const [usersSnap, instanceDoc, messages, comments, tagsSnap] = await Promise.all([
     db.collection("users").where("active", "==", true).get(),
     ticket.instanceId ? db.collection("instances").doc(ticket.instanceId).get() : null,
     ticket.source === "hub" ? loadTicketMessages(db, id) : [],
+    loadTicketComments(db, id),
+    db.collection("tickets").select("tags").get(),
   ]);
   if (ticket.unreadByTeam) await db.collection("tickets").doc(id).update({ unreadByTeam: false });
   const users = usersSnap.docs
     .map((d) => ({ id: d.id, name: (d.data().displayName as string | undefined) || "Bez jména" }))
     .sort((a, b) => a.name.localeCompare(b.name, "cs"));
+  const knownTags = [...new Set(tagsSnap.docs.flatMap((d) => (d.data().tags as string[] | undefined) ?? []))].sort((a, b) =>
+    a.localeCompare(b, "cs")
+  );
   return {
     user,
     ticket,
     messages,
+    comments,
     users,
+    knownTags,
     instanceDomain: (instanceDoc?.data()?.domain as string | undefined) ?? null,
   };
 }
