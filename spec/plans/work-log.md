@@ -2,6 +2,16 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-19: Kalendář událostí a ranní souhrn
+
+- Nová stránka Kalendář (`/calendar`, admin a member). Ukazuje měsíc s událostmi, seznam po termínu, vybraný den a příštích 7 dní. Události se počítají z dat CRM (`lib/calendar.ts`): vystavit fakturu z předplatného, splatnost a po splatnosti, obnovení domén, konec akce, roční platby služeb.
+- Faktura vystavená „Z předplatného“ posune `nextInvoiceAt` o období a uloží `billingPeriodAt`. Storno nebo smazání ho vrátí. Dřív se příští fakturace při ručním vystavení neposouvala.
+- Ranní souhrn: cron `/api/cron/calendar` (5:00 UTC) nahradil `domain-renewals`. Každý admin a member dostane notifikaci, push a e-mail (vypnutelný v Kalendáři). Souhrn obsahuje i vše nedodělané z minulých dnů. `calendarDigests` brání dvojímu odeslání, `settings/calendar` ukládá poslední běh a kalendář varuje, když cron neproběhl.
+- Odběr v Google Kalendáři: každý uživatel si vytvoří soukromý odkaz (`calendarFeeds`, ICS na `/api/calendar/ics/{token}`).
+- Dashboard přestavěný na přehled: „Ahoj {jméno}“ (5. pád, `lib/vocative.ts`), datum a věta o tom, co je dnes k vyřízení. Karta „Dnes“ (týden, po termínu, na dnešek, čeká na tebe, příští dny) je na mobilu první, na širokém displeji vpravo. „Čeká na tebe“ = zprávy klientů z HUBu bez odpovědi týmu a nezpracované podklady, follow-upy jsou v agendě podle termínu. Přehled pro řízení ve čtyřech oblastech: Peníze (MRR, vyfakturováno, zaplaceno, náklady, zůstává, nezaplaceno, po splatnosti), Klienti, Obchod, Provoz (Backlog, na mně, urgentní, podklady, domény, weby bez měření). KPI dlaždice a samostatné karty upozornění nahradily oblasti. Po splatnosti se počítá podle `dueAt`, i bez fakturačního cronu. Obchodník vidí své klienty, oslovení a domény, bez peněz a provozu.
+- Po nasazení spustit `firebase deploy --only firestore` (rules pro `calendarFeeds` a `calendarDigests`).
+- Větev `v1.49.0`.
+
 ## 2026-11-13: Funkce HUBu v záložce Služby, Vyhledávání jako funkce
 
 - Nová funkce HUBu `search` (Vyhledávání, data z Google Search Console). Nezávisí na Statistikách, výchozí stav vypnuto.
