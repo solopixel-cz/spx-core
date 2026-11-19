@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,6 +89,7 @@ export function CalendarPageClient({
 }) {
   const [selected, setSelected] = useState(initialDay ?? (today.startsWith(month) ? today : `${month}-01`));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const router = useRouter();
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -99,6 +101,17 @@ export function CalendarPageClient({
   const dayEvents = (byDay.get(selected) ?? []).filter((e) => !isOverdue(e, today));
   const soonEnd = addDays(today, SOON_DAYS);
   const soon = events.filter((e) => e.day > today && e.day <= soonEnd && e.state !== "done" && e.day !== selected);
+
+  // Týden (po–ne) s vybraným dnem pro mobilní pás.
+  const [sy, sm, sd] = selected.split("-").map(Number);
+  const monday = addDays(selected, -((new Date(Date.UTC(sy, sm - 1, sd)).getUTCDay() + 6) % 7));
+  const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+
+  /** Přejde na den; mimo načtenou mřížku načte jeho měsíc. */
+  function goTo(day: string) {
+    if (days.includes(day)) setSelected(day);
+    else router.push(`/calendar?m=${day.slice(0, 7)}&d=${day}`);
+  }
 
   // Ranní kontrola běží kolem 6:00 (v létě 7:00); po 9. hodině bez dnešního běhu varujeme.
   const lastRun = lastRunAt ? new Date(lastRunAt) : null;
@@ -128,8 +141,58 @@ export function CalendarPageClient({
         </p>
       </PageHeader>
 
+      {/* Mobil: jen vybraný den, šipkami po dnech a týdenní pás; měsíc až na větším displeji. */}
+      <Card className="py-0 sm:hidden">
+        <CardContent className="space-y-2 p-2">
+          <div className="flex items-center justify-between gap-1">
+            <Button variant="ghost" size="icon-sm" aria-label="Předchozí den" onClick={() => goTo(addDays(selected, -1))}>
+              <ChevronLeft />
+            </Button>
+            <h2 className="min-w-0 truncate text-sm font-semibold">{dayLabel(selected, today)}</h2>
+            <div className="flex items-center">
+              {selected !== today && (
+                <Button variant="ghost" size="xs" onClick={() => goTo(today)}>
+                  Dnes
+                </Button>
+              )}
+              <Button variant="ghost" size="icon-sm" aria-label="Další den" onClick={() => goTo(addDays(selected, 1))}>
+                <ChevronRight />
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {week.map((day, i) => {
+              const list = byDay.get(day) ?? [];
+              const isSelected = day === selected;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => goTo(day)}
+                  aria-pressed={isSelected}
+                  aria-label={`${dayLabel(day, today)}, ${list.length} událostí`}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-lg py-1.5 transition-colors",
+                    isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted/60",
+                    !isSelected && day === today && "text-primary"
+                  )}
+                >
+                  <span className={cn("text-[10px] font-medium uppercase", !isSelected && "text-muted-foreground")}>{WEEKDAYS[i]}</span>
+                  <span className="text-sm font-semibold tabular-nums">{Number(day.slice(8))}</span>
+                  <span className="flex h-1.5 gap-0.5">
+                    {list.slice(0, 3).map((e) => (
+                      <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground/80" : DOT[tone(e, today)])} />
+                    ))}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem]">
-        <Card className="min-w-0 py-0">
+        <Card className="hidden min-w-0 py-0 sm:flex">
           <CardContent className="p-0">
             <div className="flex items-center justify-between gap-2 border-b px-3 py-2.5 sm:px-4">
               <h2 className="text-base font-semibold">{monthTitle(month)}</h2>
