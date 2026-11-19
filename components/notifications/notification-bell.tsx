@@ -191,7 +191,7 @@ export function NotificationBell({ uid }: { uid: string }) {
         </div>
         {devicePush === "off" && (
           <Link
-            href="/settings/notifications"
+            href="/profile/notifications"
             className="flex items-center gap-2 border-t bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <BellRing className="h-3.5 w-3.5 shrink-0" />

@@ -19,6 +19,8 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   phone?: string
   senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
   senderName?: string        // override jména odesílatele; bez hodnoty = displayName. Mění jen admin.
+  calendarDigestEmail?: boolean  // ranní souhrn z kalendáře i e-mailem; chybí = ano. Mění si každý sám (profil → Notifikace nebo Kalendář).
+  notificationPrefs?: Record<string, boolean>  // co komu chodí do zvonečku a push: leads, submissions, hub, emailOpened, billing, calendar (lib/notification-prefs.ts); chybí = zapnuto. Dostávají admin a member, sales ne.
 }
 ```
 
@@ -116,12 +118,11 @@ Vlastní (zakoupené) domény. 1:N ke klientovi — klient může mít víc dom�
   autoRenew?: boolean         // automatické obnovení zapnuto (pak cron netlačí připomínku)
   price?: number | null       // cena obnovení v Kč za rok (náklady /costs ji počítají po měsících)
   note?: string
-  renewalReminderSentAt?: Timestamp  // throttle cron připomínky; PATCH renewalAt ho maže
 }
 ```
 
 - **Správa domén** `/domains` (admin, member): všechny domény seřazené podle expirace, filtry (po expiraci, do 30 dnů, bez klienta), přiřazení klienta. Čte celou kolekci a řadí v paměti, bez indexu.
-- **Připomínka obnovení:** odznak na detailu klienta (brzy/po expiraci), widget „Blížící se obnovení domén" na dashboardu, denní cron `/api/cron/domain-renewals` (notifikace adminům 30 dnů předem, throttle 7 dnů přes `renewalReminderSentAt`, přeskakuje `autoRenew`).
+- **Připomínka obnovení:** odznak na detailu klienta (brzy/po expiraci), widget „Blížící se obnovení domén" na dashboardu, Kalendář a ranní souhrn (`/calendar`, cron `/api/cron/calendar`): obnovení bez `autoRenew` je úkol, ohlásí se 30 dní předem a týden před termínem, po termínu je v souhrnu každý den. Dřívější cron `domain-renewals` a pole `renewalReminderSentAt` jsou zrušené (stará data pole mohou mít).
 - **Zápis** jen přes Route Handlers s admin SDK (`/api/domains`), klientský SDK jen čte.
 
 ### `leads` (zrušeno 2026-09-30)
@@ -166,6 +167,8 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
 }
 ```
 
+**Příští fakturace (`nextInvoiceAt`):** faktury se vystavují ručně (cron `billing` je vypnutý). Faktura vystavená z předplatného („Z předplatného“, `invoices.subscriptionId`) pokryje jeho aktuální období: `nextInvoiceAt` se posune o měsíc nebo rok a faktura dostane `billingPeriodAt`. Den v měsíci drží den startu (31. 1. → 28. 2. → 31. 3.), ručně změněný den platí dál (`billingAnchor` v `lib/calendar.ts`). Storno nebo smazání faktury vrátí `nextInvoiceAt` zpět, pokud se mezitím neposunulo jinak. Koncept nic neposouvá, posune až jeho odeslání. V kalendáři jde období posunout i bez faktury („Už vyfakturováno“, `POST /api/subscriptions/[id]/period`, `DELETE` vrací; zaloguje se u klienta). Stará data před 1.49.0 srovná skript `scripts/align-next-invoice.ts` (dry-run, `--execute`).
+
 ### `invoices`
 ```ts
 {
@@ -179,7 +182,8 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
     discountPercent?: number // sleva na řádku: 0/5/10/15/20/25/30 %
   }[]
   variableSymbol?: string
-  subscriptionId?: string    // vazba na předplatné (cron generování)
+  subscriptionId?: string    // vazba na předplatné (vystaveno „Z předplatného“ nebo cronem)
+  billingPeriodAt?: Timestamp  // začátek období předplatného, které faktura pokrývá (posun `nextInvoiceAt`, kalendář)
   projectId?: string         // vystaveno ze zakázky (projects.invoiceId ukazuje zpět)
   note?: string
   issuedAt: Timestamp
@@ -284,7 +288,7 @@ V CRM sekce **Backlog** (`/backlog`, od 1.41.0, dřív Tickety): Kanban Úkoly, 
 ```
 
 #### `tickets/{id}/messages` (podkolekce)
-Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), jen když je u odpovědi zaškrtnuté „Poslat i e-mailem“ (výchozí). Zpráva klienta upozorní adminy (`notifications` + push).
+Vlákno mezi klientem (HUB) a týmem (CRM). Zapisují jen servery přes Admin SDK (hub `/api/feedback`, core `/api/tickets/[id]/messages`). Zpráva týmu pošle klientovi e-mail (z adresy odesílatele v profilu) a push (`hubNotifications.push.tickets`), jen když je u odpovědi zaškrtnuté „Poslat i e-mailem“ (výchozí). Zpráva klienta upozorní adminy a membery se zapnutým `notificationPrefs.hub` (`notifications` + push).
 
 ```ts
 {
@@ -583,6 +587,47 @@ Dodavatelské (fakturační) údaje — hlavička „dodavatel" na PDF faktuře,
   invoiceFooter?: string     // volitelná patička dokladu
 }
 ```
+
+### `settings/calendar`
+Stav ranní kontroly kalendáře, zapisuje cron `/api/cron/calendar`. Kalendář podle něj ukáže „Ranní kontrola: …“ a po 9:00 bez dnešního běhu varuje.
+
+```ts
+{
+  lastRunAt: Timestamp
+  lastRunDay: string          // YYYY-MM-DD (Praha)
+  lastRun: { day, recipients, emailed, skipped, errors }
+}
+```
+
+### `calendarFeeds`
+Soukromé odkazy pro odběr kalendáře v Google Kalendáři (ICS). ID dokumentu = token (48 hex znaků), jeden na uživatele, nový odkaz starý smaže. `GET /api/calendar/ics/{token}` funguje bez přihlášení, jen pro aktivního admina nebo membera. Jen admin SDK.
+
+```ts
+{ uid: string; createdAt: Timestamp }
+```
+
+### `calendarDigests`
+Záznam ranního souhrnu, ID `{YYYY-MM-DD}_{uid}`. Vzniká přes `create()`, takže opakovaný běh cronu téhož dne souhrn nepošle dvakrát. Jen admin SDK.
+
+```ts
+{
+  uid: string
+  day: string                 // YYYY-MM-DD
+  overdue: number; today: number; soon: number   // počty v souhrnu
+  emailedAt?: Timestamp
+  emailError?: string
+  createdAt: Timestamp
+}
+```
+
+**Kalendář** `/calendar` (admin, member): události se počítají z dat CRM v `lib/calendar.ts`, samy se neukládají.
+- Vystavit fakturu: `subscriptions.nextInvoiceAt`, další období jako výhled; bez interních, zrušených a bez ceny.
+- Faktura vystavena: `billingPeriodAt`.
+- Splatnost a po splatnosti: `invoices.dueAt`, bez konceptů, storen a zaplacených (zaplacená faktura z kalendáře zmizí, i „Faktura vystavena“).
+- Obnovení domény (`renewalAt`), konec akce (`discountUntil`), roční platby služeb (`costServices.nextPaymentAt`).
+- Úkoly po termínu se ukazují, dokud nejsou hotové.
+- Ranní souhrn (cron 5:00 UTC, `lib/calendar-digest.ts`): po termínu, dnes, příštích 7 dní a domény 30 dní předem. Každému aktivnímu adminovi a memberovi do notifikací, push a e-mailem (`users.calendarDigestEmail`), jen když je co hlásit.
+- Odběr v Google Kalendáři: celodenní události se stabilním UID (`lib/calendar-ics.ts`), Google odběr obnovuje sám, obvykle několikrát denně.
 
 ### `outreachEmails`
 Odeslané oslovovací e-maily (Resend) — stav doručení přes webhooky. Pokrývá první oslovení i druhý (follow-up) e-mail; odlišeno polem `template`.

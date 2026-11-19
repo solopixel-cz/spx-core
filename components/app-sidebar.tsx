@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  CalendarDays,
   History,
   Users,
   BookUser,
@@ -40,6 +41,7 @@ const navGroups: NavGroup[] = [
     title: "Přehled",
     items: [
       { label: "Dashboard", href: "/", icon: LayoutDashboard },
+      { label: "Kalendář", href: "/calendar", icon: CalendarDays, roles: ["admin", "member"] },
       { label: "Aktivita", href: "/activity", icon: History },
     ],
   },

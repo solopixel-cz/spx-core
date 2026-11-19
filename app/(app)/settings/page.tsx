@@ -4,8 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Users,
   Archive,
-  User,
-  Bell,
   Receipt,
   TicketPercent,
 } from "lucide-react";
@@ -41,25 +39,14 @@ const tiles: Tile[] = [
     roles: ["admin"],
   },
   {
-    label: "Notifikace",
-    description: "Push upozornění na nové poptávky a události",
-    href: "/settings/notifications",
-    icon: Bell,
-    roles: ["admin"],
-  },
-  {
     label: "Archiv",
-    description: "Archivované záznamy — obnova a trvalé mazání",
+    description: "Archivované záznamy, obnova a trvalé mazání",
     href: "/settings/archive",
     icon: Archive,
   },
-  {
-    label: "Můj profil",
-    description: "Jméno, fotka, heslo a preference",
-    href: "/profile",
-    icon: User,
-  },
 ];
+
+// Nastavení je pro celé CRM; osobní věci (profil, notifikace) jsou v menu pod avatarem.
 
 export default async function NastaveniPage() {
   const user = await requireAuth();
