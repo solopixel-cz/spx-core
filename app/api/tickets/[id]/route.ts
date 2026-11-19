@@ -6,6 +6,7 @@ import { z } from "zod";
 import { logActivity } from "@/lib/activity";
 import { getSalesClientIds } from "@/lib/sales-clients";
 import { TICKET_STATUSES, ticketStatusLabels } from "@/lib/ticket-labels";
+import { ticketTagsSchema } from "@/lib/schemas/ticket";
 
 export async function PATCH(
   request: Request,
@@ -27,6 +28,7 @@ export async function PATCH(
       instanceId?: string | null;
       links?: string[];
       prLinks?: string[];
+      tags?: string[];
     };
 
     const db = getAdminFirestore();
@@ -80,6 +82,11 @@ export async function PATCH(
       const prLinks = z.array(z.string().url()).max(30).safeParse(body.prLinks);
       if (!prLinks.success) return NextResponse.json({ error: "Neplatný odkaz na PR" }, { status: 400 });
       updates.prLinks = [...new Set(prLinks.data)];
+    }
+    if (body.tags !== undefined) {
+      const tags = ticketTagsSchema.safeParse(body.tags);
+      if (!tags.success) return NextResponse.json({ error: tags.error.issues[0]?.message ?? "Neplatné štítky" }, { status: 400 });
+      updates.tags = tags.data;
     }
 
     await docRef.update(updates);

@@ -27,6 +27,7 @@ import {
   EntityCardList,
 } from "@/components/entity-card";
 import { FilterBar } from "@/components/filter-bar";
+import { TagChip } from "@/components/tickets/ticket-tags";
 import { ArchiveNotice, ArchiveToggle } from "@/components/archive-toggle";
 import { formatDate } from "@/lib/format";
 import {
@@ -62,6 +63,8 @@ interface TicketRow {
   assigneeUid?: string;
   links: string[];
   prCount: number;
+  commentCount?: number;
+  tags?: string[];
   /** Zpětná vazba od klienta z HUBu. */
   fromHub?: boolean;
   /** Klient napsal a tým ticket ještě neotevřel. */
@@ -96,16 +99,18 @@ const FILTER_DEFAULTS = {
   priority: "all",
   client: "all",
   source: "all",
+  tag: "all",
 } as const;
 
 /** Pro hlášku o zahozeném filtru (2. pád). */
 const FILTER_NOUNS: Record<keyof typeof FILTER_DEFAULTS, string> = {
-  assignee: "řešitele",
+  assignee: "osoby",
   status: "stavu",
   type: "typu",
   priority: "priority",
   client: "klienta",
   source: "zdroje",
+  tag: "štítku",
 };
 
 // Priorita a stav se řadí podle pořadí (nízká → urgentní, otevřený → uzavřený), neznámé na konec.
@@ -145,7 +150,13 @@ export function TicketsPageClient({
     all: "Všichni",
     [currentUid]: "Já",
     ...Object.fromEntries(users.filter((u) => u.id !== currentUid).map((u) => [u.id, u.name])),
-    [UNASSIGNED]: "Nepřiřazeno",
+    [UNASSIGNED]: "Nikdo",
+  };
+  const tagItems: Record<string, string> = {
+    all: "Všechny štítky",
+    ...Object.fromEntries(
+      [...new Set(tickets.flatMap((t) => t.tags ?? []))].sort((a, b) => a.localeCompare(b, "cs")).map((tag) => [tag, tag])
+    ),
   };
   const clientItems: Record<string, string> = {
     all: "Všichni klienti",
@@ -167,6 +178,7 @@ export function TicketsPageClient({
       priority: (v) => v in priorityLabels,
       client: (v) => v in clientItems,
       source: (v) => v in SOURCE_LABELS,
+      tag: (v) => v in tagItems,
     },
   });
   const {
@@ -176,6 +188,7 @@ export function TicketsPageClient({
     priority: priorityFilter,
     client: clientFilter,
     source: sourceFilter,
+    tag: tagFilter,
   } = filters.values;
   // „Zrušit filtry" jen podle filtrů, které jsou vidět — stav se na nástěnce
   // nenabízí (sloupce ho zastupují), tak se do počtu nezapočítá.
@@ -194,6 +207,7 @@ export function TicketsPageClient({
     if (assigneeFilter !== "all" && assigneeFilter !== UNASSIGNED && t.assigneeUid !== assigneeFilter) return false;
     if (sourceFilter === "hub" && !t.fromHub) return false;
     if (sourceFilter === "crm" && t.fromHub) return false;
+    if (tagFilter !== "all" && !t.tags?.includes(tagFilter)) return false;
     return true;
   });
   // Řazení po filtrech; výchozí abecedně podle klienta.
@@ -305,6 +319,14 @@ export function TicketsPageClient({
             {Object.entries(SOURCE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        {Object.keys(tagItems).length > 1 && (
+          <Select items={tagItems} value={tagFilter} onValueChange={(val) => filters.set("tag", val)}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(tagItems).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={filters.reset}>
             <X className="mr-1 h-4 w-4" />
@@ -389,7 +411,15 @@ export function TicketsPageClient({
                     </TableCell>
                   )}
                   <TableCell><Badge variant="outline">{typeLabels[t.type] ?? t.type}</Badge></TableCell>
-                  <TableCell className="font-medium"><SourceBadges t={t} />{t.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <SourceBadges t={t} />
+                    {t.title}
+                    {!!t.tags?.length && (
+                      <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                        {t.tags.map((tag) => <TagChip key={tag} tag={tag} />)}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{t.clientName}</TableCell>
                   <TableCell><Badge variant={priorityVariants[t.priority] ?? "secondary"}>{priorityLabels[t.priority] ?? t.priority}</Badge></TableCell>
                   <TableCell><Badge variant="secondary">{statusLabels[t.status] ?? t.status}</Badge></TableCell>

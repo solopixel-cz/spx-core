@@ -37,6 +37,8 @@ export const ticketSchema = z.object({
   links: z.array(z.string().url()),
   // Odkazy na pull requesty (GitHub), přidávají se v detailu. Starší tickety pole nemají.
   prLinks: z.array(z.string().url()).optional(),
+  // Štítky pro přehled na nástěnce (web, hub, faktury…), přidávají se v detailu.
+  tags: z.array(z.string()).optional(),
   // Zpětná vazba z HUBu (spec/context/data-model.md → tickets): klient vidí stav a vlákno.
   source: z.enum(["crm", "hub"]).optional(),
   createdByEmail: z.string().email().optional(),
@@ -68,3 +70,14 @@ export const ticketReplySchema = z.object({
   /** Poslat klientovi i e-mail a push (jinak jen do HUBu). */
   notify: z.boolean().default(true),
 });
+
+/** Zpráva do chatu týmu u ticketu (klient ji nevidí). */
+export const ticketCommentSchema = z.object({
+  text: z.string().trim().min(1, "Napište zprávu").max(4000, "Nejvýš 4000 znaků"),
+});
+
+/** Štítky ticketu: krátké, nejvýš 8, bez duplicit (velikost písmen se nerozlišuje). */
+export const ticketTagsSchema = z
+  .array(z.string().trim().min(1).max(24, "Štítek má nejvýš 24 znaků"))
+  .max(8, "Nejvýš 8 štítků")
+  .transform((tags) => tags.filter((t, i) => tags.findIndex((o) => o.toLowerCase() === t.toLowerCase()) === i));
