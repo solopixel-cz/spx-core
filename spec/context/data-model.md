@@ -166,7 +166,7 @@ Předplatné. Klient jich může mít **víc** (fáze 34C), např. vizitka + spr
 }
 ```
 
-**Příští fakturace (`nextInvoiceAt`):** faktury se vystavují ručně (cron `billing` je vypnutý). Faktura vystavená z předplatného („Z předplatného“, `invoices.subscriptionId`) pokryje jeho aktuální období: `nextInvoiceAt` se posune o měsíc nebo rok a faktura dostane `billingPeriodAt`. Den v měsíci drží den startu (31. 1. → 28. 2. → 31. 3.), ručně změněný den platí dál (`billingAnchor` v `lib/calendar.ts`). Storno nebo smazání faktury vrátí `nextInvoiceAt` zpět, pokud se mezitím neposunulo jinak. Koncept nic neposouvá, posune až jeho odeslání.
+**Příští fakturace (`nextInvoiceAt`):** faktury se vystavují ručně (cron `billing` je vypnutý). Faktura vystavená z předplatného („Z předplatného“, `invoices.subscriptionId`) pokryje jeho aktuální období: `nextInvoiceAt` se posune o měsíc nebo rok a faktura dostane `billingPeriodAt`. Den v měsíci drží den startu (31. 1. → 28. 2. → 31. 3.), ručně změněný den platí dál (`billingAnchor` v `lib/calendar.ts`). Storno nebo smazání faktury vrátí `nextInvoiceAt` zpět, pokud se mezitím neposunulo jinak. Koncept nic neposouvá, posune až jeho odeslání. V kalendáři jde období posunout i bez faktury („Už vyfakturováno“, `POST /api/subscriptions/[id]/period`, `DELETE` vrací; zaloguje se u klienta). Stará data před 1.49.0 srovná skript `scripts/align-next-invoice.ts` (dry-run, `--execute`).
 
 ### `invoices`
 ```ts
@@ -622,7 +622,7 @@ Záznam ranního souhrnu, ID `{YYYY-MM-DD}_{uid}`. Vzniká přes `create()`, tak
 **Kalendář** `/calendar` (admin, member): události se počítají z dat CRM v `lib/calendar.ts`, samy se neukládají.
 - Vystavit fakturu: `subscriptions.nextInvoiceAt`, další období jako výhled; bez interních, zrušených a bez ceny.
 - Faktura vystavena: `billingPeriodAt`.
-- Splatnost a po splatnosti: `invoices.dueAt`, bez konceptů a storen.
+- Splatnost a po splatnosti: `invoices.dueAt`, bez konceptů, storen a zaplacených (zaplacená faktura z kalendáře zmizí, i „Faktura vystavena“).
 - Obnovení domény (`renewalAt`), konec akce (`discountUntil`), roční platby služeb (`costServices.nextPaymentAt`).
 - Úkoly po termínu se ukazují, dokud nejsou hotové.
 - Ranní souhrn (cron 5:00 UTC, `lib/calendar-digest.ts`): po termínu, dnes, příštích 7 dní a domény 30 dní předem. Každému aktivnímu adminovi a memberovi do notifikací, push a e-mailem (`users.calendarDigestEmail`), jen když je co hlásit.

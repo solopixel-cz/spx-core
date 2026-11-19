@@ -102,3 +102,29 @@ export async function rewindSubscriptionPeriod(db: FirebaseFirestore.Firestore, 
     tx.update(subRef, { nextInvoiceAt: period, updatedAt: FieldValue.serverTimestamp() });
   });
 }
+
+/**
+ * Ruční posun příští fakturace o jedno období bez vystavení faktury („Už
+ * vyfakturováno“ v kalendáři), `back` ho vrátí. Projde jen když předplatné stojí
+ * na očekávaném dni, takže dvojklik nebo starý kalendář nic neposune dvakrát.
+ * Vrací nový den (YYYY-MM-DD), nebo null když se nic nezměnilo.
+ */
+export async function shiftSubscriptionPeriod(
+  db: FirebaseFirestore.Firestore,
+  subscriptionId: string,
+  period: string,
+  direction: "forward" | "back"
+): Promise<string | null> {
+  const subRef = db.collection("subscriptions").doc(subscriptionId);
+  return db.runTransaction(async (tx) => {
+    const sub = (await tx.get(subRef)).data();
+    const current = sub?.nextInvoiceAt?.toDate?.() as Date | undefined;
+    if (!sub || !current || sub.status === "cancelled") return null;
+    const anchor = billingAnchor(sub.startedAt?.toDate?.(), pragueMidnight(period));
+    const next = nextCycleDay(period, sub.billingCycle, anchor);
+    const [expected, target] = direction === "forward" ? [period, next] : [next, period];
+    if (pragueDay(current) !== expected) return null;
+    tx.update(subRef, { nextInvoiceAt: pragueMidnight(target), updatedAt: FieldValue.serverTimestamp() });
+    return target;
+  });
+}

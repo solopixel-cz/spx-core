@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, ClipboardList, Clock, FileCheck2, Globe, MessageSquare, Phone, Receipt, Tag, Wallet } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { AlertTriangle, Check, CheckCheck, ClipboardList, Clock, FileCheck2, Globe, MessageSquare, Phone, Receipt, Tag, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addDays, isOverdue, KIND_LABELS, type CalendarEvent, type CalendarKind } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
+import { toastWithUndo } from "@/lib/undo-toast";
 
 /** Společné části kalendáře: barvy podle druhu, popisky dnů a řádek události (stránka i widget na dashboardu). */
 
@@ -98,6 +102,64 @@ export function shortDay(day: string, today: string): string {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 }
 
+/** Akce pod událostí: menší než běžné tlačítko, ať řádek zůstane klidný. */
+const ACTION_SIZE = "h-7 gap-1 px-2.5 text-xs [&_svg:not([class*='size-'])]:size-3.5";
+
+/**
+ * „Už vyfakturováno“: období předplatného se posune bez vystavení faktury (např.
+ * faktura šla mimo předplatné). V toastu jde posun vrátit.
+ */
+function MarkInvoiced({ e }: { e: CalendarEvent }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function shift(method: "POST" | "DELETE") {
+    const res = await fetch(`/api/subscriptions/${e.subscriptionId}/period`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ period: e.day }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error);
+    router.refresh();
+  }
+
+  async function mark() {
+    setBusy(true);
+    try {
+      await shift("POST");
+      toastWithUndo({
+        message: "Období označeno jako vyfakturované",
+        undo: async () => {
+          try {
+            await shift("DELETE");
+          } catch (error) {
+            toast.error(error instanceof Error && error.message ? error.message : "Nepodařilo se vrátit");
+          }
+        },
+      });
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Nepodařilo se uložit");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button
+      size="xs"
+      variant="ghost"
+      disabled={busy}
+      onClick={mark}
+      title="Posunout příští fakturaci o období bez vystavení faktury"
+      className={cn(ACTION_SIZE, "text-muted-foreground hover:text-foreground")}
+    >
+      <CheckCheck />
+      Už vyfakturováno
+    </Button>
+  );
+}
+
 /** Řádek události; `compact` = hustší varianta pro widget (texty na jeden řádek). */
 export function EventRow({ e, today, showDay, compact }: { e: CalendarEvent; today: string; showDay?: boolean; compact?: boolean }) {
   const t = tone(e, today);
@@ -116,12 +178,24 @@ export function EventRow({ e, today, showDay, compact }: { e: CalendarEvent; tod
           {e.title}
         </Link>
         {e.detail && <p className={cn("text-xs text-muted-foreground", compact && "truncate")}>{e.detail}</p>}
+        {/* Akce pod textem, aby se text nelámal vedle tlačítek. */}
+        {(e.action || (e.subscriptionId && e.state === "todo")) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {e.action && (
+              <Button
+                size="xs"
+                variant={isOverdue(e, today) || e.day === today ? "default" : "outline"}
+                className={ACTION_SIZE}
+                render={<Link href={e.action.href} />}
+                nativeButton={false}
+              >
+                {e.action.label}
+              </Button>
+            )}
+            {e.subscriptionId && e.state === "todo" && <MarkInvoiced e={e} />}
+          </div>
+        )}
       </div>
-      {e.action && (
-        <Button size="xs" variant={isOverdue(e, today) || e.day === today ? "default" : "outline"} render={<Link href={e.action.href} />} nativeButton={false}>
-          {e.action.label}
-        </Button>
-      )}
     </li>
   );
 }

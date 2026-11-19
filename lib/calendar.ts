@@ -28,6 +28,8 @@ export interface CalendarEvent {
   href: string;
   /** Hlavní akce, např. vystavit fakturu. */
   action?: { label: string; href: string };
+  /** U úkolu „Vystavit fakturu“: předplatné, jehož období jde ručně označit jako vyfakturované. */
+  subscriptionId?: string;
 }
 
 export const KIND_LABELS: Record<CalendarKind, string> = {
@@ -161,6 +163,7 @@ export async function loadCalendarEvents(
             clientId: s.clientId,
             href: `/clients/${s.clientId}`,
             action: i === 0 ? action : undefined,
+            subscriptionId: i === 0 ? doc.id : undefined,
           });
         }
         day = nextCycleDay(day, s.billingCycle, anchor);
@@ -183,11 +186,12 @@ export async function loadCalendarEvents(
     }
   }
 
-  // Faktury: vystavené z předplatného (hotovo) a splatnost.
+  // Faktury: vystavené z předplatného (hotovo) a splatnost. Zaplacené už nic
+  // nevyžadují, v kalendáři nejsou.
   for (const doc of invoicesSnap.docs) {
     const inv = doc.data();
     const clientName = clients.get(inv.clientId);
-    if (!clientName || inv.status === "draft" || inv.status === "cancelled") continue;
+    if (!clientName || inv.status === "draft" || inv.status === "cancelled" || inv.status === "paid") continue;
     const href = `/invoices/${doc.id}`;
     const amount = czk((inv.amount as number) ?? 0);
 
@@ -209,19 +213,18 @@ export async function loadCalendarEvents(
     const due = toDate(inv.dueAt);
     if (!due) continue;
     const day = pragueDay(due);
-    const paid = inv.status === "paid";
-    if (!inRange(day) && (paid || day >= range.from)) continue;
-    const late = !paid && day < today;
+    if (!inRange(day) && day >= range.from) continue;
+    const late = day < today;
     events.push({
       id: `due-${doc.id}`,
       kind: "due",
       day,
-      state: paid ? "done" : "todo",
+      state: "todo",
       title: `${late ? "Po splatnosti" : "Splatnost"}: ${clientName}`,
-      detail: `${inv.number} · ${amount}${paid ? " · zaplaceno" : ""}`,
+      detail: `${inv.number} · ${amount}`,
       clientId: inv.clientId,
       href,
-      action: paid ? undefined : { label: "Otevřít", href },
+      action: { label: "Otevřít", href },
     });
   }
 
