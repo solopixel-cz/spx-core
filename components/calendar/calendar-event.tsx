@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Check, CheckCheck, ClipboardList, Clock, FileCheck2, Globe, MessageSquare, Phone, Receipt, Tag, Wallet } from "lucide-react";
+import { Banknote, Check, CheckCheck, ClipboardList, FileCheck2, FilePlus2, Globe, MessageSquare, Phone, Tag, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { addDays, isOverdue, KIND_LABELS, type CalendarEvent, type CalendarKind } from "@/lib/calendar";
+import { addDays, eventLabel, isOverdue, type CalendarEvent, type CalendarKind } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 import { toastWithUndo } from "@/lib/undo-toast";
 
@@ -14,10 +14,11 @@ import { toastWithUndo } from "@/lib/undo-toast";
 
 export const WEEKDAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
 
-export const KIND_ICONS: Record<CalendarKind, typeof Receipt> = {
-  issue: Receipt,
+/** Ikona podle druhu: nová faktura (vystavit) vs. bankovka (čeká se na platbu) atd. */
+export const KIND_ICONS: Record<CalendarKind, typeof Banknote> = {
+  issue: FilePlus2,
   issued: FileCheck2,
-  due: Clock,
+  due: Banknote,
   domain: Globe,
   promo: Tag,
   cost: Wallet,
@@ -67,6 +68,19 @@ export const ICON: Record<string, string> = {
   slate: "bg-slate-500/10 text-slate-600",
   teal: "bg-teal-500/10 text-teal-600",
   fuchsia: "bg-fuchsia-500/10 text-fuchsia-600",
+};
+
+/** Barva popisu druhu události. */
+export const LABEL: Record<string, string> = {
+  rose: "text-rose-600 dark:text-rose-400",
+  zinc: "text-muted-foreground",
+  sky: "text-sky-700 dark:text-sky-400",
+  amber: "text-amber-700 dark:text-amber-400",
+  violet: "text-violet-700 dark:text-violet-400",
+  emerald: "text-emerald-700 dark:text-emerald-400",
+  slate: "text-slate-600 dark:text-slate-400",
+  teal: "text-teal-700 dark:text-teal-400",
+  fuchsia: "text-fuchsia-700 dark:text-fuchsia-400",
 };
 
 export const DOT: Record<string, string> = {
@@ -163,19 +177,24 @@ function MarkInvoiced({ e }: { e: CalendarEvent }) {
 /** Řádek události; `compact` = hustší varianta pro widget (texty na jeden řádek). */
 export function EventRow({ e, today, showDay, compact }: { e: CalendarEvent; today: string; showDay?: boolean; compact?: boolean }) {
   const t = tone(e, today);
-  const Icon = e.state === "done" ? Check : isOverdue(e, today) ? AlertTriangle : KIND_ICONS[e.kind];
+  // Ikona vždy podle druhu (po termínu ji odliší červená barva), hotové fajfka.
+  const Icon = e.state === "done" ? Check : KIND_ICONS[e.kind];
   return (
     <li className={cn("flex items-start", compact ? "gap-2.5 py-2" : "gap-3 py-2.5")}>
       <span className={cn("mt-0.5 flex shrink-0 items-center justify-center rounded-full", compact ? "h-6 w-6" : "h-7 w-7", ICON[t])}>
         <Icon className="h-3.5 w-3.5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-          {KIND_LABELS[e.kind]}
-          {showDay && ` · ${compact ? shortDay(e.day, today) : dayLabel(e.day, today)}`}
+        <p className="text-[11px] tracking-wide uppercase">
+          <span className={cn("font-semibold", LABEL[t])}>{eventLabel(e, today)}</span>
+          {showDay && <span className="text-muted-foreground"> · {compact ? shortDay(e.day, today) : dayLabel(e.day, today)}</span>}
         </p>
-        <Link href={e.href} className={cn("block text-sm leading-snug font-medium hover:underline", compact && "truncate", e.state === "done" && "text-muted-foreground line-through")}>
-          {e.title}
+        <Link
+          href={e.href}
+          title={e.title}
+          className={cn("block text-sm leading-snug font-medium hover:underline", compact && "truncate", e.state === "done" && "text-muted-foreground line-through")}
+        >
+          {e.subject}
         </Link>
         {e.detail && <p className={cn("text-xs text-muted-foreground", compact && "truncate")}>{e.detail}</p>}
         {/* Akce pod textem, aby se text nelámal vedle tlačítek. */}

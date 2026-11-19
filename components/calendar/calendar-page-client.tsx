@@ -7,7 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { CalendarSettingsDialog } from "@/components/calendar/calendar-settings-dialog";
-import { CHIP, DOT, dayLabel, EventRow, tone, WEEKDAYS } from "@/components/calendar/calendar-event";
+import { CHIP, DOT, dayLabel, EventRow, ICON, KIND_ICONS, tone, WEEKDAYS } from "@/components/calendar/calendar-event";
+import type { CalendarKind } from "@/lib/calendar";
+
+function ChipIcon({ kind }: { kind: CalendarKind }) {
+  const Icon = KIND_ICONS[kind];
+  return <Icon className="h-3 w-3 shrink-0" />;
+}
+
+const LEGEND = [
+  { label: "Vystavit fakturu", icon: KIND_ICONS.issue, tone: "sky" },
+  { label: "Čeká na platbu", icon: KIND_ICONS.due, tone: "amber" },
+  { label: "Obnovit doménu", icon: KIND_ICONS.domain, tone: "violet" },
+  { label: "Končí akce", icon: KIND_ICONS.promo, tone: "emerald" },
+  { label: "Zaplatit službu", icon: KIND_ICONS.cost, tone: "slate" },
+];
 import { addDays, isOverdue, type CalendarEvent } from "@/lib/calendar";
 import { SOON_DAYS } from "@/lib/calendar-digest";
 import { cn } from "@/lib/utils";
@@ -181,12 +195,10 @@ export function CalendarPageClient({
                         <span
                           key={e.id}
                           title={`${e.title} · ${e.detail}`}
-                          className={cn(
-                            "relative truncate rounded px-1.5 py-px pl-2.5 text-[11px] leading-4 before:absolute before:inset-y-1 before:left-1 before:w-0.5 before:rounded-full",
-                            CHIP[tone(e, today)]
-                          )}
+                          className={cn("flex min-w-0 items-center gap-1 rounded px-1.5 py-px text-[11px] leading-4", CHIP[tone(e, today)])}
                         >
-                          {e.title.replace(/^[^:]+:\s*/, "")}
+                          <ChipIcon kind={e.kind} />
+                          <span className="truncate">{e.subject}</span>
                         </span>
                       ))}
                       {list.length > 3 && <span className="px-1 text-[11px] text-muted-foreground">+{list.length - 3} další</span>}
@@ -195,6 +207,21 @@ export function CalendarPageClient({
                 );
               })}
             </div>
+            {/* Legenda: druh události poznáte podle ikony a barvy. */}
+            <ul className="flex flex-wrap gap-x-4 gap-y-1.5 border-t px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
+              {LEGEND.map((l) => (
+                <li key={l.label} className="flex items-center gap-1.5">
+                  <span className={cn("flex h-5 w-5 items-center justify-center rounded-full", ICON[l.tone])}>
+                    <l.icon className="h-3 w-3" />
+                  </span>
+                  {l.label}
+                </li>
+              ))}
+              <li className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                Červeně: po termínu
+              </li>
+            </ul>
           </CardContent>
         </Card>
 

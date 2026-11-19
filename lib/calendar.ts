@@ -21,7 +21,10 @@ export interface CalendarEvent {
   /** Den v pražském čase, YYYY-MM-DD. */
   day: string;
   state: CalendarState;
+  /** Celý popis (ICS, e-mail, tooltip), např. „Vystavit fakturu: Jan Novák“. */
   title: string;
+  /** Kdo nebo co (klient, doména, služba); v CRM se ukazuje pod druhem události. */
+  subject: string;
   detail: string;
   clientId: string | null;
   /** Kam vede kliknutí (detail v CRM). */
@@ -35,13 +38,13 @@ export interface CalendarEvent {
 export const KIND_LABELS: Record<CalendarKind, string> = {
   issue: "Vystavit fakturu",
   issued: "Faktura vystavena",
-  due: "Splatnost faktury",
+  due: "Čeká na platbu",
   domain: "Obnovit doménu",
   promo: "Končí akce",
-  cost: "Platba služby",
+  cost: "Zaplatit službu",
   followup: "Follow-up",
-  reply: "Klient čeká na odpověď",
-  submission: "Nové podklady",
+  reply: "Odpovědět klientovi",
+  submission: "Zpracovat podklady",
 };
 
 const DAY_MS = 86_400_000;
@@ -159,6 +162,7 @@ export async function loadCalendarEvents(
             day,
             state: i === 0 ? "todo" : "info",
             title: `Vystavit fakturu: ${clientName}`,
+            subject: clientName,
             detail: `${label}, ${cycle}`,
             clientId: s.clientId,
             href: `/clients/${s.clientId}`,
@@ -179,6 +183,7 @@ export async function loadCalendarEvents(
         day,
         state: "info",
         title: `Končí akce: ${clientName}`,
+        subject: clientName,
         detail: `Sleva ${s.discountPercent} % na ${subscriptionLabel(s)}, další faktura v plné ceně`,
         clientId: s.clientId,
         href: `/clients/${s.clientId}`,
@@ -204,6 +209,7 @@ export async function loadCalendarEvents(
         day,
         state: "done",
         title: `Faktura vystavena: ${clientName}`,
+        subject: clientName,
         detail: `${inv.number} · ${amount}`,
         clientId: inv.clientId,
         href,
@@ -220,7 +226,8 @@ export async function loadCalendarEvents(
       kind: "due",
       day,
       state: "todo",
-      title: `${late ? "Po splatnosti" : "Splatnost"}: ${clientName}`,
+      title: `${late ? "Nezaplaceno po splatnosti" : "Čeká na platbu"}: ${clientName}`,
+      subject: clientName,
       detail: `${inv.number} · ${amount}`,
       clientId: inv.clientId,
       href,
@@ -245,6 +252,7 @@ export async function loadCalendarEvents(
       day,
       state: auto ? "info" : "todo",
       title: `${auto ? "Obnoví se doména" : "Obnovit doménu"}: ${d.name}`,
+      subject: d.name,
       detail: [owner, d.registrar, typeof d.price === "number" ? czk(d.price) : null].filter(Boolean).join(" · "),
       clientId,
       href: "/domains",
@@ -265,7 +273,8 @@ export async function loadCalendarEvents(
           kind: "cost",
           day,
           state: "info",
-          title: `Platba služby: ${c.name}`,
+          title: `Zaplatit službu: ${c.name}`,
+          subject: c.name,
           detail: `${(c.amount as number).toLocaleString("cs-CZ")} ${c.currency} ročně`,
           clientId: null,
           href: "/costs",
@@ -276,6 +285,13 @@ export async function loadCalendarEvents(
   }
 
   return events.sort((a, b) => a.day.localeCompare(b.day) || a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title, "cs"));
+}
+
+/** Popis druhu události; u splatnosti po termínu „Po splatnosti“. */
+export function eventLabel(e: CalendarEvent, today: string): string {
+  if (e.kind === "due" && isOverdue(e, today)) return "Po splatnosti";
+  if (e.kind === "domain" && e.state === "info") return "Obnoví se sama";
+  return KIND_LABELS[e.kind];
 }
 
 /** Úkol po termínu (nevystaveno, nezaplaceno, neobnoveno). */
