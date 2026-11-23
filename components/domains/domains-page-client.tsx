@@ -31,6 +31,7 @@ import { useTableSort } from "@/lib/use-table-sort";
 import { domainHref, renewalLabel, renewalStatus, type RenewalStatus } from "@/lib/domain-renewal";
 import { cn } from "@/lib/utils";
 import type { DomainData } from "@/components/clients/domains-tab";
+import { PageHeader } from "@/components/page-header";
 import type { ClientOption } from "@/lib/domains";
 
 interface DomainRow extends DomainData {
@@ -192,13 +193,15 @@ export function DomainsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Domény</h1>
-        <Button size="sm" nativeButton={false} render={<Link href="/domains/new" />}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nová doména
-        </Button>
-      </div>
+      <PageHeader
+        title="Domény"
+        action={
+          <Button size="sm" nativeButton={false} render={<Link href="/domains/new" />}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nová doména
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3 md:gap-4">
         {stats.map((s) => (
@@ -260,7 +263,7 @@ export function DomainsPageClient({
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      <div className="hidden rounded-md border md:block">
+      <div className="hidden rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             <TableRow>

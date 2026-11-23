@@ -111,7 +111,7 @@ export function ClientInvoicesTab({
   return (
     <div className="space-y-3">
       {actions}
-      <div className="hidden overflow-x-auto rounded-md border md:block">
+      <div className="hidden overflow-x-auto rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             <TableRow>

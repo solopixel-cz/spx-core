@@ -198,7 +198,7 @@ function Area({
   const a = ACCENTS[accent];
   const r = rise(step);
   return (
-    <Card size="sm" className={cn("relative min-w-0 bg-gradient-to-br via-transparent to-transparent", a.wash, r.className)} style={r.style}>
+    <Card size="sm" className={cn("relative min-w-0 bg-linear-to-br via-transparent to-transparent", a.wash, r.className)} style={r.style}>
       <span aria-hidden="true" className={cn("absolute inset-x-0 top-0 h-0.5 opacity-70", a.bar)} />
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between gap-2">

@@ -43,7 +43,7 @@ Detailně v [`data-model.md`](data-model.md). Kolekce: `users`, `clients`, `inst
 
 ## UI/UX koncept
 
-- **Layout:** levý sidebar (Dashboard, Oslovení, Klienti, Fakturace, Backlog, Nastavení) + horní lišta s globálním vyhledáváním (cmd+K) a profilem.
+- **Layout:** levý sidebar (Dashboard, Oslovení, Klienti, Fakturace, Backlog, Nastavení) + horní lišta s globálním vyhledáváním (cmd+K) a profilem. Vše leží na plátně (`bg-canvas`, světle šedá s nádechem primární teal); bílé jsou jen povrchy s obsahem (tabulky, karty, formulářová pole). Hlavička stránky (`PageHeader`) má drobečky sekce menu › stránka (z `lib/nav.ts`), titulek a akce vpravo.
 - **Dashboard:** přehled — MRR, rozpracované zakázky, faktury po splatnosti, otevřené tickety.
 - **Klient = centrální entita:** detail klienta má záložky (Přehled, Služby, Domény, Faktury, Tickety, Aktivita; aktivní záložka v URL `?tab=`). Vše ostatní na něj odkazuje.
 - **Routy, ne modály (fáze 33):** úprava, vytvoření, detail i akce (odeslání e-mailu, předání vizitky) mají vlastní routu s drobečky a šipkou zpět (`FormPage` + `FormActions`, na mobilu lepicí lišta s akcí). Menu a dropdowny jen navigují. Měkké mazání = hned + toast „Vrátit zpět" (`toastWithUndo`, u kolekcí bez archivu `deferredDelete`); nevratné akce = inline potvrzení (`ConfirmButton`). Výjimky: Cmd+K a mobilní navigační Sheet.

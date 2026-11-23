@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { Bell, Menu, Search, LogOut, User, Loader2, RefreshCw } from "lucide-react";
@@ -28,6 +28,8 @@ import { CommandSearch } from "@/components/command-search";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import type { SessionUser } from "@/lib/auth";
 
+const noopSubscribe = () => () => {};
+
 export function AppTopbar({
   user,
   displayName,
@@ -43,6 +45,12 @@ export function AppTopbar({
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  // Zkratka podle systému (Mac ⌘K, jinde Ctrl K); server vykreslí ⌘K.
+  const shortcut = useSyncExternalStore(
+    noopSubscribe,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"),
+    () => "⌘K",
+  );
 
   // Po přechodu na jinou stránku zavři mobilní menu (jinak přes celou šířku
   // překryje obsah). Úprava stavu během renderu — stejný vzor jako jinde v appce.
@@ -79,7 +87,7 @@ export function AppTopbar({
 
   return (
     <>
-      <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="flex h-16 items-center gap-4 bg-canvas px-4 md:px-6">
         {/* Mobile menu */}
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger
@@ -100,17 +108,28 @@ export function AppTopbar({
           </SheetContent>
         </Sheet>
 
-        {/* Search */}
-        <Button
-          variant="outline"
-          className="hidden h-10 w-72 justify-start gap-2 text-muted-foreground md:flex"
+        {/* Hledání: hlavní prvek lišty (Cmd+K), na mobilu ikona. */}
+        <button
+          type="button"
           onClick={() => setSearchOpen(true)}
+          className="hidden h-11 w-full max-w-xl items-center gap-3 rounded-xl border bg-card px-4 text-left text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground md:flex"
         >
-          <Search className="h-4 w-4" />
-          <span className="text-[0.9375rem]">Hledat... (Cmd+K)</span>
-        </Button>
+          <Search className="h-5 w-5 shrink-0 text-primary" />
+          <span className="flex-1 truncate text-[0.9375rem]">Hledat klienta, doménu, ticket…</span>
+          <kbd className="rounded-md border bg-muted px-1.5 py-0.5 font-sans text-xs">{shortcut}</kbd>
+        </button>
 
         <div className="flex-1" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => setSearchOpen(true)}
+          aria-label="Hledat"
+        >
+          <Search className="h-5 w-5" />
+        </Button>
 
         <NotificationBell uid={user.uid} />
 
@@ -171,7 +190,7 @@ export function AppTopbar({
         </DropdownMenu>
       </header>
 
-      <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} role={user.role} />
     </>
   );
 }

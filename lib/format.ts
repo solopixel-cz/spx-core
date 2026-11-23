@@ -40,3 +40,15 @@ export function formatDateTime(dateOrStr: Date | string | null | undefined): str
   const date = typeof dateOrStr === "string" ? new Date(dateOrStr) : dateOrStr;
   return dateTimeFormatter.format(date);
 }
+
+/** Relativně k dnešku: „dnes“, „včera“, „před 3 dny“, starší jako datum. */
+export function formatRelativeDay(dateOrStr: Date | string | null | undefined): string {
+  if (!dateOrStr) return "—";
+  const date = typeof dateOrStr === "string" ? new Date(dateOrStr) : dateOrStr;
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+  if (days <= 0) return "dnes";
+  if (days === 1) return "včera";
+  if (days < 7) return `před ${days} dny`;
+  return dateFormatter.format(date);
+}

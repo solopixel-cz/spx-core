@@ -2,94 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  CalendarDays,
-  History,
-  Users,
-  BookUser,
-  Receipt,
-  CreditCard,
-  SquareKanban,
-  ClipboardList,
-  Mails,
-  Settings,
-  Globe,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PixelLogo } from "@/components/pixel-logo";
 import { AppVersion } from "@/components/app-version";
-
-type UserRole = "admin" | "member" | "sales";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  roles?: UserRole[];
-}
-
-interface NavGroup {
-  title?: string;
-  items: NavItem[];
-}
-
-const navGroups: NavGroup[] = [
-  {
-    title: "Přehled",
-    items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard },
-      { label: "Kalendář", href: "/calendar", icon: CalendarDays, roles: ["admin", "member"] },
-      { label: "Aktivita", href: "/activity", icon: History },
-    ],
-  },
-  {
-    title: "Obchod",
-    items: [
-      { label: "Oslovení", href: "/prospects", icon: BookUser },
-      {
-        label: "Email marketing",
-        href: "/email-marketing",
-        icon: Mails,
-        roles: ["admin", "member"],
-      },
-      { label: "Klienti", href: "/clients", icon: Users },
-      { label: "Moje vizitky", href: "/my-cards", icon: CreditCard, roles: ["sales"] },
-      { label: "Podklady", href: "/submissions", icon: ClipboardList },
-    ],
-  },
-  {
-    title: "Provoz",
-    items: [
-      { label: "Backlog", href: "/backlog", icon: SquareKanban },
-      { label: "Domény", href: "/domains", icon: Globe, roles: ["admin", "member"] },
-    ],
-  },
-  {
-    title: "Finance",
-    items: [
-      {
-        label: "Fakturace",
-        href: "/invoices",
-        icon: Receipt,
-        roles: ["admin", "member"],
-      },
-      { label: "Náklady", href: "/costs", icon: Wallet, roles: ["admin", "member"] },
-    ],
-  },
-  {
-    items: [
-      {
-        label: "Nastavení",
-        href: "/settings",
-        icon: Settings,
-        roles: ["admin", "member"],
-      },
-    ],
-  },
-];
+import { navGroups, type NavItem, type UserRole } from "@/lib/nav";
 
 function NavLink({
   item,
@@ -149,8 +65,8 @@ function SidebarNav({ role }: { role: UserRole }) {
 
 export function AppSidebar({ role }: { role: UserRole }) {
   return (
-    <aside className="flex h-full w-[17rem] flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-16 items-center border-b px-5">
+    <aside className="flex h-full w-[17rem] flex-col bg-sidebar text-sidebar-foreground">
+      <div className="flex h-16 items-center px-5">
         <Link
           href="/"
           className="flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight"
@@ -162,7 +78,7 @@ export function AppSidebar({ role }: { role: UserRole }) {
       <nav className="flex-1 overflow-y-auto p-4">
         <SidebarNav role={role} />
       </nav>
-      <div className="border-t px-1 py-1">
+      <div className="px-1 py-1">
         <AppVersion />
       </div>
     </aside>

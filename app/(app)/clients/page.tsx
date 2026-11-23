@@ -28,11 +28,23 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
   const services: Record<string, ClientRow["services"]> = {};
   const svc = (clientId: string) =>
     (services[clientId] ??= { cards: 0, webs: 0, projects: 0, openProjects: 0 });
+  // Vizitka do přehledu: první živá (jinak první založená), adresa jako v Nasazení.
+  const cardByClient: Record<string, NonNullable<ClientRow["card"]>> = {};
   instancesSnap.docs.forEach((doc) => {
     const d = doc.data();
     if (d.deletedAt) return;
-    if (d.type === "web") svc(d.clientId).webs++;
-    else svc(d.clientId).cards++;
+    if (d.type === "web") {
+      svc(d.clientId).webs++;
+      return;
+    }
+    svc(d.clientId).cards++;
+    const current = cardByClient[d.clientId];
+    if (!current || (current.status !== "live" && d.status === "live")) {
+      cardByClient[d.clientId] = {
+        host: (d.primaryHost as string | null) || (d.domain as string) || null,
+        status: d.status as string,
+      };
+    }
   });
   projectsSnap.docs.forEach((doc) => {
     const d = doc.data();
@@ -87,6 +99,7 @@ export default async function KlientiPage({ searchParams }: { searchParams: Arch
       email: data.email,
       status: data.status,
       services: sv ?? { cards: 0, webs: 0, projects: 0, openProjects: 0 },
+      card: cardByClient[doc.id] ?? null,
       hasCard: (sv?.cards ?? 0) > 0 || cardSub.has(doc.id),
       hasOther: (sv?.webs ?? 0) > 0 || (sv?.projects ?? 0) > 0 || otherSub.has(doc.id),
       createdAt: toIso(data.createdAt),
