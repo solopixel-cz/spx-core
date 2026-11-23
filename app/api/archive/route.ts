@@ -9,6 +9,7 @@ import {
   checkDeleteConstraints,
   permanentlyDelete,
 } from "@/lib/archive";
+import { syncCardsConfigQuietly } from "@/lib/card-deploy";
 
 function serializeTimestamp(val: unknown): string | null {
   if (!val) return null;
@@ -153,6 +154,11 @@ export async function POST(request: Request) {
         } catch (err) {
           failed.push({ id: targetId, error: err instanceof Error ? err.message : "Chyba" });
         }
+      }
+
+      // Archivovaná vizitka zmizí z mapy vizitek, obnovená se vrátí
+      if (done.length > 0 && (collection === "instances" || collection === "clients")) {
+        await syncCardsConfigQuietly(getAdminFirestore());
       }
 
       revalidatePath("/prospects");

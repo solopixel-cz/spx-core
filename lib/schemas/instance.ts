@@ -29,9 +29,31 @@ export const instanceSchema = z.object({
   deployUrl: z.string().url().optional(),
   features: z.array(z.string()),
   notes: z.string().optional(),
+  // Nasazení vizitky (spx-dbc v2, jen type === 'card'), propisuje se do Vercelu
+  hostnames: z.array(z.string()).optional(), // vlastní adresy vizitky (doména, www)
+  primaryHost: z.string().nullable().optional(), // kanonická adresa, ostatní 308 na ni
+  leadEmail: z.string().email().nullable().optional(), // kam chodí poptávky z vizitky
+  ga4MeasurementId: z.string().nullable().optional(), // měřicí ID G-… (vizitka měří sama)
+  googleSiteVerification: z.string().nullable().optional(), // ověření Search Console (meta tag)
+  frameAncestors: z.array(z.string()).optional(), // weby kanceláří, které smí vizitku vložit do iframe
 });
 
 export type Instance = z.infer<typeof instanceSchema>;
+
+/** Formulář Nasazení vizitky (PUT /api/instances/[id]/deployment). */
+export const cardDeploymentSchema = z.object({
+  hostnames: z.array(z.string()).max(20),
+  primaryHost: z.string().nullable(),
+  leadEmail: z.string().trim().email("Zadejte platný e-mail").or(z.literal("")),
+  ga4MeasurementId: z
+    .string()
+    .trim()
+    .regex(/^(G-[A-Z0-9]+)?$/, "Měřicí ID ve tvaru G-XXXXXXX"),
+  googleSiteVerification: z.string().trim().max(200),
+  frameAncestors: z.array(z.string().url("Zadejte celou adresu včetně https://")).max(20),
+});
+
+export type CardDeploymentData = z.infer<typeof cardDeploymentSchema>;
 
 /** Base pro create/edit formy (bez cross-field validace, aby šel použít .partial() pro PATCH). */
 const instanceFormBase = z.object({

@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ExternalLink, Plus, Pencil } from "lucide-react";
+import { ExternalLink, Plus, Pencil, Rocket } from "lucide-react";
 import {
   EntityCard,
   EntityCardList,
@@ -38,6 +38,7 @@ interface InstanceData {
   ga4PropertyId?: string;
   ga4ConnectedAt?: string | null;
   searchConsoleConnectedAt?: string | null;
+  primaryHost?: string | null;
 }
 
 const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -50,9 +51,12 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 export function InstancesTab({
   clientId,
   instances,
+  canDeploy = false,
 }: {
   clientId: string;
   instances: InstanceData[];
+  /** Nasazení vizitky (adresy ve Vercelu) jen admin a člen. */
+  canDeploy?: boolean;
 }) {
   const base = `/clients/${clientId}/instances`;
 
@@ -88,7 +92,7 @@ export function InstancesTab({
                 <TableHead>Stav</TableHead>
                 <TableHead>Měření</TableHead>
                 <TableHead>Features</TableHead>
-                <TableHead className="w-24">Akce</TableHead>
+                <TableHead className="w-28">Akce</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,7 +100,7 @@ export function InstancesTab({
                 <TableRow key={inst.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {inst.domain}
+                      {inst.primaryHost || inst.domain}
                       {inst.deployUrl && (
                         <a
                           href={inst.deployUrl}
@@ -138,7 +142,19 @@ export function InstancesTab({
                       ? inst.features.join(", ")
                       : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {canDeploy && inst.type !== "web" && inst.advisorSlug && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        nativeButton={false}
+                        aria-label="Nasazení"
+                        title="Nasazení (adresy a nastavení vizitky)"
+                        render={<Link href={`${base}/${inst.id}/deployment`} />}
+                      >
+                        <Rocket className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -161,7 +177,7 @@ export function InstancesTab({
               key={inst.id}
               title={
                 <span className="inline-flex items-center gap-2">
-                  {inst.domain}
+                  {inst.primaryHost || inst.domain}
                   {inst.deployUrl && (
                     <a
                       href={inst.deployUrl}
@@ -211,11 +227,23 @@ export function InstancesTab({
                 </div>
               )}
 
-              <div className="relative mt-3">
+              <div className="relative mt-3 flex gap-2">
+                {canDeploy && inst.type !== "web" && inst.advisorSlug && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    nativeButton={false}
+                    render={<Link href={`${base}/${inst.id}/deployment`} />}
+                  >
+                    <Rocket className="mr-2 h-4 w-4" />
+                    Nasazení
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="flex-1"
                   nativeButton={false}
                   render={<Link href={`${base}/${inst.id}/edit`} />}
                 >
