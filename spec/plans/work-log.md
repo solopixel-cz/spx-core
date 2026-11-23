@@ -2,6 +2,28 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Výraznější hledání (v1.55.0)
+
+- Horní lišta: hledání jako hlavní prvek (široké bílé pole, lupa v primární barvě, zkratka ⌘K / Ctrl K podle systému), na mobilu ikona lupy (dřív na mobilu chybělo).
+- Okno hledání: větší, nahoře obrazovky, bez dotazu nabízí přechod na stránky z menu (podle role), dotaz filtruje i stránky; nápověda kláves dole. Oslovení vede na detail kontaktu.
+- `/api/search`: bez diakritiky a velikosti písmen, klienti i podle domény vizitky/webu (domain, primaryHost, hostnames).
+- Plátno tlumenější (`oklch(0.974 0.003 200)`, téměř neutrální). Dashboard: karty měly `bg-gradient-to-br`, kterou tailwind-merge bral jako barvu a mazal `bg-card` (na plátně byly průhledné), opraveno na `bg-linear-to-br`.
+
+## 2026-11-23: Layout: plátno a bílé povrchy (v1.54.0)
+
+- Token `--canvas` (světle šedá s nádechem teal, v tmavém režimu navy): menu, horní lišta i pozadí stránek bez dělicích čar. Box obsahu zrušen, šířka dál max. 1600 px.
+- Bílé jsou jen povrchy: tabulky (`rounded-xl border bg-card`), karty a formulářová pole (`bg-card` místo průhledného). Podklad záložek `bg-foreground/6`, aby byl vidět na plátně.
+- Menu přesunuto do `lib/nav.ts` (`navGroups`, `navMatch`). `PageHeader` ukazuje drobečky sekce › stránka automaticky, titulek jako FormPage (`font-heading`, md:text-3xl). Seznamy Klienti, Fakturace, Náklady, Domény, Backlog, Podklady a Nastavení převedeny na `PageHeader`; podstránky Nastavení mají `h1` ve stejném stylu.
+- Pozor: dev server nenačetl změnu `globals.css` (nové proměnné), je potřeba ho restartovat.
+
+## 2026-11-23: Přehlednější seznam klientů (v1.53.0)
+
+- Sloupec Klient: iniciály (u firmy ikona), jméno, pod ním značka nebo kontakt a e-mail. Samostatné sloupce Značka a E-mail zrušeny.
+- Stav klienta jen jako výjimka u jména (Onboarding, Pozastavený, Odešlý). Filtr stavu zůstává.
+- Nový sloupec Vizitka (přehled Vizitky): tečka se stavem nasazení a hlavní adresa, u živé jako odkaz; víc vizitek „+N“.
+- HUB stručně: „HUB · počet funkcí“ (výčet v nápovědě), bez pozvánky upozornění „Nepozván“.
+- Paušál ve dvou řádcích (tarif, cena), aktivita relativně (dnes, včera, před N dny), tabulka bez rámečku a s vyššími řádky. Mobilní karty stejně.
+
 ## 2026-11-23: Obsah CRM jako box uprostřed (v1.52.0)
 
 - Menu vlevo a horní lišta zůstávají přes celou šířku. Od `lg` je obsah stránky box uprostřed bílého pozadí (max. 1600 px, zaoblení a rámeček, bez stínu). Menší displeje beze změny.

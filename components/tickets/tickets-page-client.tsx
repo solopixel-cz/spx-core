@@ -48,6 +48,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BacklogBoard } from "@/components/tickets/backlog-board";
 import { SortableHead } from "@/components/sortable-head";
 import { useTableSort } from "@/lib/use-table-sort";
+import { PageHeader } from "@/components/page-header";
 import { usePersistentFilters } from "@/lib/hooks/use-persistent-filters";
 
 interface TicketRow {
@@ -248,32 +249,34 @@ export function TicketsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{archived ? "Archiv ticketů" : "Backlog"}</h1>
-        <div className="flex items-center gap-2">
-          {!archived && (
-            <Tabs value={view} onValueChange={(v) => setView(String(v))}>
-              <TabsList className="max-sm:w-auto">
-                <TabsTrigger value="board" aria-label="Nástěnka">
-                  <SquareKanban />
-                  <span className="max-sm:hidden">Nástěnka</span>
-                </TabsTrigger>
-                <TabsTrigger value="list" aria-label="Seznam">
-                  <LayoutList />
-                  <span className="max-sm:hidden">Seznam</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-          {canArchive && <ArchiveToggle archived={archived} />}
-          {!archived && (
-            <Button size="sm" nativeButton={false} render={<Link href="/backlog/new" />}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nový ticket
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title={archived ? "Archiv ticketů" : "Backlog"}
+        action={
+          <div className="flex items-center gap-2">
+            {!archived && (
+              <Tabs value={view} onValueChange={(v) => setView(String(v))}>
+                <TabsList className="max-sm:w-auto">
+                  <TabsTrigger value="board" aria-label="Nástěnka">
+                    <SquareKanban />
+                    <span className="max-sm:hidden">Nástěnka</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" aria-label="Seznam">
+                    <LayoutList />
+                    <span className="max-sm:hidden">Seznam</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            {canArchive && <ArchiveToggle archived={archived} />}
+            {!archived && (
+              <Button size="sm" nativeButton={false} render={<Link href="/backlog/new" />}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nový ticket
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {archived && <ArchiveNotice count={tickets.length} />}
 
@@ -376,7 +379,7 @@ export function TicketsPageClient({
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      <div className="hidden rounded-md border md:block">
+      <div className="hidden rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             <TableRow>

@@ -21,6 +21,7 @@ import {
 } from "@/components/entity-card";
 import { SortableHead } from "@/components/sortable-head";
 import { useTableSort } from "@/lib/use-table-sort";
+import { PageHeader } from "@/components/page-header";
 import {
   InvoiceActions,
   InvoiceDueCell,
@@ -96,19 +97,21 @@ export function InvoicesPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Fakturace</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/invoices/export" />}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button size="sm" nativeButton={false} render={<Link href="/invoices/new" />}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nová faktura
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Fakturace"
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/invoices/export" />}>
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <Button size="sm" nativeButton={false} render={<Link href="/invoices/new" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nová faktura
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
@@ -185,7 +188,7 @@ export function InvoicesPageClient({
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      <div className="hidden rounded-md border md:block">
+      <div className="hidden rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             <TableRow>

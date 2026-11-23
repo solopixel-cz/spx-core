@@ -159,7 +159,7 @@ export default function UzivatelePage() {
       />
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-xl font-semibold">Uživatelé</h2>
+          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Uživatelé</h1>
         </div>
         <Button size="sm" nativeButton={false} render={<Link href="/settings/users/new" />}>
           <Plus className="mr-2 h-4 w-4" />

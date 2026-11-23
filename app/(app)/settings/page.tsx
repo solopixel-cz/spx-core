@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import {
   Users,
   Archive,
@@ -57,22 +58,25 @@ export default async function NastaveniPage() {
   });
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {visible.map((tile) => (
-        <Link key={tile.href} href={tile.href}>
-          <Card className="h-full hover:bg-muted/50 transition-colors">
-            <CardContent className="flex items-start gap-4 pt-6">
-              <div className="rounded-lg bg-muted p-2">
-                <tile.icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-medium">{tile.label}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{tile.description}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
+    <div className="space-y-6">
+      <PageHeader title="Nastavení" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {visible.map((tile) => (
+          <Link key={tile.href} href={tile.href}>
+            <Card className="h-full hover:bg-muted/50 transition-colors">
+              <CardContent className="flex items-start gap-4 pt-6">
+                <div className="rounded-lg bg-muted p-2">
+                  <tile.icon className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">{tile.label}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{tile.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

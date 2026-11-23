@@ -94,7 +94,7 @@ export function DomainsTab({
         <EntityCardEmpty>Žádné domény</EntityCardEmpty>
       ) : (
         <>
-        <div className="hidden overflow-x-auto rounded-md border md:block">
+        <div className="hidden overflow-x-auto rounded-xl border bg-card px-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>

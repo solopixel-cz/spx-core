@@ -32,7 +32,7 @@ const tabsListVariants = cva(
         // celou šířku s vyšší dotykovou plochou. Když se položky nevejdou,
         // scrolluje se uvnitř kontejneru (zarovnání doleva, skrytý scrollbar).
         default:
-          "rounded-full bg-muted p-1 group-data-horizontal/tabs:h-10 max-sm:w-full max-sm:justify-start max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden sm:group-data-horizontal/tabs:h-9",
+          "rounded-full bg-foreground/[0.06] p-1 group-data-horizontal/tabs:h-10 max-sm:w-full max-sm:justify-start max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden sm:group-data-horizontal/tabs:h-9",
         line: "gap-1 rounded-none bg-transparent p-[3px] group-data-horizontal/tabs:h-8",
       },
     },

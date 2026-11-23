@@ -216,7 +216,7 @@ export default function PromoKodyPage() {
         items={[{ label: "Nastavení", href: "/settings" }, { label: "Promo kódy" }]}
       />
       <div>
-        <h2 className="text-xl font-semibold">Promo kódy</h2>
+        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Promo kódy</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Kódy pro poptávkový formulář na webu. Formulář přijme jen platný kód a každé
           odeslání s kódem se započítá jako použití. Ke každému kódu lze stáhnout QR kód, který otevře
