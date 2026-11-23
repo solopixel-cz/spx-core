@@ -82,7 +82,7 @@
   --radius: 0.625rem;
   /* Plátno aplikace (menu, lišta, pozadí stránek): světle šedá s nádechem primární teal.
      Bílé jsou jen povrchy s obsahem (bg-card: tabulky, karty, formuláře). */
-  --canvas: oklch(0.967 0.009 195);
+  --canvas: oklch(0.974 0.003 200);
   --sidebar: var(--canvas);
   --sidebar-foreground: oklch(0.372 0.044 257.287);
   --sidebar-primary: oklch(0.6 0.118 184.7);

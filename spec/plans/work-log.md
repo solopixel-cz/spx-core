@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Výraznější hledání (v1.55.0)
+
+- Horní lišta: hledání jako hlavní prvek (široké bílé pole, lupa v primární barvě, zkratka ⌘K / Ctrl K podle systému), na mobilu ikona lupy (dřív na mobilu chybělo).
+- Okno hledání: větší, nahoře obrazovky, bez dotazu nabízí přechod na stránky z menu (podle role), dotaz filtruje i stránky; nápověda kláves dole. Oslovení vede na detail kontaktu.
+- `/api/search`: bez diakritiky a velikosti písmen, klienti i podle domény vizitky/webu (domain, primaryHost, hostnames).
+- Plátno tlumenější (`oklch(0.974 0.003 200)`, téměř neutrální). Dashboard: karty měly `bg-gradient-to-br`, kterou tailwind-merge bral jako barvu a mazal `bg-card` (na plátně byly průhledné), opraveno na `bg-linear-to-br`.
+
 ## 2026-11-23: Layout: plátno a bílé povrchy (v1.54.0)
 
 - Token `--canvas` (světle šedá s nádechem teal, v tmavém režimu navy): menu, horní lišta i pozadí stránek bez dělicích čar. Box obsahu zrušen, šířka dál max. 1600 px.
