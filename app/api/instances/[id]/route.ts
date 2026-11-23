@@ -5,6 +5,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { instanceFormPartialSchema } from "@/lib/schemas/instance";
 import { logActivity } from "@/lib/activity";
+import { syncCardsConfigQuietly } from "@/lib/card-deploy";
 
 // PATCH /api/instances/[id]
 export async function PATCH(
@@ -79,6 +80,11 @@ export async function PATCH(
             : `Instance „${domain}" aktualizována`,
         actorUid: user.uid,
       });
+    }
+
+    // Stav nebo slug vizitky mění mapu vizitek (offline, nový slug)
+    if (data.status !== undefined || data.advisorSlug !== undefined || data.type !== undefined) {
+      await syncCardsConfigQuietly(db);
     }
 
     if (clientId) revalidatePath(`/clients/${clientId}`);

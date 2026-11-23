@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Nasazení vizitek z CRM (v1.51.0, příprava spx-dbc 2.0.0)
+
+- Plán v spx-dbc `spec/plans/v2-jeden-projekt/v2-plan.md`: všechny vizitky v jednom Vercel projektu, poradce podle domény, CRM řídí nasazení.
+- U vizitky nová stránka Nasazení (`/clients/[id]/instances/[instanceId]/deployment`, admin a member, ikona raketky v záložce Služby): adresy s hlavní adresou (k doméně se přidá i www, ostatní 308 na hlavní), stav ve Vercelu a doporučený DNS záznam, záložní adresa `vizitka.solopixel.cz/<slug>` s Náhledem, e-mail pro poptávky, měřicí ID GA4, ověření Search Console, weby pro iframe.
+- `lib/vercel.ts` (domény projektu, konfigurace DNS, Global Config), `lib/card-deploy.ts` (mapa `cards` z instancí, synchronizace domén), `lib/card-hosts.ts` (normalizace adres). Mapa se přepisuje i po vytvoření vizitky, změně stavu nebo slugu a archivaci. Admin má „Synchronizovat všechny vizitky“ (`POST /api/instances/sync`).
+- Bez env `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_CARDS_PROJECT_ID`, `VERCEL_GLOBAL_CONFIG_ID` se ukládá jen do Firestore. Env doplní Lukáš po založení projektu vizitek a Global Config.
+- Větev `v1.51.0`.
+
 ## 2026-11-19: Chat v Backlogu a kalendář na mobilu (v1.50.0)
 
 - Větev `v1.50.0` z devel (po vydání 1.49.0): přenesený chat u úkolů z nemergnuté `v1.48.0` (cherry-pick 9d0158c) a kalendář na mobilu po dnech (šipky, týdenní pás s tečkami, měsíční mřížka až od `sm`).

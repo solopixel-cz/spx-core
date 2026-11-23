@@ -774,7 +774,7 @@ export function ClientDetailClient({
               inviteHref={client.email && !isArchived && hasHubService ? `${base}/send/hub` : undefined}
             />
           )}
-          <InstancesTab clientId={client.id} instances={instances} />
+          <InstancesTab clientId={client.id} instances={instances} canDeploy={isAdminOrMember} />
           <ProjectsSection
             clientId={client.id}
             projects={projects}

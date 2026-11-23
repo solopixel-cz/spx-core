@@ -102,6 +102,7 @@ export default async function ClientDetailPage({
     ga4PropertyId: (d.data().ga4PropertyId as string | undefined) ?? undefined,
     ga4ConnectedAt: d.data().ga4ConnectedAt?.toDate?.()?.toISOString() ?? null,
     searchConsoleConnectedAt: d.data().searchConsoleConnectedAt?.toDate?.()?.toISOString() ?? null,
+    primaryHost: (d.data().primaryHost as string | undefined) ?? null,
     notes: d.data().notes as string | undefined,
   }));
 
