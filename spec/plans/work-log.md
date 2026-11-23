@@ -2,6 +2,11 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Obsah CRM jako box uprostřed (v1.52.0)
+
+- Menu vlevo a horní lišta zůstávají přes celou šířku. Od `lg` je obsah stránky box uprostřed bílého pozadí (max. 1600 px, zaoblení a rámeček, bez stínu). Menší displeje beze změny.
+- Nasazení vizitky přes celou šířku: dvě karty vedle sebe (Adresy se záložní adresou, Nastavení vizitky), upozornění s ikonou, prázdný stav adres, synchronizace všech vizitek pod nimi.
+
 ## 2026-11-23: Nasazení vizitek z CRM (v1.51.0, příprava spx-dbc 2.0.0)
 
 - Plán v spx-dbc `spec/plans/v2-jeden-projekt/v2-plan.md`: všechny vizitky v jednom Vercel projektu, poradce podle domény, CRM řídí nasazení.

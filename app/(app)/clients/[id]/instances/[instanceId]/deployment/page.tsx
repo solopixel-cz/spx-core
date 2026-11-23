@@ -28,6 +28,7 @@ export default async function CardDeploymentPage({
       backHref={backHref}
       breadcrumbs={crumbs("Nasazení vizitky")}
       title="Nasazení vizitky"
+      full
       description="Adresy, na kterých vizitka běží, a nastavení, které si vizitka bere z CRM. Uložení se hned propíše do Vercelu."
     >
       <CardDeploymentForm

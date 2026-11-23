@@ -34,8 +34,12 @@ export default async function AppLayout({
       <RefreshProvider>
         <div className="flex flex-1 flex-col overflow-hidden">
           <AppTopbar user={user} displayName={displayName} photoURL={photoURL} />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-            {children}
+          {/* Od lg je obsah box uprostřed (max. šířka pro pohodlnou
+              práci na širokém monitoru); menší displeje mají obsah přes celou šířku. */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-8 md:py-8 lg:p-6">
+            <div className="mx-auto w-full max-w-[1600px] lg:min-h-full lg:rounded-xl lg:border lg:bg-background lg:p-8">
+              {children}
+            </div>
           </main>
           {modal}
         </div>
