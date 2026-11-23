@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -90,7 +91,7 @@ export function SubmissionsPageClient() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Podklady</h1>
+        <PageHeader title="Podklady" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
@@ -98,7 +99,7 @@ export function SubmissionsPageClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Podklady</h1>
+      <PageHeader title="Podklady" />
 
       <Tabs value={tab} onValueChange={(v) => changeTab(v as "new" | "processed")}>
         <TabsList>
@@ -150,7 +151,7 @@ export function SubmissionsPageClient() {
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      <div className="hidden rounded-md border md:block">
+      <div className="hidden rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             <TableRow>

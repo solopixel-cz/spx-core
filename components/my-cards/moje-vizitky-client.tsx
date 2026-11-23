@@ -81,7 +81,7 @@ export function MojeVizitkyClient({ clients }: { clients: ClientRow[] }) {
         </EntityCardList>
 
         {/* Desktop: tabulka */}
-        <div className="hidden rounded-md border md:block">
+        <div className="hidden rounded-xl border bg-card px-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>

@@ -17,6 +17,7 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-canvas: var(--canvas);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
@@ -79,8 +80,10 @@
   --chart-4: oklch(0.372 0.044 257.287);
   --chart-5: oklch(0.855 0.138 181.071);
   --radius: 0.625rem;
-  /* Sidebar: slate-50 */
-  --sidebar: oklch(0.984 0.003 247.858);
+  /* Plátno aplikace (menu, lišta, pozadí stránek): světle šedá s nádechem primární teal.
+     Bílé jsou jen povrchy s obsahem (bg-card: tabulky, karty, formuláře). */
+  --canvas: oklch(0.967 0.009 195);
+  --sidebar: var(--canvas);
   --sidebar-foreground: oklch(0.372 0.044 257.287);
   --sidebar-primary: oklch(0.6 0.118 184.7);
   --sidebar-primary-foreground: oklch(1 0 0);
@@ -117,8 +120,9 @@
   --chart-3: oklch(0.704 0.04 256.788);
   --chart-4: oklch(0.554 0.046 257.417);
   --chart-5: oklch(0.446 0.043 257.281);
-  /* Sidebar: temnější navy než pozadí */
-  --sidebar: oklch(0.16 0.035 265);
+  /* Plátno a menu: temnější navy než karty */
+  --canvas: oklch(0.16 0.035 265);
+  --sidebar: var(--canvas);
   --sidebar-foreground: oklch(0.869 0.022 252.894);
   --sidebar-primary: oklch(0.855 0.138 181.071);
   --sidebar-primary-foreground: oklch(0.18 0.04 265);

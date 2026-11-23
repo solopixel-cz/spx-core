@@ -44,6 +44,7 @@ import {
   type Rates,
 } from "@/lib/costs";
 import { CostsChart, type CostsChartRow } from "./costs-chart";
+import { PageHeader } from "@/components/page-header";
 
 const STATUS: Record<EntryStatus, { label: string; className: string }> = {
   paid: { label: "Zaplaceno", className: "border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400" },
@@ -171,37 +172,39 @@ export function CostsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Náklady</h1>
-        <div className="flex items-center gap-2">
-          {/* Měsíc řídí přehled, kategorie, platby i služby. */}
-          <Select
-            items={Object.fromEntries(months.map((m) => [m, monthLabel(m)]))}
-            value={selected.month}
-            onValueChange={(v) => v && selectMonth(String(v))}
-          >
-            <SelectTrigger size="sm" className="w-40 first-letter:uppercase" aria-label="Měsíc">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[...months].reverse().map((m) => (
-                <SelectItem key={m} value={m}>
-                  {monthLabel(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!isCurrent && (
-            <Button size="sm" variant="ghost" onClick={() => selectMonth(currentMonth)}>
-              Tento měsíc
+      <PageHeader
+        title="Náklady"
+        action={
+          <div className="flex items-center gap-2">
+            {/* Měsíc řídí přehled, kategorie, platby i služby. */}
+            <Select
+              items={Object.fromEntries(months.map((m) => [m, monthLabel(m)]))}
+              value={selected.month}
+              onValueChange={(v) => v && selectMonth(String(v))}
+            >
+              <SelectTrigger size="sm" className="w-40 first-letter:uppercase" aria-label="Měsíc">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[...months].reverse().map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {monthLabel(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!isCurrent && (
+              <Button size="sm" variant="ghost" onClick={() => selectMonth(currentMonth)}>
+                Tento měsíc
+              </Button>
+            )}
+            <Button size="sm" nativeButton={false} render={<Link href="/costs/services/new" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nová služba
             </Button>
-          )}
-          <Button size="sm" nativeButton={false} render={<Link href="/costs/services/new" />}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nová služba
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {ratesApprox && (
         <p className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
@@ -352,7 +355,7 @@ export function CostsPageClient({
           )}
         </EntityCardList>
 
-        <div className="hidden rounded-md border md:block">
+        <div className="hidden rounded-xl border bg-card px-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -446,7 +449,7 @@ export function CostsPageClient({
           )}
         </EntityCardList>
 
-        <div className="hidden rounded-md border md:block">
+        <div className="hidden rounded-xl border bg-card px-2 md:block">
           <Table>
             <TableHeader>
               <TableRow>

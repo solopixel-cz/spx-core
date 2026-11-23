@@ -27,17 +27,17 @@ export default async function AppLayout({
   const photoURL = (userData?.photoURL as string) ?? null;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-canvas">
       <div className="hidden md:flex">
         <AppSidebar role={user.role} />
       </div>
       <RefreshProvider>
         <div className="flex flex-1 flex-col overflow-hidden">
           <AppTopbar user={user} displayName={displayName} photoURL={photoURL} />
-          {/* Od lg je obsah box uprostřed (max. šířka pro pohodlnou
-              práci na širokém monitoru); menší displeje mají obsah přes celou šířku. */}
-          <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-8 md:py-8 lg:p-6">
-            <div className="mx-auto w-full max-w-[1600px] lg:min-h-full lg:rounded-xl lg:border lg:bg-background lg:p-8">
+          {/* Stránky leží na plátně (hlavička, drobečky, filtry), bílé jsou jen
+              povrchy s obsahem. Šířka omezená pro pohodlnou práci na širokém monitoru. */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-8 md:px-8 md:pb-10">
+            <div className="mx-auto w-full max-w-[1600px]">
               {children}
             </div>
           </main>

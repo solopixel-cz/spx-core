@@ -2,6 +2,13 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Layout: plátno a bílé povrchy (v1.54.0)
+
+- Token `--canvas` (světle šedá s nádechem teal, v tmavém režimu navy): menu, horní lišta i pozadí stránek bez dělicích čar. Box obsahu zrušen, šířka dál max. 1600 px.
+- Bílé jsou jen povrchy: tabulky (`rounded-xl border bg-card`), karty a formulářová pole (`bg-card` místo průhledného). Podklad záložek `bg-foreground/6`, aby byl vidět na plátně.
+- Menu přesunuto do `lib/nav.ts` (`navGroups`, `navMatch`). `PageHeader` ukazuje drobečky sekce › stránka automaticky, titulek jako FormPage (`font-heading`, md:text-3xl). Seznamy Klienti, Fakturace, Náklady, Domény, Backlog, Podklady a Nastavení převedeny na `PageHeader`; podstránky Nastavení mají `h1` ve stejném stylu.
+- Pozor: dev server nenačetl změnu `globals.css` (nové proměnné), je potřeba ho restartovat.
+
 ## 2026-11-23: Přehlednější seznam klientů (v1.53.0)
 
 - Sloupec Klient: iniciály (u firmy ikona), jméno, pod ním značka nebo kontakt a e-mail. Samostatné sloupce Značka a E-mail zrušeny.

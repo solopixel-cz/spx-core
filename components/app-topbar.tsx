@@ -79,7 +79,7 @@ export function AppTopbar({
 
   return (
     <>
-      <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="flex h-16 items-center gap-4 bg-canvas px-4 md:px-6">
         {/* Mobile menu */}
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger

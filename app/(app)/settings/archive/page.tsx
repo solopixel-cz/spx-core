@@ -160,7 +160,7 @@ export default function ArchivPage() {
         items={[{ label: "Nastavení", href: "/settings" }, { label: "Archiv" }]}
       />
       <div className="flex items-center gap-2">
-        <h2 className="text-xl font-semibold">Archiv</h2>
+        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Archiv</h1>
       </div>
 
       <div className="flex items-center gap-4">

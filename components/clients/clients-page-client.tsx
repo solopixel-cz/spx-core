@@ -54,6 +54,7 @@ import { instanceStatusLabels } from "@/lib/schemas/instance";
 import { cn } from "@/lib/utils";
 import { HUB_FEATURES, type HubFeature } from "@/lib/hub-features";
 import { SortButton } from "@/components/sortable-head";
+import { PageHeader } from "@/components/page-header";
 import { compareSortValues, type SortValue } from "@/lib/use-table-sort";
 
 export interface ClientRow {
@@ -566,20 +567,20 @@ export function ClientsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {archived ? "Archiv klientů" : "Klienti"}
-        </h1>
-        <div className="flex items-center gap-2">
-          {canArchive && <ArchiveToggle archived={archived} />}
-          {!archived && (
-            <Button size="sm" nativeButton={false} render={<Link href="/clients/new" />}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nový klient
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title={archived ? "Archiv klientů" : "Klienti"}
+        action={
+          <div className="flex items-center gap-2">
+            {canArchive && <ArchiveToggle archived={archived} />}
+            {!archived && (
+              <Button size="sm" nativeButton={false} render={<Link href="/clients/new" />}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nový klient
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {archived && <ArchiveNotice count={clients.length} />}
 
@@ -697,8 +698,7 @@ export function ClientsPageClient({
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      {/* Bez rámečku: tabulka už je v boxu obsahu. */}
-      <div className="hidden md:block">
+      <div className="hidden rounded-xl border bg-card px-2 md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
