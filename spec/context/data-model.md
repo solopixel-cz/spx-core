@@ -80,8 +80,18 @@ Nasazený produkt klienta — buď **DBC vizitka** (`type: 'card'`, má `advisor
   deployUrl?: string
   features: string[]         // zapnuté moduly (kalkulačky, AI chat, …)
   notes?: string
+  // Nasazení vizitky (spx-dbc v2, jen type === 'card', od 1.51.0)
+  hostnames?: string[]       // vlastní adresy vizitky (doména + www), max 20; jedna adresa = jedna vizitka
+  primaryHost?: string | null  // kanonická adresa, ostatní adresy 308 na ni (redirect ve Vercelu)
+  leadEmail?: string | null  // kam chodí poptávky z vizitky (dřív env ADVISOR_EMAIL); null = e-mail z profilu
+  ga4MeasurementId?: string | null       // měřicí ID G-… pro vizitku (dřív googleAnalyticsId v profile.json)
+  googleSiteVerification?: string | null // ověření Search Console (dřív env GOOGLE_SITE_VERIFICATION)
+  frameAncestors?: string[]  // originy webů, které smí vizitku vložit do iframe (dřív env OFFICE_FRAME_ANCESTORS)
 }
 ```
+
+- **Nasazení vizitek (spx-dbc v2, od 1.51.0):** všechny vizitky běží v jednom Vercel projektu, poradce se pozná podle domény. CRM je zdroj pravdy: stránka `/clients/[id]/instances/[instanceId]/deployment` (admin, member) ukládá pole výše přes `PUT /api/instances/[id]/deployment`, přidá/odebere domény v projektu vizitek (vedlejší adresy 308 na `primaryHost`) a přepíše klíč `cards` ve Vercel Global Config: `{ hosts: { "<adresa>": "<slug>" }, cards: { "<slug>": { status, primaryHost, leadEmail, ga4MeasurementId, googleSiteVerification, frameAncestors } } }`. `GET` téže routy vrací stav adres (ve Vercelu, ověřeno, DNS a doporučený záznam). Mapa se přepisuje i po vytvoření vizitky, změně stavu/slugu (`PATCH /api/instances/[id]`) a archivaci/obnově; `POST /api/instances/sync` (admin) dorovná mapu i domény všech vizitek. Do mapy jdou nearchivované vizitky se slugem (i bez `type`). Stav `offline` = vizitka ukáže stránku „není aktivní“. Bez env (`VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_CARDS_PROJECT_ID`, `VERCEL_GLOBAL_CONFIG_ID`) se ukládá jen do Firestore.
+- **Záložní adresa vizitky:** `https://vizitka.solopixel.cz/<advisorSlug>` (neindexuje se; živá vizitka s vlastní adresou na ni přesměruje, `?nahled=1` ukáže vizitku vždy). Pole `domain` u vizitek je historické (`jmeno.solopixel.cz`), v UI ho nahrazuje `primaryHost`.
 
 - **Kontrola měření webů:** u webu dvě ruční zaškrtnutí (GA4, Search Console), přepínají se v záložce Služby (`PATCH /api/instances/[id]` s `ga4Connected` / `searchConsoleConnected`). Dashboard (admin, member) ukazuje „Weby bez měření“: webové instance mimo `offline` a archiv, kterým chybí jedno z nich nebo `ga4PropertyId`. Vizitky se nekontrolují (GA4 a Search Console řeší společný základ na solopixel.cz).
 

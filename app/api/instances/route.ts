@@ -4,6 +4,7 @@ import { getAdminFirestore } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { instanceFormSchema } from "@/lib/schemas/instance";
 import { logActivity } from "@/lib/activity";
+import { syncCardsConfigQuietly } from "@/lib/card-deploy";
 
 // GET /api/instances?clientId=xxx
 export async function GET(request: Request) {
@@ -86,6 +87,9 @@ export async function POST(request: Request) {
       text: `Instance „${data.domain}" přidána`,
       actorUid: user.uid,
     });
+
+    // Nová vizitka hned funguje na záložní adrese
+    if (!isWeb) await syncCardsConfigQuietly(db);
 
     return NextResponse.json({ id: docRef.id });
   } catch (error) {
