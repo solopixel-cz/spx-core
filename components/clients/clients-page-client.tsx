@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Check, Contact, Plus } from "lucide-react";
+import { Building2, Check, Contact, Plus, TriangleAlert } from "lucide-react";
 import {
   EntityCard,
   EntityCardEmpty,
@@ -49,7 +49,9 @@ import {
   SelectAllCheckbox,
 } from "@/components/bulk-archive-bar";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatRelativeDay } from "@/lib/format";
+import { instanceStatusLabels } from "@/lib/schemas/instance";
+import { cn } from "@/lib/utils";
 import { HUB_FEATURES, type HubFeature } from "@/lib/hub-features";
 import { SortButton } from "@/components/sortable-head";
 import { compareSortValues, type SortValue } from "@/lib/use-table-sort";
@@ -64,6 +66,8 @@ export interface ClientRow {
   status: string;
   /** Služby klienta (fáze 34B): vizitky, weby, zakázky (bez zrušených). */
   services: { cards: number; webs: number; projects: number; openProjects: number };
+  /** Vizitka v přehledu: hlavní adresa a stav nasazení (první živá, jinak první). */
+  card: { host: string | null; status: string } | null;
   updatedAt: string | null;
   deletedAt: string | null;
   /** paying = nezrušené a ne interní předplatné; internal = interní vizitka; none = bez předplatného */
@@ -99,11 +103,12 @@ function inSegment(c: ClientRow, segment: Segment): boolean {
 }
 
 // Sloupce podle přehledu, ať tabulka ukazuje jen to, co k němu patří.
+// Stav klienta je u jména (jen výjimky), sloupec „status“ slouží jen filtru.
 const HIDDEN_BY_SEGMENT: Record<Segment, string[]> = {
-  cards: ["email", "services", "owner", "createdAt", "leadAction"],
-  webs: ["email", "hub", "owner", "createdAt", "leadAction"],
-  leads: ["billing", "services", "hub"],
-  all: ["owner", "createdAt", "leadAction"],
+  cards: ["status", "services", "owner", "createdAt", "leadAction"],
+  webs: ["status", "card", "hub", "owner", "createdAt", "leadAction"],
+  leads: ["status", "card", "billing", "services", "hub"],
+  all: ["status", "card", "owner", "createdAt", "leadAction"],
 };
 
 const statusLabels: Record<string, string> = {
@@ -136,18 +141,18 @@ const statusRank: Record<string, number> = {
   churned: 3,
 };
 
+/** Paušál: tarif a pod ním měsíční cena. */
 function BillingCell({ client }: { client: ClientRow }) {
   if (client.billing === "internal")
     return <Badge variant="secondary">Interní</Badge>;
   if (client.billing === "none")
     return <span className="text-muted-foreground">—</span>;
   return (
-    <span>
-      {client.planLabel}
+    <span className="flex flex-col leading-tight">
+      <span>{client.planLabel}</span>
       {client.priceMonthly != null && (
-        <span className="text-muted-foreground">
-          {" "}
-          · {formatCurrency(client.priceMonthly)}/měs
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {formatCurrency(client.priceMonthly)}/měs
         </span>
       )}
     </span>
@@ -155,29 +160,117 @@ function BillingCell({ client }: { client: ClientRow }) {
 }
 
 /**
- * HUB: odznak „HUB“ u pozvaných, „Nepozván“ u klientů se zapnutými funkcemi
- * bez pozvánky, a menší odznaky zapnutých funkcí.
+ * HUB stručně: pozvaný „✓ HUB · počet funkcí“ (výčet v nápovědě),
+ * se zapnutými funkcemi bez pozvánky upozornění „Nepozván“. Detail je u klienta.
  */
 function HubCell({ hub }: { hub: ClientRow["hub"] }) {
   if (!hub.invited && hub.features.length === 0)
     return <span className="text-muted-foreground">—</span>;
+  const features = hub.features.map((f) => HUB_FEATURES[f]).join(", ");
+  if (!hub.invited)
+    return (
+      <Badge
+        variant="outline"
+        title={`Zapnuto bez pozvánky: ${features}`}
+        className="gap-1 border-amber-500/40 font-normal text-amber-700 dark:text-amber-300"
+      >
+        <TriangleAlert className="h-3 w-3" />
+        Nepozván
+      </Badge>
+    );
   return (
-    <span className="inline-flex flex-wrap items-center gap-1">
-      {hub.invited ? (
-        <Badge className="gap-1 border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300">
-          <Check className="h-3 w-3" />
-          HUB
-        </Badge>
+    <Badge
+      title={features || "Bez zapnutých funkcí"}
+      className="gap-1 border-teal-500/30 bg-teal-500/10 text-teal-700 tabular-nums dark:text-teal-300"
+    >
+      <Check className="h-3 w-3" />
+      HUB · {hub.features.length}
+    </Badge>
+  );
+}
+
+/** Stav klienta jen jako výjimka: „Aktivní“ má skoro každý, proto se neukazuje. */
+function ClientStatusBadge({ status }: { status: string }) {
+  if (status === "active") return null;
+  return (
+    <Badge variant={statusVariants[status] ?? "secondary"} className="font-normal">
+      {statusLabels[status] ?? status}
+    </Badge>
+  );
+}
+
+/** Iniciály klienta (u firmy ikona). */
+function ClientAvatar({ client }: { client: ClientRow }) {
+  const initials = client.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+  return (
+    <span
+      aria-hidden
+      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+    >
+      {client.kind === "company" ? <Building2 className="h-4 w-4" /> : initials}
+    </span>
+  );
+}
+
+/** Klient: jméno + stav (výjimky), pod tím značka nebo kontakt a e-mail. */
+function ClientCell({ client: c }: { client: ClientRow }) {
+  const sub = [
+    c.kind === "company" ? c.contactName && `kontakt: ${c.contactName}` : c.company,
+    c.email,
+  ].filter(Boolean);
+  return (
+    <span className="flex min-w-0 items-center gap-3">
+      <ClientAvatar client={c} />
+      <span className="flex min-w-0 flex-col">
+        <span className="flex flex-wrap items-center gap-2">
+          <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
+            {c.name}
+          </Link>
+          <ClientStatusBadge status={c.status} />
+        </span>
+        {sub.length > 0 && (
+          <span className="truncate text-sm text-muted-foreground">{sub.join(" · ")}</span>
+        )}
+      </span>
+    </span>
+  );
+}
+
+const cardDot: Record<string, string> = {
+  live: "bg-emerald-500",
+  setup: "border border-amber-500 bg-transparent",
+  maintenance: "bg-amber-500",
+  offline: "bg-muted-foreground/40",
+};
+
+/** Vizitka: stav nasazení (tečka) a hlavní adresa jako odkaz. */
+function CardCell({ client: c }: { client: ClientRow }) {
+  if (!c.card) return <span className="text-muted-foreground">—</span>;
+  const { host, status } = c.card;
+  const extra = c.services.cards - 1;
+  return (
+    <span className="flex items-center gap-2" title={instanceStatusLabels[status] ?? status}>
+      <span className={cn("size-2 shrink-0 rounded-full", cardDot[status] ?? cardDot.offline)} />
+      {host && status === "live" ? (
+        <a
+          href={`https://${host}`}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate hover:underline"
+        >
+          {host}
+        </a>
       ) : (
-        <Badge variant="outline" className="border-dashed font-normal text-muted-foreground">
-          Nepozván
-        </Badge>
+        <span className="truncate text-muted-foreground">
+          {host ?? instanceStatusLabels[status] ?? status}
+        </span>
       )}
-      {hub.features.map((f) => (
-        <Badge key={f} variant="outline" className="font-normal text-muted-foreground">
-          {HUB_FEATURES[f]}
-        </Badge>
-      ))}
+      {extra > 0 && <span className="text-sm text-muted-foreground">+{extra}</span>}
     </span>
   );
 }
@@ -231,58 +324,28 @@ function sortHeader(label: string) {
 
 const dataColumns = [
   columnHelper.accessor("name", {
-    header: sortHeader("Jméno / název"),
+    header: sortHeader("Klient"),
     sortingFn: czSort,
-    cell: (info) => (
-      <Link
-        href={`/clients/${info.row.original.id}`}
-        className="inline-flex items-center gap-1.5 font-medium hover:underline"
-      >
-        {info.row.original.kind === "company" && (
-          <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Firma" />
-        )}
-        {info.getValue()}
-      </Link>
-    ),
+    cell: (info) => <ClientCell client={info.row.original} />,
   }),
-  // U firmy se zobrazuje (a řadí) kontaktní osoba, u osoby značka.
-  columnHelper.accessor((r) => (r.kind === "company" ? r.contactName : r.company) || undefined, {
-    id: "company",
-    header: sortHeader("Značka / kontakt"),
-    sortingFn: czSort,
-    sortUndefined: "last",
-    cell: (info) => {
-      const c = info.row.original;
-      if (c.kind === "company") {
-        return c.contactName ? (
-          <span>
-            <span className="text-muted-foreground">kontakt: </span>
-            {c.contactName}
-          </span>
-        ) : (
-          "—"
-        );
-      }
-      return c.company || "—";
-    },
-  }),
-  columnHelper.accessor("email", {
-    header: sortHeader("E-mail"),
-    sortingFn: czSort,
-  }),
+  // Skrytý sloupec jen pro filtr stavu (stav se ukazuje u jména).
   columnHelper.accessor("status", {
-    header: sortHeader("Stav"),
+    header: () => null,
     sortingFn: (a, b) =>
       (statusRank[a.original.status] ?? 9) - (statusRank[b.original.status] ?? 9),
-    cell: (info) => (
-      <Badge variant={statusVariants[info.getValue()] ?? "secondary"}>
-        {statusLabels[info.getValue()] ?? info.getValue()}
-      </Badge>
-    ),
     filterFn: (row, _columnId, filterValue) => {
       if (!filterValue || filterValue === "all") return true;
       return row.original.status === filterValue;
     },
+  }),
+  // Živé první, pak podle adresy.
+  columnHelper.accessor((r) => (r.card ? `${r.card.status === "live" ? 0 : 1}${r.card.host ?? ""}` : undefined), {
+    id: "card",
+    header: sortHeader("Vizitka"),
+    sortingFn: czSort,
+    sortUndefined: "last",
+    enableGlobalFilter: false,
+    cell: (info) => <CardCell client={info.row.original} />,
   }),
   columnHelper.accessor("billing", {
     header: sortHeader("Paušál"),
@@ -308,14 +371,14 @@ const dataColumns = [
   }),
   columnHelper.accessor((r) => r.updatedAt ?? undefined, {
     id: "updatedAt",
-    header: sortHeader("Poslední aktivita"),
+    header: sortHeader("Aktivita"),
     sortingFn: timeSort,
     sortUndefined: "last",
-    cell: (info) => {
-      const val = info.getValue();
-      if (!val) return "—";
-      return new Date(val).toLocaleDateString("cs-CZ");
-    },
+    cell: (info) => (
+      <span className="whitespace-nowrap text-muted-foreground tabular-nums">
+        {formatRelativeDay(info.getValue())}
+      </span>
+    ),
   }),
   columnHelper.accessor((r) => r.ownerName ?? undefined, {
     id: "owner",
@@ -607,11 +670,7 @@ export function ClientsPageClient({
                     c.name
                   )
                 }
-                badge={
-                  <Badge variant={statusVariants[c.status] ?? "secondary"}>
-                    {statusLabels[c.status] ?? c.status}
-                  </Badge>
-                }
+                badge={<ClientStatusBadge status={c.status} />}
                 subtitle={[
                   c.kind === "company" ? c.contactName : c.company,
                   c.email,
@@ -620,14 +679,15 @@ export function ClientsPageClient({
                   .join(" · ")}
                 meta={
                   <>
-                    {c.billing !== "none" && <BillingCell client={c} />}
-                    <ServicesCell services={c.services} />
-                    {(c.hub.invited || c.hub.features.length > 0) && <HubCell hub={c.hub} />}
-                    {c.updatedAt && (
-                      <span>
-                        {new Date(c.updatedAt).toLocaleDateString("cs-CZ")}
+                    {c.card ? <CardCell client={c} /> : <ServicesCell services={c.services} />}
+                    {c.billing === "paying" && c.planLabel && (
+                      <span className="tabular-nums">
+                        {c.planLabel}
+                        {c.priceMonthly != null && ` · ${formatCurrency(c.priceMonthly)}/měs`}
                       </span>
                     )}
+                    {(c.hub.invited || c.hub.features.length > 0) && <HubCell hub={c.hub} />}
+                    {c.updatedAt && <span>{formatRelativeDay(c.updatedAt)}</span>}
                   </>
                 }
               />
@@ -637,7 +697,8 @@ export function ClientsPageClient({
       </EntityCardList>
 
       {/* Desktop: tabulka */}
-      <div className="hidden rounded-md border md:block">
+      {/* Bez rámečku: tabulka už je v boxu obsahu. */}
+      <div className="hidden md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -686,7 +747,7 @@ export function ClientsPageClient({
                   }
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),

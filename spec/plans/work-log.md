@@ -2,6 +2,14 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-23: Přehlednější seznam klientů (v1.53.0)
+
+- Sloupec Klient: iniciály (u firmy ikona), jméno, pod ním značka nebo kontakt a e-mail. Samostatné sloupce Značka a E-mail zrušeny.
+- Stav klienta jen jako výjimka u jména (Onboarding, Pozastavený, Odešlý). Filtr stavu zůstává.
+- Nový sloupec Vizitka (přehled Vizitky): tečka se stavem nasazení a hlavní adresa, u živé jako odkaz; víc vizitek „+N“.
+- HUB stručně: „HUB · počet funkcí“ (výčet v nápovědě), bez pozvánky upozornění „Nepozván“.
+- Paušál ve dvou řádcích (tarif, cena), aktivita relativně (dnes, včera, před N dny), tabulka bez rámečku a s vyššími řádky. Mobilní karty stejně.
+
 ## 2026-11-23: Obsah CRM jako box uprostřed (v1.52.0)
 
 - Menu vlevo a horní lišta zůstávají přes celou šířku. Od `lg` je obsah stránky box uprostřed bílého pozadí (max. 1600 px, zaoblení a rámeček, bez stínu). Menší displeje beze změny.
