@@ -24,3 +24,10 @@ export function normalizeHost(input: string): string | null {
 export function withWww(host: string): string[] {
   return host.split(".").length === 2 ? [host, `www.${host}`] : [host];
 }
+
+/** Náhled pro klienta (spx-dbc 2.1): každá vizitka z repa bez ohledu na stav, noindex. */
+export const CARD_PREVIEW_HOST = "nahled.solopixel.cz";
+
+export function cardPreviewUrl(slug: string) {
+  return `https://${CARD_PREVIEW_HOST}/${slug}`;
+}
