@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { DIRECT_SOURCE, sourceLabel, type Attribution } from "@/lib/attribution";
 import { planLabel } from "@/lib/plans";
+import { placeLabel, segmentLabel } from "@/lib/web-places";
 
 export interface WebInquiry {
   industry: string | null;
@@ -12,6 +13,11 @@ export interface WebInquiry {
   promoCode?: string | null; // od 1.28.0
   message: string | null;
   note: string | null;
+  // od 1.57.0
+  place?: string | null;
+  page?: string | null;
+  segment?: string | null;
+  chatQuestions?: string[] | null;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -29,8 +35,9 @@ function linkHref(link: string) {
 }
 
 /**
- * Poptávka z webu na detailu kontaktu: co klient vyplnil ve formuláři a odkud
- * na web přišel (UTM kampaň, referrer, první stránka).
+ * Poptávka z webu na detailu kontaktu: co klient vyplnil ve formuláři, kde na webu
+ * (místo, stránka, obor, otázky z chatu Pixely) a odkud na web přišel (UTM kampaň,
+ * referrer, první stránka).
  */
 export function WebInquiryCard({
   inquiry,
@@ -51,6 +58,9 @@ export function WebInquiryCard({
 
       {inquiry && (
         <dl className="space-y-2 text-sm">
+          {inquiry.place && <Row label="Místo na webu">{placeLabel(inquiry.place)}</Row>}
+          {inquiry.page && <Row label="Stránka">{inquiry.page}</Row>}
+          {inquiry.segment && <Row label="Obor webu">{segmentLabel(inquiry.segment)}</Row>}
           {inquiry.promoCode && <Row label="Promo kód">{inquiry.promoCode}</Row>}
           {inquiry.industry && <Row label="Obor">{inquiry.industry}</Row>}
           {inquiry.product && <Row label="Produkt">{inquiry.product}</Row>}
@@ -81,6 +91,16 @@ export function WebInquiryCard({
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">Zpráva</p>
           <p className="whitespace-pre-wrap text-sm">{inquiry.message}</p>
+        </div>
+      )}
+      {inquiry?.chatQuestions && inquiry.chatQuestions.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Otázky z chatu s Pixelou</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {inquiry.chatQuestions.map((q, i) => (
+              <li key={i} className="whitespace-pre-wrap break-words">{q}</li>
+            ))}
+          </ul>
         </div>
       )}
       {inquiry?.note && (

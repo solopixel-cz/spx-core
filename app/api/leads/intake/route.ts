@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
 import { redeemPromoCode } from "@/lib/promo-codes";
 import { normalizePromoCode } from "@/lib/schemas/promo-code";
+import { placeLabel, segmentLabel, WEB_PLACES } from "@/lib/web-places";
 
 /**
  * Veřejný příjem poptávek z marketingového webu (spx-web, /kontakt).
@@ -22,6 +23,9 @@ import { normalizePromoCode } from "@/lib/schemas/promo-code";
  *
  * Promo kód se ověří a započítá ve stejné transakci, ve které vznikne kontakt.
  * Neplatný kód poptávku odmítne (422 `promo_invalid`), web ukáže chybu u pole.
+ *
+ * Od 1.57.0 ukládá i místo na webu (`lead_source` → `inquiry.place`), stránku,
+ * obor a u chatu Pixely poslední otázky návštěvníka (`inquiry.chatQuestions`).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +63,10 @@ export async function POST(request: NextRequest) {
       promoCode: data.promoCode ? normalizePromoCode(data.promoCode) : null,
       message: data.message ?? null,
       note: stripSourceLine(data.note) ?? null,
+      place: data.lead_source && WEB_PLACES[data.lead_source] ? data.lead_source : null,
+      page: data.page ?? null,
+      segment: data.segment ?? null,
+      chatQuestions: data.chat_questions ?? null,
     };
     const attribution = {
       utmSource: data.utm_source ?? null,
@@ -72,6 +80,8 @@ export async function POST(request: NextRequest) {
 
     // Čitelný záznam do aktivity kontaktu.
     const lines: string[] = [];
+    if (inquiry.place) lines.push(`Místo na webu: ${placeLabel(inquiry.place)}${inquiry.page ? ` (${inquiry.page})` : ""}`);
+    if (inquiry.segment) lines.push(`Obor webu: ${segmentLabel(inquiry.segment)}`);
     if (data.company) lines.push(`Firma: ${data.company}`);
     if (inquiry.promoCode) lines.push(`Promo kód: ${inquiry.promoCode}`);
     if (inquiry.industry) lines.push(`Obor: ${inquiry.industry}`);
@@ -82,6 +92,7 @@ export async function POST(request: NextRequest) {
     if (inquiry.link) lines.push(`Odkaz: ${inquiry.link}`);
     if (inquiry.message) lines.push(`Zpráva: ${inquiry.message}`);
     if (inquiry.note) lines.push(`Poznámka: ${inquiry.note}`);
+    if (inquiry.chatQuestions) lines.push(`Otázky z chatu:\n${inquiry.chatQuestions.map((q) => `- ${q}`).join("\n")}`);
     if (source) lines.push(`Zdroj: ${source}`);
 
     const db = getAdminFirestore();
@@ -130,7 +141,7 @@ export async function POST(request: NextRequest) {
     await notify({
       type: "lead.web",
       title: "Nová poptávka z webu",
-      body: [data.name, data.company, data.email, inquiry.promoCode && `promo ${inquiry.promoCode}`, source]
+      body: [data.name, data.company, data.email, inquiry.place && placeLabel(inquiry.place), inquiry.promoCode && `promo ${inquiry.promoCode}`, source]
         .filter(Boolean)
         .join(" · "),
       href: `/prospects/${docRef.id}`,

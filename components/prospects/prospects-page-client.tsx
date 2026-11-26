@@ -38,6 +38,7 @@ import {
   listSourceLabel,
   type Attribution,
 } from "@/lib/attribution";
+import { listPlaceKey, listPlaceLabel } from "@/lib/web-places";
 import { ArchiveNotice, ArchiveToggle } from "@/components/archive-toggle";
 import {
   BulkArchiveBar,
@@ -135,6 +136,7 @@ export function ProspektiPageClient({
   const [globalFilter, setGlobalFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [campaignFilter, setCampaignFilter] = useState("all");
+  const [placeFilter, setPlaceFilter] = useState("all");
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -161,6 +163,7 @@ export function ProspektiPageClient({
   }
   const sourceGroups = webOnly ? countBy((p) => listSourceKey(p.attribution), listSourceLabel) : [];
   const campaignGroups = webOnly ? countBy((p) => p.attribution?.utmCampaign ?? null, (k) => k) : [];
+  const placeGroups = webOnly ? countBy((p) => listPlaceKey(p.inquiry), listPlaceLabel) : [];
 
   // Filter prospects client-side
   let filtered = prospects;
@@ -193,6 +196,9 @@ export function ProspektiPageClient({
   }
   if (webOnly && campaignFilter !== "all") {
     filtered = filtered.filter((p) => (p.attribution?.utmCampaign ?? "") === campaignFilter);
+  }
+  if (webOnly && placeFilter !== "all") {
+    filtered = filtered.filter((p) => listPlaceKey(p.inquiry) === placeFilter);
   }
 
   // Text filter
@@ -340,10 +346,11 @@ export function ProspektiPageClient({
       )}
 
 
-      {/* Poptávky z webu: počty podle zdroje a kampaně, klik = filtr */}
+      {/* Poptávky z webu: počty podle místa na webu, zdroje a kampaně, klik = filtr */}
       {webOnly && (
         <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs">
           {[
+            { title: "Podle místa", groups: placeGroups, value: placeFilter, set: setPlaceFilter },
             { title: "Podle zdroje", groups: sourceGroups, value: sourceFilter, set: setSourceFilter },
             { title: "Podle kampaně", groups: campaignGroups, value: campaignFilter, set: setCampaignFilter },
           ]

@@ -12,6 +12,7 @@ import {
   Settings,
   Globe,
   Wallet,
+  MessageSquareText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -52,6 +53,7 @@ export const navGroups: NavGroup[] = [
       { label: "Klienti", href: "/clients", icon: Users },
       { label: "Moje vizitky", href: "/my-cards", icon: CreditCard, roles: ["sales"] },
       { label: "Podklady", href: "/submissions", icon: ClipboardList },
+      { label: "Zpětná vazba z webu", href: "/web-feedback", icon: MessageSquareText, roles: ["admin", "member"] },
     ],
   },
   {

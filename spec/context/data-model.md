@@ -20,7 +20,7 @@ Všechny entity mají `createdAt`, `updatedAt` (Timestamp) a `createdBy` (uid). 
   senderEmail?: string       // override odesílatele oslovení (musí být na ověřené doméně); bez hodnoty = email. Mění jen admin.
   senderName?: string        // override jména odesílatele; bez hodnoty = displayName. Mění jen admin.
   calendarDigestEmail?: boolean  // ranní souhrn z kalendáře i e-mailem; chybí = ano. Mění si každý sám (profil → Notifikace nebo Kalendář).
-  notificationPrefs?: Record<string, boolean>  // co komu chodí do zvonečku a push: leads, submissions, hub, emailOpened, billing, calendar (lib/notification-prefs.ts); chybí = zapnuto. Dostávají admin a member, sales ne.
+  notificationPrefs?: Record<string, boolean>  // co komu chodí do zvonečku a push: leads, feedback, submissions, hub, emailOpened, billing, calendar (lib/notification-prefs.ts); chybí = zapnuto. Dostávají admin a member, sales ne.
 }
 ```
 
@@ -357,7 +357,11 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
   inquiry?: {                // jen source=web: obsah poptávky z formuláře (chybějící = null)
     industry, product, plan, teamType, teamSize, link, message,
     promoCode                // platný promo kód z `promoCodes` (od 1.28.0)
-    note                     // poznámka klienta celá, bez řádku „Zdroj: …", který přidává web
+    note                     // poznámka klienta celá, bez řádků „Odkud: …" a „Zdroj: …", které přidává web
+    place                    // od 1.57.0: místo na webu (hero, cta_bottom, kontakt, pixela, obor_hero, obor_cta, o_nas, exit), popisky v lib/web-places.ts
+    page                     // od 1.57.0: stránka, ze které poptávka přišla (/cs/pro/remeslnici)
+    segment                  // od 1.57.0: obor stránky (slug, např. remeslnici)
+    chatQuestions            // od 1.57.0: jen place=pixela, posledních max. 5 otázek z chatu (string[]), bez odpovědí
   }
   attribution?: {            // jen source=web: odkud návštěvník přišel (chybějící = null)
     utmSource                // letak, banner…; „direct" = zdroj neznámý
@@ -373,7 +377,7 @@ Zásobník oslovení — kontakty z portálu poradců a poptávky z webu, vrstva
 - **Zabírání:** volné (kdokoli ze sales si vezme volného prospekta), zápis `ownerUid` v transakci — brání souběhu.
 - **Log kontaktů:** přes `activity` (entityType=`prospect`, kind=`call`/`email`/`note`) — kdo, kdy, kanál, výsledek.
 - **Převod na klienta:** akce „Vytvořit klienta" na detailu otevře předvyplněný formulář klienta → `POST /api/clients` s `prospectId` → klient (`prospectId`, `salesOwnerUid` = vlastník kontaktu), kontakt `status=converted` + `clientId`.
-- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, firma z formuláře jde do `company`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě.
+- **Poptávky z webu:** `POST /api/leads/intake` (cesta zachovaná kvůli spx-web proxy) založí kontakt `source=web`, `status=new`, firma z formuláře jde do `company`, vlastník z env `LEADS_DEFAULT_OWNER_UID`; obsah poptávky se uloží strukturovaně do `inquiry` a zdroj návštěvy do `attribution` (a zároveň čitelně do aktivity kontaktu), notifikace `lead.web` (in-app + Web Push adminům, e-mail se neposílá) míří na detail a nese zdroj. Pohled „Poptávky z webu" (`/prospects?source=web`) načte všechny webové poptávky bez stránkování a počítá je podle `attribution.utmSource` a `utmCampaign`. Starší poptávky (před 1.14.0) mají obsah jen v aktivitě. Od 1.57.0 se ukládá i místo na webu, stránka a obor (`inquiry.place/page/segment`, v pohledu „Poptávky z webu" počty a filtr „Podle místa") a u poptávky z chatu Pixely otázky z chatu (`inquiry.chatQuestions`).
 - **Kategorie:** `category` je název kategorie kontaktu (string) — zdroj hodnot je `prospectCategories` + výchozí konstanty. Lze filtrovat v seznamu, editovat na detailu (tab Informace i Oslovení) i ve formuláři.
 - Viditelnost: všichni sales vidí všechno (transparentní koordinace).
 
@@ -395,6 +399,29 @@ Promo kódy pro poptávkový formulář na webu (spx-web /kontakt). ID dokumentu
 - **Ověření:** web volá `POST /api/promo-codes/validate` (tajemství `x-ingest-secret`) při vyplnění pole, bez započítání. `POST /api/leads/intake` kód znovu ověří a započítá ve stejné transakci, ve které zakládá kontakt; neplatný kód vrátí 422 `{ error: "promo_invalid", reason }` (`not_found | inactive | expired | exhausted`) a kontakt nevznikne.
 - **Použití:** kontakty s `inquiry.promoCode == code` (seznam v detailu kódu).
 - **QR kód (od 1.31.0):** v Nastavení → Promo kódy jde ke kódu zobrazit a stáhnout QR (SVG/PNG) s odkazem `https://www.solopixel.cz/cs/kontakt?promo=KOD&utm_source=qr#form` (`lib/promo-url.ts`); web kód z `?promo=` předvyplní a ověří. Nic se neukládá.
+- **Rules:** `allow read, write: if false` (jen admin SDK).
+
+### `webFeedback`
+Odpovědi z dotazu při odchodu z webu (spx-web `ExitSurvey`, od 1.57.0). Nejsou to poptávky, proto nejsou v `prospects`. V UI **„Zpětná vazba z webu"** (`/web-feedback`, admin a member).
+
+```ts
+{
+  reason: 'rozhlizim' | 'cena' | 'obor' | 'mam' | 'jine'  // popisky v lib/web-feedback.ts
+  message: string | null     // jen reason=jine (povinné), max. 1000 znaků
+  contact: string | null     // jen reason=jine, dobrovolný e-mail nebo telefon
+  page: string | null        // stránka, na které okno vyskočilo
+  device: 'desktop' | 'mobile'
+  seconds: number | null     // doba na webu
+  pages: number | null       // počet stránek v návštěvě
+  attribution: { utmSource, utmMedium, utmCampaign, utmContent, referrer, landingPage }  // jako u prospects
+  prospectId: string | null  // kontakt v Oslovení, když návštěvník nechal kontakt
+  createdAt: Timestamp
+}
+```
+
+- **Příjem:** web volá `POST /api/web-feedback/intake` (server-to-server, `x-ingest-secret` = `WEB_LEAD_INGEST_SECRET`, adresu odvozuje z `LEAD_INGEST_URL`). Web navíc posílá e-mail na hello@solopixel.cz (Resend), když má klíč.
+- **Kontakt:** u „Něco jiného" s vyplněným kontaktem vznikne i kontakt v Oslovení (`source=web`, `status=new`, `inquiry.place=exit`, text odpovědi v `inquiry.message`, vlastník `LEADS_DEFAULT_OWNER_UID`) s notifikací `lead.web`.
+- **Notifikace:** jen odpovědi s textem (reason=jine) bez kontaktu, typ `feedback.web`, téma „Zpětná vazba z webu" v profilu. Odpovědi na jedno kliknutí se jen počítají.
 - **Rules:** `allow read, write: if false` (jen admin SDK).
 
 ### `prospectCategories`

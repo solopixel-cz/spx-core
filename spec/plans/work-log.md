@@ -2,6 +2,15 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-26: Formuláře webu v2 do CRM (v1.57.0)
+
+- Poptávky z webu (`/api/leads/intake`) ukládají místo na webu (`inquiry.place`: hero, cta_bottom, kontakt, pixela, obor_hero, obor_cta, o_nas, exit), stránku, obor a u chatu Pixely posledních 5 otázek (`inquiry.chatQuestions`). Popisky v `lib/web-places.ts`. Řádek „Odkud: …" z poznámky se odstraňuje stejně jako „Zdroj: …".
+- Detail kontaktu: karta Poptávka z webu ukazuje místo, stránku, obor a otázky z chatu. Pohled Poptávky z webu má počty a filtr „Podle místa".
+- Nová kolekce `webFeedback` a stránka **Zpětná vazba z webu** (`/web-feedback`, Obchod, admin a member): odpovědi z dotazu při odchodu, počty podle důvodu, filtr „Jen s textem", hledání. Příjem `POST /api/web-feedback/intake` (stejné tajemství jako poptávky). Odpověď s kontaktem založí i kontakt v Oslovení (`inquiry.place=exit`, notifikace `lead.web`), text bez kontaktu pošle notifikaci `feedback.web` (nové téma v profilu).
+- `firestore.rules`: `webFeedback` jen admin SDK. Po nasazení `firebase deploy --only firestore`.
+- Web (spx-web v2.0.0) posílá nová pole a zpětnou vazbu; CRM nasadit dřív než web.
+- Ověřeno: tsc (chyby jen ve starých `.next/types`), eslint čistý, schémata na vzorových datech přes tsx. Build a prohlížeč neověřeny (bez dev serveru).
+
 ## 2026-11-23: Výraznější hledání (v1.55.0)
 
 - Horní lišta: hledání jako hlavní prvek (široké bílé pole, lupa v primární barvě, zkratka ⌘K / Ctrl K podle systému), na mobilu ikona lupy (dřív na mobilu chybělo).
