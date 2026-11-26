@@ -10,7 +10,8 @@ import { copySubmissionIcoToClient } from "@/lib/submission-ico";
  * Interní upozornění na nový vyplněný podklad.
  *
  * Volá se server-to-server z webu (`spx-web`) po úspěšném odeslání formuláře —
- * viz varianta A ve fázi 30. Chráněno sdíleným tajemstvím (`SUBMISSION_NOTIFY_SECRET`),
+ * viz varianta A ve fázi 30. Chráněno sdíleným tajemstvím: od 1.57.0 stačí `WEB_LEAD_INGEST_SECRET`
+ * (stejné jako poptávky, web posílá jedno tajemství na všechno), starší `SUBMISSION_NOTIFY_SECRET` platí dál,
  * idempotentní přes `notifiedAt` (jeden podklad = jeden e-mail).
  */
 
@@ -25,14 +26,15 @@ function escapeHtml(value: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const secret = process.env.SUBMISSION_NOTIFY_SECRET;
-    if (!secret) {
+    const secrets = [process.env.WEB_LEAD_INGEST_SECRET, process.env.SUBMISSION_NOTIFY_SECRET].filter(Boolean);
+    if (secrets.length === 0) {
       return NextResponse.json(
-        { error: "SUBMISSION_NOTIFY_SECRET is not configured" },
+        { error: "WEB_LEAD_INGEST_SECRET is not configured" },
         { status: 500 }
       );
     }
-    if (request.headers.get("x-notify-secret") !== secret) {
+    const given = request.headers.get("x-notify-secret");
+    if (!given || !secrets.includes(given)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

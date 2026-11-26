@@ -14,6 +14,7 @@ export interface NotificationTopic {
 
 export const NOTIFICATION_TOPICS: NotificationTopic[] = [
   { key: "leads", label: "Nová poptávka z webu", description: "Někdo vyplnil formulář na solopixel.cz", types: ["lead.web"] },
+  { key: "feedback", label: "Zpětná vazba z webu", description: "Návštěvník při odchodu z webu napsal, co mu chybělo", types: ["feedback.web"] },
   { key: "submissions", label: "Vyplněné podklady", description: "Klient poslal podklady k vizitce", types: ["submission.filled"] },
   { key: "hub", label: "Zprávy z HUBu", description: "Nová zpětná vazba nebo odpověď klienta", types: ["ticket.hub", "ticket.hub_message"] },
   { key: "emailOpened", label: "Klient otevřel e-mail", description: "E-mail s formulářem nebo fakturou", types: ["email.form_opened", "invoice.opened"] },

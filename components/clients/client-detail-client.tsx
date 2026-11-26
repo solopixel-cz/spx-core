@@ -18,8 +18,11 @@ import {
   Globe,
   FileText,
   Plus,
+  Eye,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { cardPreviewUrl } from "@/lib/card-hosts";
 import {
   Select,
   SelectContent,
@@ -313,6 +316,27 @@ export function ClientDetailClient({
   const cardInstances = instances.filter((i) => i.type === "card");
   const hasCard = cardInstances.length > 0;
   const showCardActions = hasCard || (instances.length === 0 && projects.length === 0);
+  // Náhled pro klienta (nahled.solopixel.cz/<slug>): slugy vizitek, u nového klienta bez instance slug z karty.
+  const previewSlugs = [
+    ...new Set(
+      (hasCard
+        ? cardInstances.map((i) => i.advisorSlug)
+        : showCardActions
+          ? [client.advisorSlug]
+          : [])
+        .map((s) => s?.trim())
+        .filter((s): s is string => !!s)
+    ),
+  ];
+
+  async function copyPreview(slug: string) {
+    try {
+      await navigator.clipboard.writeText(cardPreviewUrl(slug));
+      toast.success("Odkaz na náhled zkopírován");
+    } catch {
+      toast.error("Odkaz se nepodařilo zkopírovat");
+    }
+  }
   // Do SoloPixel HUB smí každý, kdo u nás má vizitku nebo web.
   const hasHubService = instances.length > 0;
   const liveProjects = projects.filter((p) => p.status !== "cancelled");
@@ -523,6 +547,30 @@ export function ClientDetailClient({
             <Pencil className="mr-2 h-4 w-4" />
             Upravit
           </Button>
+          {previewSlugs.map((slug) => (
+            <div key={slug} className="flex items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-r-none"
+                nativeButton={false}
+                render={<a href={cardPreviewUrl(slug)} target="_blank" rel="noopener noreferrer" />}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {previewSlugs.length > 1 ? `Náhled ${slug}` : "Náhled vizitky"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="-ml-px rounded-l-none px-2"
+                onClick={() => copyPreview(slug)}
+                aria-label="Kopírovat odkaz na náhled"
+                title="Kopírovat odkaz pro klienta"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
           {/* Všechno, co odchází klientovi e-mailem, v jednom menu */}
           {client.email && !isArchived && (showCardActions || hasHubService || isAdminOrMember) && (
             <DropdownMenu>
