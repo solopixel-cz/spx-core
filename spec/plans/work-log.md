@@ -2,6 +2,10 @@
 
 Nejnovější záznamy nahoře.
 
+## 2026-11-26: Kategorie bez hodnoty (v1.57.1)
+
+- Detail kontaktu: výběr kategorie u kontaktu bez kategorie ukazoval surovou hodnotu `__none__`. Base UI Select potřebuje `items`, aby znal popisky před otevřením nabídky; doplněno v `components/prospects/category-select.tsx`. Ostatní výběry s `__none__` `items` mají.
+
 ## 2026-11-26: Formuláře webu v2 do CRM (v1.57.0)
 
 - Poptávky z webu (`/api/leads/intake`) ukládají místo na webu (`inquiry.place`: hero, cta_bottom, kontakt, pixela, obor_hero, obor_cta, o_nas, exit), stránku, obor a u chatu Pixely posledních 5 otázek (`inquiry.chatQuestions`). Popisky v `lib/web-places.ts`. Řádek „Odkud: …" z poznámky se odstraňuje stejně jako „Zdroj: …".
