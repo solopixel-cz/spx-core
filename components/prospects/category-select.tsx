@@ -144,6 +144,7 @@ export function CategorySelect({
     <div className={className}>
       <div className="flex gap-2">
         <Select
+          items={{ [NONE]: "Bez kategorie", ...Object.fromEntries(options.map((c) => [c, c])) }}
           value={value || NONE}
           onValueChange={(val) => val && onChange(val === NONE ? "" : val)}
           disabled={disabled}
