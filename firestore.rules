@@ -138,6 +138,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Zpětná vazba z dotazu při odchodu z webu (1.57.0): jen admin SDK.
+    match /webFeedback/{id} {
+      allow read, write: if false;
+    }
+
     // Náklady provozu — jen přes admin SDK (přehled /costs).
     match /costServices/{serviceId} {
       allow read, write: if false;
