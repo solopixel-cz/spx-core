@@ -591,7 +591,7 @@ Nový web zapisuje **vnořený tvar** (`schemaVersion: 2`) — zdroj pravdy je k
 
 Zod: `cardSubmissionSchema` (v2) + `legacyCardSubmissionSchema` (staré ploché záznamy) v `lib/schemas/card-submission.ts`.
 
-Upozornění na nový podklad: web po odeslání volá `POST /api/submissions/notify` (přes proxy `spx-web/pages/api/notify-submission.ts`, sdílené tajemství `SUBMISSION_NOTIFY_SECRET`) → CRM pošle e-mail na `hello@solopixel.cz` a nastaví `notifiedAt`.
+Upozornění na nový podklad: web po odeslání volá `POST /api/submissions/notify` (přes proxy `spx-web/pages/api/notify-submission.ts`, sdílené tajemství `WEB_LEAD_INGEST_SECRET` jako u poptávek, od 1.57.0; starší `SUBMISSION_NOTIFY_SECRET` platí dál) → CRM pošle e-mail na `hello@solopixel.cz` a nastaví `notifiedAt`.
 
 <details><summary>Legacy tvar (bez <code>schemaVersion</code>)</summary>
 

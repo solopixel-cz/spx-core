@@ -9,6 +9,7 @@ Nejnovější záznamy nahoře.
 - Nová kolekce `webFeedback` a stránka **Zpětná vazba z webu** (`/web-feedback`, Obchod, admin a member): odpovědi z dotazu při odchodu, počty podle důvodu, filtr „Jen s textem", hledání. Příjem `POST /api/web-feedback/intake` (stejné tajemství jako poptávky). Odpověď s kontaktem založí i kontakt v Oslovení (`inquiry.place=exit`, notifikace `lead.web`), text bez kontaktu pošle notifikaci `feedback.web` (nové téma v profilu).
 - `firestore.rules`: `webFeedback` jen admin SDK. Po nasazení `firebase deploy --only firestore`.
 - Web (spx-web v2.0.0) posílá nová pole a zpětnou vazbu; CRM nasadit dřív než web.
+- Jedno tajemství s webem: `/api/submissions/notify` přijímá i `WEB_LEAD_INGEST_SECRET` (starší `SUBMISSION_NOTIFY_SECRET` platí dál, jde smazat). Web má místo 12 proměnných 3 (CRM_URL, WEB_LEAD_INGEST_SECRET, OPENAI_API_KEY).
 - Ověřeno: tsc (chyby jen ve starých `.next/types`), eslint čistý, schémata na vzorových datech přes tsx. Build a prohlížeč neověřeny (bez dev serveru).
 
 ## 2026-11-23: Výraznější hledání (v1.55.0)
